@@ -49,18 +49,16 @@ class EmailService {
       return null;
     }
 
-    const transporter = nodemailer.createTransporter({
-      service: 'gmail',
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // true for 465, false for other ports
       auth: {
         user: this.gmailUser,
         pass: this.gmailPass,
       },
-      pool: false, // Disable connection pooling to avoid connection issues
-      secure: true,
-      port: 465,
       tls: {
-        rejectUnauthorized: false,
-        ciphers: 'SSLv3'
+        rejectUnauthorized: false
       },
       connectionTimeout: 60000,
       greetingTimeout: 30000,

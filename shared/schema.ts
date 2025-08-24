@@ -92,6 +92,18 @@ export const systemLogs = pgTable("system_logs", {
   timestamp: timestamp("timestamp").defaultNow(),
 });
 
+// Notifications table
+export const notifications = pgTable('notifications', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  message: text('message').notNull(),
+  type: text('type').notNull(), // 'info', 'warning', 'success'
+  isActive: boolean('is_active').default(true),
+  createdBy: text('created_by').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+
 // Zod schemas for validation
 export const insertUserSchema = z.object({
   email: z.string().email(),
@@ -149,3 +161,5 @@ export type ImageAnalytics = typeof imageAnalytics.$inferSelect;
 export type NewImageAnalytics = typeof imageAnalytics.$inferInsert;
 export type SystemLog = typeof systemLogs.$inferSelect;
 export type NewSystemLog = typeof systemLogs.$inferInsert;
+export type Notification = typeof notifications.$inferSelect;
+export type NewNotification = typeof notifications.$inferInsert;

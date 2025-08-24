@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 import EnhancedImageGrid from "@/components/enhanced-image-grid";
 import EmailVerificationBanner from "@/components/email-verification-banner";
+import { NotificationBanner } from '@/components/notification-banner';
 import { Upload, Image as ImageIcon, BarChart3, Key, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
@@ -108,7 +109,10 @@ export default function Dashboard() {
   return (
     <SidebarContentLoader>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto">
+        {/* Notifications */}
+        <NotificationBanner />
+
         {/* Email Verification Banner */}
         {user && !user.emailVerified && (
           <EmailVerificationBanner userEmail={user.email || ''} />
@@ -351,7 +355,7 @@ export default function Dashboard() {
                         />
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="flex justify-between text-sm mb-2">
                         <span className="text-gray-600 dark:text-gray-400">API Requests (Monthly)</span>

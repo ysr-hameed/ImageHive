@@ -1,8 +1,7 @@
-
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { eq, desc, and, like, sql, count } from "drizzle-orm";
-import { users, images, apiKeys, customDomains, imageAnalytics, systemLogs } from "@shared/schema";
+import { users, images, apiKeys, customDomains, imageAnalytics, systemLogs, notifications } from "@shared/schema"; // Assuming 'notifications' is added to schema
 import crypto from "crypto";
 
 const connectionString = process.env.DATABASE_URL;
@@ -66,7 +65,7 @@ class Storage {
       storageUsed: userData.storageUsed || 0,
       storageLimit: userData.storageLimit || 1024 * 1024 * 1024, // 1GB
     }).returning();
-    
+
     console.log(`User created: ${user.email}`);
     return user;
   }
@@ -166,12 +165,61 @@ class Storage {
     return { id: log.userId };
   }
 
-  async deletePasswordResetToken(token: string) {
+  async deletePasswordResetToken(token: string): Promise<void> {
     await db.delete(systemLogs).where(and(
       eq(systemLogs.message, 'password_reset_token'),
       sql`metadata->>'token' = ${token}`
     ));
   }
+
+  // Notification methods
+  async createNotification(data: {
+    title: string;
+    message: string;
+    type: string;
+    isActive: boolean;
+    createdBy: string;
+  }) {
+    const [notification] = await db.insert(notifications).values({
+      id: crypto.randomUUID(),
+      title: data.title,
+      message: data.message,
+      type: data.type,
+      isActive: data.isActive,
+      createdBy: data.createdBy,
+      createdAt: new Date(),
+    }).returning();
+    return notification;
+  }
+
+  async getActiveNotifications() {
+    return await db.select().from(notifications)
+      .where(eq(notifications.isActive, true))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getAllNotifications() {
+    return await db.select().from(notifications)
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async updateNotification(id: string, data: {
+    title?: string;
+    message?: string;
+    type?: string;
+    isActive?: boolean;
+  }) {
+    const [notification] = await db.update(notifications)
+      .set(data)
+      .where(eq(notifications.id, id))
+      .returning();
+    return notification;
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
+  }
+
 
   // Image management
   async createImage(userId: string, imageData: CreateImageData) {
@@ -192,14 +240,14 @@ class Storage {
       cdnUrl: imageData.cdnUrl,
       folder: imageData.folder || '',
     }).returning();
-    
+
     console.log(`Image created: ${image.filename}`);
     return image;
   }
 
   async getUserImages(userId: string, limit: number = 20, offset: number = 0, folder: string = '') {
     const conditions = [eq(images.userId, userId)];
-    
+
     if (folder) {
       conditions.push(like(images.folder, `${folder}%`));
     }
@@ -231,14 +279,14 @@ class Storage {
   // API Keys management
   async createApiKey(userId: string, keyData: CreateApiKeyData) {
     const keyHash = `sk_${crypto.randomBytes(32).toString('hex')}`;
-    
+
     const [apiKey] = await db.insert(apiKeys).values({
       userId,
       name: keyData.name,
       keyHash,
       isActive: true,
     }).returning();
-    
+
     console.log(`API key created: ${keyData.name}`);
     return apiKey;
   }
@@ -246,14 +294,14 @@ class Storage {
   async getApiKey(keyHash: string) {
     const [apiKey] = await db.select().from(apiKeys)
       .where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.isActive, true)));
-    
+
     if (apiKey) {
       // Update last used timestamp
       await db.update(apiKeys)
         .set({ lastUsed: new Date() })
         .where(eq(apiKeys.id, apiKey.id));
     }
-    
+
     return apiKey;
   }
 
@@ -271,19 +319,19 @@ class Storage {
       isVerified: false,
       sslEnabled: false,
     }).returning();
-    
+
     // Store verification token in system logs
     await db.insert(systemLogs).values({
       level: 'info',
       message: 'domain_verification_token',
       userId,
-      metadata: { 
+      metadata: {
         domainId: domain.id,
         token: domainData.verificationToken,
         cnameTarget: domainData.cnameTarget
       }
     });
-    
+
     console.log(`Custom domain created: ${domain.domain}`);
     return domain;
   }
@@ -313,14 +361,14 @@ class Storage {
     // In a real implementation, you would verify DNS records here
     // For now, we'll simulate verification
     await db.update(customDomains)
-      .set({ 
-        isVerified: true, 
+      .set({
+        isVerified: true,
         sslEnabled: true,
         verifiedAt: new Date(),
         updatedAt: new Date()
       })
       .where(eq(customDomains.id, domainId));
-    
+
     console.log(`Domain verified: ${domainId}`);
     return true;
   }
@@ -331,13 +379,13 @@ class Storage {
       // Get total images count
       const [totalImagesResult] = await db.select({ count: count() }).from(images)
         .where(eq(images.userId, userId));
-      
+
       // Get storage usage from user record
       const user = await this.getUser(userId);
-      
+
       // Get recent activity (last 30 days)
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      
+
       const [recentUploadsResult] = await db.select({ count: count() }).from(images)
         .where(and(
           eq(images.userId, userId),
@@ -345,15 +393,15 @@ class Storage {
         ));
 
       // Get views from analytics (if available)
-      const [totalViewsResult] = await db.select({ 
-        total: sql<number>`COALESCE(SUM(CASE WHEN event = 'view' THEN 1 ELSE 0 END), 0)` 
+      const [totalViewsResult] = await db.select({
+        total: sql<number>`COALESCE(SUM(CASE WHEN event = 'view' THEN 1 ELSE 0 END), 0)`
       }).from(imageAnalytics)
         .innerJoin(images, eq(imageAnalytics.imageId, images.id))
         .where(eq(images.userId, userId));
 
       // Get downloads
-      const [totalDownloadsResult] = await db.select({ 
-        total: sql<number>`COALESCE(SUM(CASE WHEN event = 'download' THEN 1 ELSE 0 END), 0)` 
+      const [totalDownloadsResult] = await db.select({
+        total: sql<number>`COALESCE(SUM(CASE WHEN event = 'download' THEN 1 ELSE 0 END), 0)`
       }).from(imageAnalytics)
         .innerJoin(images, eq(imageAnalytics.imageId, images.id))
         .where(eq(images.userId, userId));

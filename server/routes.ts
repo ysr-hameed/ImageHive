@@ -1256,6 +1256,107 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Notification routes
+  app.get('/api/v1/notifications', async (req, res) => {
+    try {
+      const notifications = await storage.getActiveNotifications();
+      res.json(notifications);
+    } catch (error) {
+      console.error('Get notifications error:', error);
+      res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Admin notification routes
+  app.get('/api/v1/admin/notifications', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      // Check if user is admin
+      const userData = await storage.getUser(user.id);
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const notifications = await storage.getAllNotifications();
+      res.json(notifications);
+    } catch (error) {
+      console.error('Get admin notifications error:', error);
+      res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+  });
+
+  app.post('/api/v1/admin/notifications', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { title, message, type, isActive } = req.body;
+
+      // Check if user is admin
+      const userData = await storage.getUser(user.id);
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const notification = await storage.createNotification({
+        title,
+        message,
+        type,
+        isActive,
+        createdBy: user.id,
+      });
+
+      res.json({ success: true, notification });
+    } catch (error) {
+      console.error('Create notification error:', error);
+      res.status(500).json({ error: 'Failed to create notification' });
+    }
+  });
+
+  app.put('/api/v1/admin/notifications/:id', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { id } = req.params;
+      const { title, message, type, isActive } = req.body;
+
+      // Check if user is admin
+      const userData = await storage.getUser(user.id);
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const notification = await storage.updateNotification(id, {
+        title,
+        message,
+        type,
+        isActive,
+      });
+
+      res.json({ success: true, notification });
+    } catch (error) {
+      console.error('Update notification error:', error);
+      res.status(500).json({ error: 'Failed to update notification' });
+    }
+  });
+
+  app.delete('/api/v1/admin/notifications/:id', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { id } = req.params;
+
+      // Check if user is admin
+      const userData = await storage.getUser(user.id);
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      await storage.deleteNotification(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete notification error:', error);
+      res.status(500).json({ error: 'Failed to delete notification' });
+    }
+  });
+
   // Debug route to test server connectivity
   app.get('/api/debug', (req, res) => {
     res.json({ 

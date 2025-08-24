@@ -79,14 +79,7 @@ export default function Upload() {
         </div>
 
         {/* Upload Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upload New Images</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <EnhancedUploadForm />
-          </CardContent>
-        </Card>
+        <EnhancedUploadForm />
       </div>
     </div>
   );

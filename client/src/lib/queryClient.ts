@@ -1,9 +1,18 @@
+
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorMessage = res.statusText;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.error || errorData.message || errorMessage;
+    } catch {
+      // If response is not JSON, use statusText
+      const text = await res.text();
+      errorMessage = text || errorMessage;
+    }
+    throw new Error(`${res.status}: ${errorMessage}`);
   }
 }
 
@@ -12,15 +21,33 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<any> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
+  try {
+    const headers: HeadersInit = {};
+    
+    if (data && !(data instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
 
-  await throwIfResNotOk(res);
-  return await res.json();
+    const res = await fetch(url, {
+      method,
+      headers,
+      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
+      credentials: "include",
+    });
+
+    await throwIfResNotOk(res);
+    
+    // Handle empty responses
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+      return await res.json();
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('API Request Error:', error);
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -29,16 +56,28 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      credentials: "include",
-    });
+    try {
+      const res = await fetch(queryKey.join("/") as string, {
+        credentials: "include",
+      });
 
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        return null;
+      }
+
+      await throwIfResNotOk(res);
+      
+      // Handle empty responses
+      const contentType = res.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return await res.json();
+      }
+      
       return null;
+    } catch (error) {
+      console.error('Query Error:', error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
@@ -47,11 +86,24 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      retry: (failureCount, error) => {
+        // Don't retry on 401, 403, 404
+        if (error.message.includes('401') || error.message.includes('403') || error.message.includes('404')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
-      retry: false,
+      retry: (failureCount, error) => {
+        // Don't retry mutations on client errors
+        if (error.message.includes('4')) {
+          return false;
+        }
+        return failureCount < 2;
+      },
     },
   },
 });

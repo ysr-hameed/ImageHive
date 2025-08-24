@@ -1,4 +1,3 @@
-
 import nodemailer from 'nodemailer';
 
 export interface EmailOptions {
@@ -10,18 +9,55 @@ export interface EmailOptions {
 
 class EmailService {
   private transporter: nodemailer.Transporter;
+  private isConfigured: boolean = false;
 
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_APP_PASSWORD, // Use Gmail App Password, not regular password
-      },
-    });
+    this.setupTransporter();
+  }
+
+  private setupTransporter() {
+    try {
+      if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+        console.warn('Gmail credentials not configured. Email functionality will be disabled.');
+        this.isConfigured = false;
+        return;
+      }
+
+      this.transporter = nodemailer.createTransporter({
+        service: 'gmail',
+        auth: {
+          user: process.env.GMAIL_USER,
+          pass: process.env.GMAIL_APP_PASSWORD,
+        },
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+      });
+
+      this.isConfigured = true;
+      console.log('Email service configured successfully');
+
+      // Test the connection
+      this.transporter.verify((error, success) => {
+        if (error) {
+          console.error('Email configuration error:', error);
+          this.isConfigured = false;
+        } else {
+          console.log('Email server connection verified');
+        }
+      });
+    } catch (error) {
+      console.error('Email transporter setup error:', error);
+      this.isConfigured = false;
+    }
   }
 
   async sendEmail(options: EmailOptions): Promise<boolean> {
+    if (!this.isConfigured) {
+      console.warn('Email service not configured, skipping email send');
+      return false;
+    }
+
     try {
       const mailOptions = {
         from: `"ImageVault" <${process.env.GMAIL_USER}>`,
@@ -31,7 +67,8 @@ class EmailService {
         text: options.text,
       };
 
-      await this.transporter.sendMail(mailOptions);
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Email sent successfully:', info.messageId);
       return true;
     } catch (error) {
       console.error('Email sending failed:', error);
@@ -40,76 +77,254 @@ class EmailService {
   }
 
   async sendVerificationEmail(email: string, token: string): Promise<boolean> {
-    const verificationUrl = `${process.env.BASE_URL}/auth/verify-email?token=${token}`;
-    
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const verificationUrl = `${baseUrl}/auth/verify-email?token=${token}`;
+
     const html = `
-      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
-        <div style="background: linear-gradient(135deg, #3b82f6, #10b981); padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">ImageVault</h1>
-        </div>
-        <div style="padding: 30px; background: #f9fafb;">
-          <h2 style="color: #1f2937; margin-bottom: 20px;">Verify Your Email Address</h2>
-          <p style="color: #4b5563; line-height: 1.6;">
-            Thank you for signing up for ImageVault! Please click the button below to verify your email address and activate your account.
-          </p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${verificationUrl}" 
-               style="background: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-              Verify Email Address
-            </a>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Email - ImageVault</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #3b82f6, #10b981); padding: 40px 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">ImageVault</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Your Image Storage & API Platform</p>
           </div>
-          <p style="color: #6b7280; font-size: 14px;">
-            If you didn't create an account with ImageVault, you can safely ignore this email.
-          </p>
-          <p style="color: #6b7280; font-size: 14px;">
-            This verification link will expire in 24 hours.
-          </p>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px; background: #ffffff;">
+            <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 24px;">Verify Your Email Address</h2>
+            <p style="color: #4b5563; line-height: 1.6; font-size: 16px; margin-bottom: 20px;">
+              Welcome to ImageVault! We're excited to have you on board. To get started and secure your account, please verify your email address by clicking the button below.
+            </p>
+
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 40px 0;">
+              <a href="${verificationUrl}" 
+                 style="background: #3b82f6; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; transition: background-color 0.3s;">
+                Verify Email Address
+              </a>
+            </div>
+
+            <!-- Features Preview -->
+            <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin: 30px 0;">
+              <h3 style="color: #1f2937; margin-bottom: 15px; font-size: 18px;">What you can do with ImageVault:</h3>
+              <ul style="color: #4b5563; margin: 0; padding-left: 20px;">
+                <li style="margin-bottom: 8px;">Upload and store images securely</li>
+                <li style="margin-bottom: 8px;">Generate API keys for integration</li>
+                <li style="margin-bottom: 8px;">Transform images on-the-fly</li>
+                <li style="margin-bottom: 8px;">Use custom domains for branding</li>
+              </ul>
+            </div>
+
+            <!-- Alternative Link -->
+            <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+              If the button doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="color: #3b82f6; font-size: 14px; word-break: break-all;">
+              ${verificationUrl}
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+              If you didn't create an account with ImageVault, you can safely ignore this email.
+            </p>
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">
+              This verification link will expire in 24 hours for security reasons.
+            </p>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
+    `;
+
+    const textVersion = `
+Welcome to ImageVault!
+
+Please verify your email address by visiting: ${verificationUrl}
+
+What you can do with ImageVault:
+- Upload and store images securely  
+- Generate API keys for integration
+- Transform images on-the-fly
+- Use custom domains for branding
+
+If you didn't create an account with ImageVault, you can safely ignore this email.
+This verification link will expire in 24 hours.
+
+ImageVault Team
     `;
 
     return this.sendEmail({
       to: email,
-      subject: 'Verify your ImageVault account',
+      subject: 'Verify your ImageVault account 🚀',
       html,
-      text: `Please verify your email address by visiting: ${verificationUrl}`,
+      text: textVersion,
     });
   }
 
   async sendPasswordResetEmail(email: string, token: string): Promise<boolean> {
-    const resetUrl = `${process.env.BASE_URL}/auth/reset-password?token=${token}`;
-    
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const resetUrl = `${baseUrl}/auth/reset-password?token=${token}`;
+
     const html = `
-      <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
-        <div style="background: linear-gradient(135deg, #3b82f6, #10b981); padding: 30px; text-align: center;">
-          <h1 style="color: white; margin: 0;">ImageVault</h1>
-        </div>
-        <div style="padding: 30px; background: #f9fafb;">
-          <h2 style="color: #1f2937; margin-bottom: 20px;">Reset Your Password</h2>
-          <p style="color: #4b5563; line-height: 1.6;">
-            We received a request to reset your password for your ImageVault account. Click the button below to create a new password.
-          </p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${resetUrl}" 
-               style="background: #dc2626; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
-              Reset Password
-            </a>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password - ImageVault</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #dc2626, #ea580c); padding: 40px 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">ImageVault</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">Password Reset Request</p>
           </div>
-          <p style="color: #6b7280; font-size: 14px;">
-            If you didn't request a password reset, you can safely ignore this email.
-          </p>
-          <p style="color: #6b7280; font-size: 14px;">
-            This reset link will expire in 1 hour.
-          </p>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px; background: #ffffff;">
+            <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 24px;">Reset Your Password</h2>
+            <p style="color: #4b5563; line-height: 1.6; font-size: 16px; margin-bottom: 20px;">
+              We received a request to reset your password for your ImageVault account. If you made this request, click the button below to create a new password.
+            </p>
+
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 40px 0;">
+              <a href="${resetUrl}" 
+                 style="background: #dc2626; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
+                Reset Password
+              </a>
+            </div>
+
+            <!-- Security Notice -->
+            <div style="background: #fef3cd; border: 1px solid #fbbf24; border-radius: 8px; padding: 20px; margin: 30px 0;">
+              <h3 style="color: #92400e; margin-bottom: 10px; font-size: 16px;">Security Notice</h3>
+              <p style="color: #92400e; margin: 0; font-size: 14px;">
+                For your security, this reset link will expire in 1 hour. If you didn't request this password reset, please ignore this email and your password will remain unchanged.
+              </p>
+            </div>
+
+            <!-- Alternative Link -->
+            <p style="color: #6b7280; font-size: 14px; margin-top: 30px;">
+              If the button doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="color: #dc2626; font-size: 14px; word-break: break-all;">
+              ${resetUrl}
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+              If you're having trouble with your account, please contact our support team.
+            </p>
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">
+              ImageVault - Secure Image Storage & API Platform
+            </p>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
+    `;
+
+    const textVersion = `
+Password Reset Request - ImageVault
+
+We received a request to reset your password for your ImageVault account.
+
+Reset your password by visiting: ${resetUrl}
+
+Security Notice:
+- This reset link will expire in 1 hour
+- If you didn't request this reset, please ignore this email
+- Your password will remain unchanged if you don't use this link
+
+ImageVault Team
     `;
 
     return this.sendEmail({
       to: email,
-      subject: 'Reset your ImageVault password',
+      subject: 'Reset your ImageVault password 🔐',
       html,
-      text: `Reset your password by visiting: ${resetUrl}`,
+      text: textVersion,
+    });
+  }
+
+  async sendWelcomeEmail(email: string, name: string): Promise<boolean> {
+    const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
+    const dashboardUrl = `${baseUrl}/dashboard`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to ImageVault</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #10b981, #3b82f6); padding: 40px 30px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px; font-weight: bold;">Welcome to ImageVault!</h1>
+            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;">You're all set up and ready to go</p>
+          </div>
+
+          <!-- Content -->
+          <div style="padding: 40px 30px; background: #ffffff;">
+            <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 24px;">Hi ${name}! 👋</h2>
+            <p style="color: #4b5563; line-height: 1.6; font-size: 16px; margin-bottom: 30px;">
+              Welcome to ImageVault! Your account has been verified and you're ready to start uploading, storing, and serving images with our powerful API platform.
+            </p>
+
+            <!-- Getting Started Steps -->
+            <div style="background: #f0f9ff; border-radius: 8px; padding: 25px; margin: 30px 0;">
+              <h3 style="color: #0369a1; margin-bottom: 20px; font-size: 18px;">🚀 Getting Started</h3>
+              <ol style="color: #4b5563; margin: 0; padding-left: 20px;">
+                <li style="margin-bottom: 12px;"><strong>Upload your first image</strong> - Try our drag & drop interface</li>
+                <li style="margin-bottom: 12px;"><strong>Generate API keys</strong> - Integrate with your applications</li>
+                <li style="margin-bottom: 12px;"><strong>Explore transformations</strong> - Resize, crop, and optimize images</li>
+                <li style="margin-bottom: 0;"><strong>Set up custom domains</strong> - Brand your image URLs</li>
+              </ol>
+            </div>
+
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 40px 0;">
+              <a href="${dashboardUrl}" 
+                 style="background: #3b82f6; color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
+                Go to Dashboard
+              </a>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="background: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; font-size: 14px; margin: 0 0 10px 0;">
+              Need help getting started? Check out our documentation or contact support.
+            </p>
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">
+              Happy uploading! - The ImageVault Team
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Welcome to ImageVault! 🎉',
+      html,
+      text: `Welcome to ImageVault, ${name}! Your account is ready. Visit ${dashboardUrl} to get started.`,
     });
   }
 }

@@ -1,3 +1,4 @@
+
 import { randomUUID } from 'crypto';
 
 interface BackblazeConfig {
@@ -20,6 +21,7 @@ interface BackblazeUploadResponse {
   contentType: string;
   fileInfo: Record<string, string>;
   contentLength: number;
+  downloadUrl?: string;
 }
 
 export class BackblazeB2Service {
@@ -29,6 +31,7 @@ export class BackblazeB2Service {
   private downloadUrl: string | null = null;
   private uploadUrl: string | null = null;
   private uploadAuthToken: string | null = null;
+  private authExpiry: number = 0;
 
   constructor() {
     this.config = {
@@ -40,28 +43,42 @@ export class BackblazeB2Service {
     };
 
     if (!this.config.applicationKeyId || !this.config.applicationKey || !this.config.bucketId) {
-      throw new Error('Backblaze configuration is incomplete. Please check environment variables.');
+      console.warn('Backblaze configuration is incomplete. Please check environment variables.');
     }
   }
 
   private async authorize(): Promise<void> {
-    const credentials = Buffer.from(`${this.config.applicationKeyId}:${this.config.applicationKey}`).toString('base64');
-    
-    const response = await fetch(`${this.config.endpoint}/b2api/v2/b2_authorize_account`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Basic ${credentials}`,
-      },
-    });
+    try {
+      // Check if auth is still valid (expires after 24 hours)
+      if (this.authToken && Date.now() < this.authExpiry) {
+        return;
+      }
 
-    if (!response.ok) {
-      throw new Error(`Backblaze authorization failed: ${response.statusText}`);
+      const credentials = Buffer.from(`${this.config.applicationKeyId}:${this.config.applicationKey}`).toString('base64');
+      
+      const response = await fetch(`${this.config.endpoint}/b2api/v2/b2_authorize_account`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Backblaze authorization failed: ${response.status} ${errorText}`);
+      }
+
+      const data: BackblazeAuthResponse = await response.json();
+      this.authToken = data.authorizationToken;
+      this.apiUrl = data.apiUrl;
+      this.downloadUrl = data.downloadUrl;
+      this.authExpiry = Date.now() + (23 * 60 * 60 * 1000); // 23 hours
+      
+      console.log('Backblaze authorization successful');
+    } catch (error) {
+      console.error('Backblaze authorization error:', error);
+      throw error;
     }
-
-    const data: BackblazeAuthResponse = await response.json();
-    this.authToken = data.authorizationToken;
-    this.apiUrl = data.apiUrl;
-    this.downloadUrl = data.downloadUrl;
   }
 
   private async getUploadUrl(): Promise<void> {
@@ -69,118 +86,204 @@ export class BackblazeB2Service {
       await this.authorize();
     }
 
-    const response = await fetch(`${this.apiUrl}/b2api/v2/b2_get_upload_url`, {
-      method: 'POST',
-      headers: {
-        'Authorization': this.authToken!,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        bucketId: this.config.bucketId,
-      }),
-    });
+    try {
+      const response = await fetch(`${this.apiUrl}/b2api/v2/b2_get_upload_url`, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.authToken!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bucketId: this.config.bucketId,
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to get upload URL: ${response.statusText}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get upload URL: ${response.status} ${errorText}`);
+      }
+
+      const data = await response.json();
+      this.uploadUrl = data.uploadUrl;
+      this.uploadAuthToken = data.authorizationToken;
+    } catch (error) {
+      console.error('Get upload URL error:', error);
+      throw error;
     }
-
-    const data = await response.json();
-    this.uploadUrl = data.uploadUrl;
-    this.uploadAuthToken = data.authorizationToken;
   }
 
   async uploadFile(
     buffer: Buffer,
-    originalFileName: string,
+    fileName: string,
     contentType: string,
     metadata: Record<string, string> = {}
   ): Promise<BackblazeUploadResponse> {
-    if (!this.uploadUrl || !this.uploadAuthToken) {
-      await this.getUploadUrl();
+    try {
+      if (!this.uploadUrl || !this.uploadAuthToken) {
+        await this.getUploadUrl();
+      }
+
+      const sha1Hash = require('crypto').createHash('sha1').update(buffer).digest('hex');
+
+      const response = await fetch(this.uploadUrl!, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.uploadAuthToken!,
+          'X-Bz-File-Name': encodeURIComponent(fileName),
+          'Content-Type': contentType,
+          'Content-Length': buffer.length.toString(),
+          'X-Bz-Content-Sha1': sha1Hash,
+          ...Object.entries(metadata).reduce((acc, [key, value]) => {
+            acc[`X-Bz-Info-${key}`] = encodeURIComponent(value);
+            return acc;
+          }, {} as Record<string, string>),
+        },
+        body: buffer,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Upload response error:', errorText);
+        
+        // Reset upload URL on auth errors
+        if (response.status === 401) {
+          this.uploadUrl = null;
+          this.uploadAuthToken = null;
+          this.authToken = null;
+        }
+        
+        throw new Error(`File upload failed: ${response.status} ${errorText}`);
+      }
+
+      const uploadData: BackblazeUploadResponse = await response.json();
+      
+      // Add download URL
+      uploadData.downloadUrl = this.getFileUrl(uploadData.fileName);
+      
+      console.log(`File uploaded successfully: ${fileName}`);
+      return uploadData;
+    } catch (error) {
+      console.error('Upload file error:', error);
+      throw error;
     }
-
-    const fileName = `${randomUUID()}-${originalFileName}`;
-    const sha1Hash = require('crypto').createHash('sha1').update(buffer).digest('hex');
-
-    const response = await fetch(this.uploadUrl!, {
-      method: 'POST',
-      headers: {
-        'Authorization': this.uploadAuthToken!,
-        'X-Bz-File-Name': encodeURIComponent(fileName),
-        'Content-Type': contentType,
-        'Content-Length': buffer.length.toString(),
-        'X-Bz-Content-Sha1': sha1Hash,
-        ...Object.entries(metadata).reduce((acc, [key, value]) => {
-          acc[`X-Bz-Info-${key}`] = encodeURIComponent(value);
-          return acc;
-        }, {} as Record<string, string>),
-      },
-      body: buffer,
-    });
-
-    if (!response.ok) {
-      throw new Error(`File upload failed: ${response.statusText}`);
-    }
-
-    const uploadData: BackblazeUploadResponse = await response.json();
-    
-    return {
-      fileId: uploadData.fileId,
-      fileName: uploadData.fileName,
-      contentType: uploadData.contentType,
-      fileInfo: uploadData.fileInfo,
-      contentLength: uploadData.contentLength,
-    };
   }
 
   async deleteFile(fileId: string, fileName: string): Promise<boolean> {
-    if (!this.authToken || !this.apiUrl) {
-      await this.authorize();
+    try {
+      if (!this.authToken || !this.apiUrl) {
+        await this.authorize();
+      }
+
+      const response = await fetch(`${this.apiUrl}/b2api/v2/b2_delete_file_version`, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.authToken!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileId,
+          fileName,
+        }),
+      });
+
+      if (response.ok) {
+        console.log(`File deleted successfully: ${fileName}`);
+        return true;
+      } else {
+        const errorText = await response.text();
+        console.error(`Delete file error: ${response.status} ${errorText}`);
+        return false;
+      }
+    } catch (error) {
+      console.error('Delete file error:', error);
+      return false;
     }
-
-    const response = await fetch(`${this.apiUrl}/b2api/v2/b2_delete_file_version`, {
-      method: 'POST',
-      headers: {
-        'Authorization': this.authToken!,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fileId,
-        fileName,
-      }),
-    });
-
-    return response.ok;
   }
 
   getFileUrl(fileName: string, customDomain?: string): string {
     if (customDomain) {
       return `https://${customDomain}/${fileName}`;
     }
-    return `${this.downloadUrl}/file/${this.config.bucketName}/${fileName}`;
+    
+    // Use the download URL from auth response
+    if (this.downloadUrl) {
+      return `${this.downloadUrl}/file/${this.config.bucketName}/${fileName}`;
+    }
+    
+    // Fallback to standard URL format
+    return `https://f005.backblazeb2.com/file/${this.config.bucketName}/${fileName}`;
   }
 
   async getFileInfo(fileId: string): Promise<any> {
-    if (!this.authToken || !this.apiUrl) {
+    try {
+      if (!this.authToken || !this.apiUrl) {
+        await this.authorize();
+      }
+
+      const response = await fetch(`${this.apiUrl}/b2api/v2/b2_get_file_info`, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.authToken!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fileId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to get file info: ${response.status} ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Get file info error:', error);
+      throw error;
+    }
+  }
+
+  async listFiles(startFileName?: string, maxFileCount: number = 100): Promise<any> {
+    try {
+      if (!this.authToken || !this.apiUrl) {
+        await this.authorize();
+      }
+
+      const response = await fetch(`${this.apiUrl}/b2api/v2/b2_list_file_names`, {
+        method: 'POST',
+        headers: {
+          'Authorization': this.authToken!,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bucketId: this.config.bucketId,
+          startFileName,
+          maxFileCount,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to list files: ${response.status} ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('List files error:', error);
+      throw error;
+    }
+  }
+
+  // Test connection to Backblaze
+  async testConnection(): Promise<boolean> {
+    try {
       await this.authorize();
+      console.log('Backblaze connection test successful');
+      return true;
+    } catch (error) {
+      console.error('Backblaze connection test failed:', error);
+      return false;
     }
-
-    const response = await fetch(`${this.apiUrl}/b2api/v2/b2_get_file_info`, {
-      method: 'POST',
-      headers: {
-        'Authorization': this.authToken!,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fileId,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to get file info: ${response.statusText}`);
-    }
-
-    return await response.json();
   }
 }
 

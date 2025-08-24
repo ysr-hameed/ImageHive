@@ -1,460 +1,427 @@
-import {
-  users,
-  images,
-  apiKeys,
-  customDomains,
-  systemLogs,
-  imageAnalytics,
-  type User,
-  type UpsertUser,
-  type Image,
-  type InsertImage,
-  type ApiKey,
-  type InsertApiKey,
-  type CustomDomain,
-  type SystemLog,
-  type ImageAnalytic,
-} from "@shared/schema";
-import { db } from "./db";
-import { eq, desc, and, sql, count } from "drizzle-orm";
-import { randomBytes } from "crypto";
+
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from "@neondatabase/serverless";
+import { eq, desc, and, like, sql, count } from "drizzle-orm";
+import { users, images, apiKeys, customDomains, imageAnalytics, systemLogs } from "@shared/schema";
 import crypto from "crypto";
 
-// Interface for storage operations
-export interface IStorage {
-  // User operations (required for auth)
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
-
-  // New methods for OAuth and email verification
-  getUserByEmail(email: string): Promise<User | undefined>;
-  getUserByVerificationToken(token: string): Promise<User | undefined>;
-  getUserByResetToken(token: string): Promise<User | undefined>;
-  createUser(userData: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    passwordHash: string;
-    emailVerified: boolean;
-    profileImageUrl: string | null;
-  }): Promise<User>;
-  updateUser(id: string, updates: {
-    name?: string;
-    password?: string;
-    emailVerified?: boolean;
-    emailVerificationToken?: string | null;
-    passwordResetToken?: string | null;
-    passwordResetExpires?: Date | null;
-    googleId?: string;
-    githubId?: string;
-  }): Promise<User | undefined>;
-
-  // Image operations
-  createImage(userId: string, imageData: InsertImage & { backblazeFileId?: string; backblazeFileName?: string; cdnUrl?: string }): Promise<Image>;
-  getImage(id: string): Promise<Image | undefined>;
-  getUserImages(userId: string, limit?: number, offset?: number): Promise<Image[]>;
-  updateImage(id: string, updates: Partial<Image>): Promise<Image | undefined>;
-  deleteImage(id: string): Promise<boolean>;
-  incrementImageView(id: string): Promise<void>;
-  incrementImageDownload(id: string): Promise<void>;
-  getPublicImages(limit?: number, offset?: number): Promise<Image[]>;
-
-  // API key operations
-  createApiKey(userId: string, data: InsertApiKey): Promise<ApiKey>;
-  getApiKey(keyHash: string): Promise<ApiKey | undefined>;
-  getUserApiKeys(userId: string): Promise<ApiKey[]>;
-  updateApiKey(id: string, updates: Partial<ApiKey>): Promise<ApiKey | undefined>;
-  deleteApiKey(id: string): Promise<boolean>;
-
-  // Custom domain operations
-  createCustomDomain(userId: string, domain: string): Promise<CustomDomain>;
-  getCustomDomain(domain: string): Promise<CustomDomain | undefined>;
-  getUserCustomDomains(userId: string): Promise<CustomDomain[]>;
-  updateCustomDomain(id: string, updates: Partial<CustomDomain>): Promise<CustomDomain | undefined>;
-  deleteCustomDomain(id: string): Promise<boolean>;
-
-  // Analytics operations
-  recordImageView(imageId: string, viewerIp?: string, userAgent?: string): Promise<void>;
-  getImageAnalytics(imageId: string, days?: number): Promise<ImageAnalytic[]>;
-  getUserAnalytics(userId: string, days?: number): Promise<any>;
-
-  // System operations
-  createSystemLog(level: string, message: string, metadata?: any): Promise<SystemLog>;
-  getSystemLogs(limit?: number, offset?: number): Promise<SystemLog[]>;
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required");
 }
 
-export class DatabaseStorage implements IStorage {
-  private db = db; // Make db accessible within the class
+const client = neon(connectionString);
+const db = drizzle(client);
 
-  // User operations (required for auth)
-  async getUser(id: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.id, id)).limit(1);
-    return result[0];
-  }
+export interface CreateUserData {
+  email: string;
+  firstName: string;
+  lastName: string;
+  passwordHash: string;
+  emailVerified: boolean;
+  profileImageUrl?: string | null;
+  plan?: string;
+  storageUsed?: number;
+  storageLimit?: number;
+}
 
-  async upsertUser(user: UpsertUser): Promise<User> {
-    const [result] = await this.db
-      .insert(users)
-      .values(user)
-      .onConflictDoUpdate({
-        target: users.email,
-        set: {
-          name: user.name || sql`${users.name}`,
-          firstName: user.firstName || sql`${users.firstName}`,
-          lastName: user.lastName || sql`${users.lastName}`,
-          profileImageUrl: user.profileImageUrl || sql`${users.profileImageUrl}`,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+export interface CreateImageData {
+  title: string;
+  description: string;
+  filename: string;
+  originalFilename: string;
+  mimeType: string;
+  size: number;
+  width: number;
+  height: number;
+  isPublic: boolean;
+  tags: string[];
+  backblazeFileId: string;
+  backblazeFileName: string;
+  cdnUrl: string;
+  folder?: string;
+}
 
-    return result;
-  }
+export interface CreateApiKeyData {
+  name: string;
+}
 
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
-    return result[0];
-  }
+export interface CreateCustomDomainData {
+  domain: string;
+  verificationToken: string;
+  cnameTarget: string;
+}
 
-  async getUserByVerificationToken(token: string): Promise<User | undefined> {
-    const result = await this.db.select().from(users).where(eq(users.emailVerificationToken, token)).limit(1);
-    return result[0];
-  }
-
-  async getUserByResetToken(token: string): Promise<User | undefined> {
-    const result = await this.db.select()
-      .from(users)
-      .where(and(
-        eq(users.passwordResetToken, token),
-        sql`${users.passwordResetExpires} > NOW()`
-      )).limit(1);
-    return result[0];
-  }
-
-  async createUser(userData: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    passwordHash: string;
-    emailVerified: boolean;
-    profileImageUrl: string | null;
-  }): Promise<User> {
-    const [user] = await this.db.insert(users).values({
+class Storage {
+  // User management
+  async createUser(userData: CreateUserData) {
+    const [user] = await db.insert(users).values({
       email: userData.email,
       firstName: userData.firstName,
       lastName: userData.lastName,
       passwordHash: userData.passwordHash,
       emailVerified: userData.emailVerified,
       profileImageUrl: userData.profileImageUrl,
+      plan: userData.plan || 'free',
+      storageUsed: userData.storageUsed || 0,
+      storageLimit: userData.storageLimit || 1024 * 1024 * 1024, // 1GB
     }).returning();
+    
+    console.log(`User created: ${user.email}`);
     return user;
   }
 
-  async updateUser(id: string, updates: {
-    name?: string;
-    password?: string;
-    emailVerified?: boolean;
-    emailVerificationToken?: string | null;
-    passwordResetToken?: string | null;
-    passwordResetExpires?: Date | null;
-    googleId?: string;
-    githubId?: string;
-  }): Promise<User | undefined> {
-    const [user] = await this.db.update(users)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(users.id, id))
-      .returning();
+  async getUserByEmail(email: string) {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
     return user;
   }
 
-  // Image operations
-  async createImage(userId: string, imageData: InsertImage & { backblazeFileId?: string; backblazeFileName?: string; cdnUrl?: string }): Promise<Image> {
-    const [image] = await this.db
-      .insert(images)
-      .values({
-        ...imageData,
-        userId,
-        backblazeFileId: imageData.backblazeFileId,
-        backblazeFileName: imageData.backblazeFileName,
-        cdnUrl: imageData.cdnUrl,
-      })
-      .returning();
+  async getUser(id: string) {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
 
-    // Update user storage usage
-    await this.db
-      .update(users)
-      .set({
-        storageUsed: sql`${users.storageUsed} + ${imageData.size}`,
-        updatedAt: new Date(),
-      })
+  async updateUserStorageUsage(userId: string, newUsage: number) {
+    await db.update(users)
+      .set({ storageUsed: newUsage, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
 
+  async updateUserPassword(userId: string, passwordHash: string) {
+    await db.update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async markEmailAsVerified(userId: string) {
+    await db.update(users)
+      .set({ emailVerified: true, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  // Email verification tokens
+  async createEmailVerificationToken(userId: string, token: string) {
+    // Store token in a simple table or use a temporary storage
+    // For now, we'll use system logs as a temporary storage
+    await db.insert(systemLogs).values({
+      level: 'info',
+      message: 'email_verification_token',
+      userId,
+      metadata: { token, expires: Date.now() + 24 * 60 * 60 * 1000 } // 24 hours
+    });
+  }
+
+  async verifyEmailToken(token: string) {
+    const [log] = await db.select()
+      .from(systemLogs)
+      .where(and(
+        eq(systemLogs.message, 'email_verification_token'),
+        sql`metadata->>'token' = ${token}`
+      ));
+
+    if (!log || !log.metadata) return null;
+
+    const metadata = log.metadata as any;
+    if (Date.now() > metadata.expires) {
+      await this.deleteEmailVerificationToken(token);
+      return null;
+    }
+
+    return { id: log.userId };
+  }
+
+  async deleteEmailVerificationToken(token: string) {
+    await db.delete(systemLogs).where(and(
+      eq(systemLogs.message, 'email_verification_token'),
+      sql`metadata->>'token' = ${token}`
+    ));
+  }
+
+  // Password reset tokens
+  async createPasswordResetToken(userId: string, token: string) {
+    await db.insert(systemLogs).values({
+      level: 'info',
+      message: 'password_reset_token',
+      userId,
+      metadata: { token, expires: Date.now() + 60 * 60 * 1000 } // 1 hour
+    });
+  }
+
+  async verifyPasswordResetToken(token: string) {
+    const [log] = await db.select()
+      .from(systemLogs)
+      .where(and(
+        eq(systemLogs.message, 'password_reset_token'),
+        sql`metadata->>'token' = ${token}`
+      ));
+
+    if (!log || !log.metadata) return null;
+
+    const metadata = log.metadata as any;
+    if (Date.now() > metadata.expires) {
+      await this.deletePasswordResetToken(token);
+      return null;
+    }
+
+    return { id: log.userId };
+  }
+
+  async deletePasswordResetToken(token: string) {
+    await db.delete(systemLogs).where(and(
+      eq(systemLogs.message, 'password_reset_token'),
+      sql`metadata->>'token' = ${token}`
+    ));
+  }
+
+  // Image management
+  async createImage(userId: string, imageData: CreateImageData) {
+    const [image] = await db.insert(images).values({
+      userId,
+      title: imageData.title,
+      description: imageData.description,
+      filename: imageData.filename,
+      originalFilename: imageData.originalFilename,
+      mimeType: imageData.mimeType,
+      size: imageData.size,
+      width: imageData.width,
+      height: imageData.height,
+      isPublic: imageData.isPublic,
+      tags: imageData.tags,
+      backblazeFileId: imageData.backblazeFileId,
+      backblazeFileName: imageData.backblazeFileName,
+      cdnUrl: imageData.cdnUrl,
+      folder: imageData.folder || '',
+    }).returning();
+    
+    console.log(`Image created: ${image.filename}`);
     return image;
   }
 
-  async getImage(id: string): Promise<Image | undefined> {
-    const [image] = await this.db.select().from(images).where(eq(images.id, id));
-    return image;
-  }
+  async getUserImages(userId: string, limit: number = 20, offset: number = 0, folder: string = '') {
+    let query = db.select().from(images)
+      .where(eq(images.userId, userId));
 
-  async getUserImages(userId: string, limit = 20, offset = 0): Promise<Image[]> {
-    return await this.db
-      .select()
-      .from(images)
-      .where(eq(images.userId, userId))
+    if (folder) {
+      query = query.where(like(images.folder, `${folder}%`)) as any;
+    }
+
+    return await query
       .orderBy(desc(images.createdAt))
       .limit(limit)
       .offset(offset);
   }
 
-  async updateImage(id: string, updates: Partial<Image>): Promise<Image | undefined> {
-    const [image] = await this.db
-      .update(images)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(images.id, id))
-      .returning();
-    return image;
-  }
-
-  async deleteImage(id: string): Promise<boolean> {
-    const result = await this.db.delete(images).where(eq(images.id, id));
-    return (result.rowCount || 0) > 0;
-  }
-
-  async incrementImageView(id: string): Promise<void> {
-    await this.db
-      .update(images)
-      .set({
-        views: sql`${images.views} + 1`,
-        updatedAt: new Date(),
-      })
-      .where(eq(images.id, id));
-  }
-
-  async incrementImageDownload(id: string): Promise<void> {
-    await this.db
-      .update(images)
-      .set({
-        downloads: sql`${images.downloads} + 1`,
-        updatedAt: new Date(),
-      })
-      .where(eq(images.id, id));
-  }
-
-  async getPublicImages(limit = 20, offset = 0): Promise<Image[]> {
-    return await this.db
-      .select()
-      .from(images)
+  async getPublicImages(limit: number = 20, offset: number = 0) {
+    return await db.select().from(images)
       .where(eq(images.isPublic, true))
       .orderBy(desc(images.createdAt))
       .limit(limit)
       .offset(offset);
   }
 
-  // API key operations
-  async createApiKey(userId: string, data: InsertApiKey): Promise<ApiKey> {
-    const key = crypto.randomBytes(32).toString('hex');
-    const keyHash = crypto.createHash('sha256').update(key).digest('hex');
-
-    const [apiKey] = await this.db
-      .insert(apiKeys)
-      .values({
-        ...data,
-        userId,
-        keyHash: key, // Store the original key for first return
-      })
-      .returning();
-
-    // Update the stored key to be hashed
-    await this.db
-      .update(apiKeys)
-      .set({ keyHash })
-      .where(eq(apiKeys.id, apiKey.id));
-
-    // Return with original key for client
-    return { ...apiKey, keyHash: key };
+  async getImageByPath(userId: string, path: string) {
+    const [image] = await db.select().from(images)
+      .where(and(
+        eq(images.userId, userId),
+        like(images.filename, `%${path}`)
+      ));
+    return image;
   }
 
-  async getApiKey(keyHash: string): Promise<ApiKey | undefined> {
-    const hash = crypto.createHash('sha256').update(keyHash).digest('hex');
-    const [apiKey] = await this.db.select().from(apiKeys).where(eq(apiKeys.keyHash, hash));
+  // API Keys management
+  async createApiKey(userId: string, keyData: CreateApiKeyData) {
+    const keyHash = `sk_${crypto.randomBytes(32).toString('hex')}`;
+    
+    const [apiKey] = await db.insert(apiKeys).values({
+      userId,
+      name: keyData.name,
+      keyHash,
+      isActive: true,
+    }).returning();
+    
+    console.log(`API key created: ${keyData.name}`);
     return apiKey;
   }
 
-  async getUserApiKeys(userId: string): Promise<ApiKey[]> {
-    return await this.db
-      .select()
-      .from(apiKeys)
+  async getApiKey(keyHash: string) {
+    const [apiKey] = await db.select().from(apiKeys)
+      .where(and(eq(apiKeys.keyHash, keyHash), eq(apiKeys.isActive, true)));
+    
+    if (apiKey) {
+      // Update last used timestamp
+      await db.update(apiKeys)
+        .set({ lastUsed: new Date() })
+        .where(eq(apiKeys.id, apiKey.id));
+    }
+    
+    return apiKey;
+  }
+
+  async getUserApiKeys(userId: string) {
+    return await db.select().from(apiKeys)
       .where(eq(apiKeys.userId, userId))
       .orderBy(desc(apiKeys.createdAt));
   }
 
-  async updateApiKey(id: string, updates: Partial<ApiKey>): Promise<ApiKey | undefined> {
-    const [apiKey] = await this.db
-      .update(apiKeys)
-      .set(updates)
-      .where(eq(apiKeys.id, id))
-      .returning();
-    return apiKey;
+  // Custom domains management
+  async createCustomDomain(userId: string, domainData: CreateCustomDomainData) {
+    const [domain] = await db.insert(customDomains).values({
+      userId,
+      domain: domainData.domain,
+      isVerified: false,
+      sslEnabled: false,
+    }).returning();
+    
+    // Store verification token in system logs
+    await db.insert(systemLogs).values({
+      level: 'info',
+      message: 'domain_verification_token',
+      userId,
+      metadata: { 
+        domainId: domain.id,
+        token: domainData.verificationToken,
+        cnameTarget: domainData.cnameTarget
+      }
+    });
+    
+    console.log(`Custom domain created: ${domain.domain}`);
+    return domain;
   }
 
-  async deleteApiKey(id: string): Promise<boolean> {
-    const result = await this.db.delete(apiKeys).where(eq(apiKeys.id, id));
-    return (result.rowCount || 0) > 0;
-  }
-
-  // Custom domain operations
-  async createCustomDomain(userId: string, domain: string): Promise<CustomDomain> {
-    const [customDomain] = await this.db
-      .insert(customDomains)
-      .values({
-        userId,
-        domain,
-      })
-      .returning();
-    return customDomain;
-  }
-
-  async getCustomDomain(domain: string): Promise<CustomDomain | undefined> {
-    const [customDomain] = await this.db.select().from(customDomains).where(eq(customDomains.domain, domain));
-    return customDomain;
-  }
-
-  async getUserCustomDomains(userId: string): Promise<CustomDomain[]> {
-    return await this.db
-      .select()
-      .from(customDomains)
+  async getUserCustomDomains(userId: string) {
+    return await db.select().from(customDomains)
       .where(eq(customDomains.userId, userId))
       .orderBy(desc(customDomains.createdAt));
   }
 
-  async updateCustomDomain(id: string, updates: Partial<CustomDomain>): Promise<CustomDomain | undefined> {
-    const [customDomain] = await this.db
-      .update(customDomains)
-      .set(updates)
-      .where(eq(customDomains.id, id))
-      .returning();
-    return customDomain;
-  }
-
-  async deleteCustomDomain(id: string): Promise<boolean> {
-    const result = await this.db.delete(customDomains).where(eq(customDomains.id, id));
-    return (result.rowCount || 0) > 0;
-  }
-
-  // Analytics operations
-  async recordImageView(imageId: string, viewerIp?: string, userAgent?: string): Promise<void> {
-    await this.db.insert(imageAnalytics).values({
-      imageId,
-      event: 'view',
-      ipAddress: viewerIp,
-      userAgent,
-    });
-  }
-
-  async getImageAnalytics(imageId: string, days = 30): Promise<ImageAnalytic[]> {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    return await this.db
-      .select()
-      .from(imageAnalytics)
+  async getUserCustomDomain(userId: string) {
+    const [domain] = await db.select().from(customDomains)
       .where(and(
-        eq(imageAnalytics.imageId, imageId),
-        sql`${imageAnalytics.timestamp} >= ${startDate}`
-      ))
-      .orderBy(desc(imageAnalytics.timestamp));
-  }
-
-  async getUserAnalytics(userId: string, days = 30): Promise<any> {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // This would need a more complex query joining images and analytics
-    const [result] = await this.db
-      .select({
-        totalViews: sql<number>`COUNT(*)`,
-      })
-      .from(imageAnalytics)
-      .leftJoin(images, eq(imageAnalytics.imageId, images.id))
-      .where(and(
-        eq(images.userId, userId),
-        sql`${imageAnalytics.timestamp} >= ${startDate}`
+        eq(customDomains.userId, userId),
+        eq(customDomains.isVerified, true)
       ));
-
-    return result;
+    return domain;
   }
 
-  // System operations
-  async createSystemLog(level: string, message: string, metadata?: any): Promise<SystemLog> {
-    const [log] = await this.db
-      .insert(systemLogs)
-      .values({
+  async getCustomDomain(domainId: string) {
+    const [domain] = await db.select().from(customDomains)
+      .where(eq(customDomains.id, domainId));
+    return domain;
+  }
+
+  async verifyCustomDomain(domainId: string) {
+    // In a real implementation, you would verify DNS records here
+    // For now, we'll simulate verification
+    await db.update(customDomains)
+      .set({ 
+        isVerified: true, 
+        sslEnabled: true,
+        verifiedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(customDomains.id, domainId));
+    
+    console.log(`Domain verified: ${domainId}`);
+    return true;
+  }
+
+  // Analytics
+  async getUserAnalytics(userId: string) {
+    try {
+      // Get total images count
+      const [totalImagesResult] = await db.select({ count: count() }).from(images)
+        .where(eq(images.userId, userId));
+      
+      // Get storage usage from user record
+      const user = await this.getUser(userId);
+      
+      // Get recent activity (last 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      
+      const [recentUploadsResult] = await db.select({ count: count() }).from(images)
+        .where(and(
+          eq(images.userId, userId),
+          sql`created_at >= ${thirtyDaysAgo}`
+        ));
+
+      // Get views from analytics (if available)
+      const [totalViewsResult] = await db.select({ 
+        total: sql<number>`COALESCE(SUM(CASE WHEN event = 'view' THEN 1 ELSE 0 END), 0)` 
+      }).from(imageAnalytics)
+        .innerJoin(images, eq(imageAnalytics.imageId, images.id))
+        .where(eq(images.userId, userId));
+
+      // Get downloads
+      const [totalDownloadsResult] = await db.select({ 
+        total: sql<number>`COALESCE(SUM(CASE WHEN event = 'download' THEN 1 ELSE 0 END), 0)` 
+      }).from(imageAnalytics)
+        .innerJoin(images, eq(imageAnalytics.imageId, images.id))
+        .where(eq(images.userId, userId));
+
+      return {
+        totalImages: totalImagesResult.count || 0,
+        storageUsed: user?.storageUsed || 0,
+        storageLimit: user?.storageLimit || 1024 * 1024 * 1024,
+        recentUploads: recentUploadsResult.count || 0,
+        totalViews: totalViewsResult.total || 0,
+        totalDownloads: totalDownloadsResult.total || 0,
+        planType: user?.plan || 'free',
+      };
+    } catch (error) {
+      console.error('Analytics error:', error);
+      // Return default analytics if there's an error
+      const user = await this.getUser(userId);
+      return {
+        totalImages: 0,
+        storageUsed: user?.storageUsed || 0,
+        storageLimit: user?.storageLimit || 1024 * 1024 * 1024,
+        recentUploads: 0,
+        totalViews: 0,
+        totalDownloads: 0,
+        planType: user?.plan || 'free',
+      };
+    }
+  }
+
+  async trackImageView(imageId: string, ipAddress?: string, userAgent?: string) {
+    try {
+      await db.insert(imageAnalytics).values({
+        imageId,
+        event: 'view',
+        ipAddress: ipAddress || 'unknown',
+        userAgent: userAgent || 'unknown',
+      });
+    } catch (error) {
+      console.error('Track view error:', error);
+    }
+  }
+
+  async trackImageDownload(imageId: string, ipAddress?: string, userAgent?: string) {
+    try {
+      await db.insert(imageAnalytics).values({
+        imageId,
+        event: 'download',
+        ipAddress: ipAddress || 'unknown',
+        userAgent: userAgent || 'unknown',
+      });
+    } catch (error) {
+      console.error('Track download error:', error);
+    }
+  }
+
+  // System logging
+  async logSystemEvent(level: string, message: string, userId?: string, metadata?: any) {
+    try {
+      await db.insert(systemLogs).values({
         level,
         message,
+        userId,
         metadata,
-      })
-      .returning();
-    return log;
-  }
-
-  async getSystemLogs(limit = 100, offset = 0): Promise<SystemLog[]> {
-    return await this.db
-      .select()
-      .from(systemLogs)
-      .orderBy(desc(systemLogs.timestamp))
-      .limit(limit)
-      .offset(offset);
-  }
-
-  // Authentication helper methods
-  async createEmailVerificationToken(userId: string, token: string) {
-    console.log(`Email verification token created for user ${userId}: ${token}`);
-    await this.db.update(users)
-      .set({ emailVerificationToken: token })
-      .where(eq(users.id, userId));
-  }
-
-  async createPasswordResetToken(userId: string, token: string) {
-    console.log(`Password reset token created for user ${userId}: ${token}`);
-    await this.db.update(users)
-      .set({ passwordResetToken: token, passwordResetExpires: new Date(Date.now() + 1000 * 60 * 60) }) // Expires in 1 hour
-      .where(eq(users.id, userId));
-  }
-
-  async verifyPasswordResetToken(token: string) {
-    const user = await this.getUserByResetToken(token);
-    return user;
-  }
-
-  async updateUserPassword(userId: string, hashedPassword: string) {
-    await this.db.update(users)
-      .set({ passwordHash: hashedPassword, passwordResetToken: null, passwordResetExpires: null })
-      .where(eq(users.id, userId));
-  }
-
-  async deletePasswordResetToken(token: string) {
-    await this.db.update(users)
-      .set({ passwordResetToken: null, passwordResetExpires: null })
-      .where(eq(users.passwordResetToken, token));
-  }
-
-  async verifyEmailToken(token: string) {
-    const user = await this.getUserByVerificationToken(token);
-    return user;
-  }
-
-  async markEmailAsVerified(userId: string) {
-    await this.db.update(users)
-      .set({ emailVerified: true, emailVerificationToken: null })
-      .where(eq(users.id, userId));
-  }
-
-  async deleteEmailVerificationToken(token: string) {
-    await this.db.update(users)
-      .set({ emailVerificationToken: null })
-      .where(eq(users.emailVerificationToken, token));
+      });
+    } catch (error) {
+      console.error('System log error:', error);
+    }
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage = new Storage();

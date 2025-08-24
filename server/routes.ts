@@ -1,3 +1,4 @@
+
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -27,6 +28,9 @@ declare global {
         email: string;
         name: string;
         emailVerified: boolean;
+        plan: string;
+        storageUsed: number;
+        storageLimit: number;
       };
       apiKey?: any;
     }
@@ -97,9 +101,9 @@ const sessionMiddleware = session({
 
 // Authentication middleware - checks for session or API key
 async function isAuthenticated(req: Request, res: Response, next: Function) {
-  // Check for session-based authentication first
-  if (req.session?.userId) {
-    try {
+  try {
+    // Check for session-based authentication first
+    if (req.session?.userId) {
       const user = await storage.getUser(req.session.userId);
       if (user) {
         req.user = {
@@ -107,19 +111,18 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
           email: user.email || '',
           name: `${user.firstName || ''} ${user.lastName || ''}`,
           emailVerified: user.emailVerified || false,
+          plan: user.plan || 'free',
+          storageUsed: user.storageUsed || 0,
+          storageLimit: user.storageLimit || 1024 * 1024 * 1024, // 1GB default
         };
         return next();
       }
-    } catch (error) {
-      console.error('Session authentication error:', error);
     }
-  }
 
-  // Check for API key in Authorization header
-  const authHeader = req.headers.authorization;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const apiKey = authHeader.substring(7);
-    try {
+    // Check for API key in Authorization header
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const apiKey = authHeader.substring(7);
       const keyData = await storage.getApiKey(apiKey);
       if (keyData && keyData.isActive) {
         const user = await storage.getUser(keyData.userId);
@@ -129,17 +132,21 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
             email: user.email || '',
             name: `${user.firstName || ''} ${user.lastName || ''}`,
             emailVerified: user.emailVerified || false,
+            plan: user.plan || 'free',
+            storageUsed: user.storageUsed || 0,
+            storageLimit: user.storageLimit || 1024 * 1024 * 1024,
           };
           req.apiKey = keyData;
           return next();
         }
       }
-    } catch (error) {
-      console.error('API key authentication error:', error);
     }
-  }
 
-  return res.status(401).json({ error: 'Authentication required' });
+    return res.status(401).json({ error: 'Authentication required' });
+  } catch (error) {
+    console.error('Authentication error:', error);
+    return res.status(500).json({ error: 'Authentication failed' });
+  }
 }
 
 // API key authentication middleware (separate for API-only endpoints)
@@ -167,6 +174,9 @@ async function authenticateApiKey(req: Request, res: Response, next: Function) {
       email: user.email || '',
       name: user.name || `${user.firstName || ''} ${user.lastName || ''}`,
       emailVerified: user.emailVerified || false,
+      plan: user.plan || 'free',
+      storageUsed: user.storageUsed || 0,
+      storageLimit: user.storageLimit || 1024 * 1024 * 1024,
     };
     req.apiKey = keyData;
     next();
@@ -202,6 +212,9 @@ export function registerRoutes(app: Express): Server {
         passwordHash: hashedPassword,
         emailVerified: false,
         profileImageUrl: null,
+        plan: 'free',
+        storageUsed: 0,
+        storageLimit: 1024 * 1024 * 1024, // 1GB
       };
 
       const user = await storage.createUser(userData);
@@ -211,13 +224,16 @@ export function registerRoutes(app: Express): Server {
       await storage.createEmailVerificationToken(user.id, verificationToken);
 
       // Send verification email
-      const emailSent = await emailService.sendVerificationEmail(email, verificationToken);
-      if (emailSent) {
-        console.log(`Verification email sent to ${email}`);
-      } else {
-        console.error(`Failed to send verification email to ${email}`);
+      try {
+        const emailSent = await emailService.sendVerificationEmail(email, verificationToken);
+        if (emailSent) {
+          console.log(`Verification email sent to ${email}`);
+        } else {
+          console.error(`Failed to send verification email to ${email}`);
+        }
+      } catch (emailError) {
+        console.error('Email sending error:', emailError);
       }
-      console.log(`Verification token for ${email}: ${verificationToken}`);
 
       res.json({ 
         success: true, 
@@ -227,7 +243,7 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Registration error:', error);
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: 'Invalid input data' });
+        return res.status(400).json({ error: 'Invalid input data', details: error.errors });
       }
       res.status(500).json({ error: 'Registration failed' });
     }
@@ -260,6 +276,9 @@ export function registerRoutes(app: Express): Server {
           email: user.email,
           name: `${user.firstName} ${user.lastName}`,
           emailVerified: user.emailVerified || false,
+          plan: user.plan || 'free',
+          storageUsed: user.storageUsed || 0,
+          storageLimit: user.storageLimit || 1024 * 1024 * 1024,
         }
       });
     } catch (error) {
@@ -284,25 +303,27 @@ export function registerRoutes(app: Express): Server {
   });
 
   // Get current user
-  app.get('/api/auth/user', (req, res) => {
+  app.get('/api/auth/user', async (req, res) => {
     if (req.session?.userId) {
-      storage.getUser(req.session.userId)
-        .then(user => {
-          if (user) {
-            res.json({
-              id: user.id,
-              email: user.email,
-              name: `${user.firstName} ${user.lastName}`,
-              emailVerified: user.emailVerified || false,
-            });
-          } else {
-            res.status(401).json({ message: 'User not found' });
-          }
-        })
-        .catch(error => {
-          console.error('Get user error:', error);
-          res.status(500).json({ error: 'Failed to get user' });
-        });
+      try {
+        const user = await storage.getUser(req.session.userId);
+        if (user) {
+          res.json({
+            id: user.id,
+            email: user.email,
+            name: `${user.firstName} ${user.lastName}`,
+            emailVerified: user.emailVerified || false,
+            plan: user.plan || 'free',
+            storageUsed: user.storageUsed || 0,
+            storageLimit: user.storageLimit || 1024 * 1024 * 1024,
+          });
+        } else {
+          res.status(401).json({ message: 'User not found' });
+        }
+      } catch (error) {
+        console.error('Get user error:', error);
+        res.status(500).json({ error: 'Failed to get user' });
+      }
     } else {
       res.status(401).json({ message: 'Unauthorized' });
     }
@@ -324,13 +345,16 @@ export function registerRoutes(app: Express): Server {
       await storage.createPasswordResetToken(user.id, resetToken);
 
       // Send reset email
-      const emailSent = await emailService.sendPasswordResetEmail(email, resetToken);
-      if (emailSent) {
-        console.log(`Password reset email sent to ${email}`);
-      } else {
-        console.error(`Failed to send password reset email to ${email}`);
+      try {
+        const emailSent = await emailService.sendPasswordResetEmail(email, resetToken);
+        if (emailSent) {
+          console.log(`Password reset email sent to ${email}`);
+        } else {
+          console.error(`Failed to send password reset email to ${email}`);
+        }
+      } catch (emailError) {
+        console.error('Password reset email error:', emailError);
       }
-      console.log(`Password reset token for ${email}: ${resetToken}`);
 
       res.json({ success: true, message: 'If the email exists, a reset link has been sent.' });
     } catch (error) {
@@ -388,14 +412,15 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Upload endpoint - requires authentication
-  app.post('/api/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
+  // Upload endpoint - requires authentication with folder path support
+  app.post('/api/v1/images/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
       }
 
       const user = req.user!;
+      const folder = req.body.folder || ''; // Optional folder path
 
       // Check storage limits
       const userData = await storage.getUser(user.id);
@@ -429,9 +454,24 @@ export function registerRoutes(app: Express): Server {
         processedBuffer = await ImageProcessor.processImage(processedBuffer, transforms);
       }
 
+      // Create folder structure: userId/folder/filename
+      const folderPath = folder ? `${folder}/` : '';
+      const fileName = `${user.id}/${folderPath}${Date.now()}-${req.file.originalname}`;
+      
       // Upload to Backblaze
-      const fileName = `${Date.now()}-${req.file.originalname}`;
       const uploadResult = await backblazeService.uploadFile(processedBuffer, fileName, req.file.mimetype);
+
+      // Get image dimensions
+      const metadata = await ImageProcessor.getImageMetadata(processedBuffer);
+
+      // Create custom CDN URL
+      const customDomain = await storage.getUserCustomDomain(user.id);
+      let cdnUrl = uploadResult.downloadUrl;
+      
+      if (customDomain && customDomain.isVerified) {
+        // Use custom domain instead of Backblaze URL
+        cdnUrl = `https://${customDomain.domain}/${fileName}`;
+      }
 
       // Create image record
       const imageData = {
@@ -441,21 +481,20 @@ export function registerRoutes(app: Express): Server {
         originalFilename: req.file.originalname,
         mimeType: req.file.mimetype,
         size: processedBuffer.length,
-        width: 0, // Will be updated after processing
-        height: 0, // Will be updated after processing
+        width: metadata.width || 0,
+        height: metadata.height || 0,
         isPublic: req.body.isPublic === 'true',
         tags: req.body.tags ? JSON.parse(req.body.tags) : [],
         backblazeFileId: uploadResult.fileId,
         backblazeFileName: uploadResult.fileName,
-        cdnUrl: (uploadResult as any).cdnUrl || (uploadResult as any).downloadUrl || `https://f005.backblazeb2.com/file/${process.env.BACKBLAZE_BUCKET_NAME}/${uploadResult.fileName}`,
+        cdnUrl: cdnUrl,
+        folder: folder,
       };
 
-      // Get image dimensions
-      const metadata = await ImageProcessor.getImageMetadata(processedBuffer);
-      imageData.width = metadata.width || 0;
-      imageData.height = metadata.height || 0;
-
       const image = await storage.createImage(user.id, imageData);
+
+      // Update user storage usage
+      await storage.updateUserStorageUsage(user.id, userData.storageUsed + processedBuffer.length);
 
       res.json({
         success: true,
@@ -469,24 +508,33 @@ export function registerRoutes(app: Express): Server {
           size: image.size,
           mimeType: image.mimeType,
           isPublic: image.isPublic,
+          folder: image.folder,
           createdAt: image.createdAt,
         }
       });
     } catch (error) {
       console.error('Upload error:', error);
-      res.status(500).json({ error: 'Upload failed' });
+      res.status(500).json({ error: 'Upload failed', details: error.message });
     }
   });
 
-  // Get user's images
-  app.get('/api/images', isAuthenticated, async (req, res) => {
+  // Legacy upload endpoint for backward compatibility
+  app.post('/api/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
+    // Redirect to new endpoint
+    req.url = '/api/v1/images/upload';
+    return app._router.handle(req, res);
+  });
+
+  // Get user's images with folder filtering
+  app.get('/api/v1/images', isAuthenticated, async (req, res) => {
     try {
       const user = req.user!;
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
+      const folder = req.query.folder as string || '';
       const offset = (page - 1) * limit;
 
-      const images = await storage.getUserImages(user.id, limit, offset);
+      const images = await storage.getUserImages(user.id, limit, offset, folder);
 
       const formattedImages = images.map(image => ({
         id: image.id,
@@ -500,6 +548,7 @@ export function registerRoutes(app: Express): Server {
         mimeType: image.mimeType,
         isPublic: image.isPublic,
         tags: image.tags,
+        folder: image.folder,
         views: image.views,
         downloads: image.downloads,
         createdAt: image.createdAt,
@@ -518,6 +567,12 @@ export function registerRoutes(app: Express): Server {
       console.error('Get images error:', error);
       res.status(500).json({ error: 'Failed to fetch images' });
     }
+  });
+
+  // Legacy images endpoint
+  app.get('/api/images', isAuthenticated, async (req, res) => {
+    req.url = '/api/v1/images';
+    return app._router.handle(req, res);
   });
 
   // Get public images
@@ -559,7 +614,7 @@ export function registerRoutes(app: Express): Server {
   });
 
   // API Keys management
-  app.get('/api/api-keys', isAuthenticated, async (req, res) => {
+  app.get('/api/v1/api-keys', isAuthenticated, async (req, res) => {
     try {
       const user = req.user!;
       const apiKeys = await storage.getUserApiKeys(user.id);
@@ -580,10 +635,10 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  app.post('/api/api-keys', isAuthenticated, async (req, res) => {
+  app.post('/api/v1/api-keys', isAuthenticated, async (req, res) => {
     try {
       const user = req.user!;
-      const { name } = insertApiKeySchema.parse(req.body);
+      const { name } = z.object({ name: z.string().min(1) }).parse(req.body);
 
       const apiKey = await storage.createApiKey(user.id, { name });
 
@@ -598,7 +653,135 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error('Create API key error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid input data' });
+      }
       res.status(500).json({ error: 'Failed to create API key' });
+    }
+  });
+
+  // Legacy API keys endpoints
+  app.get('/api/api-keys', isAuthenticated, async (req, res) => {
+    req.url = '/api/v1/api-keys';
+    return app._router.handle(req, res);
+  });
+
+  app.post('/api/api-keys', isAuthenticated, async (req, res) => {
+    req.url = '/api/v1/api-keys';
+    return app._router.handle(req, res);
+  });
+
+  // Analytics endpoint
+  app.get('/api/v1/analytics', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const analytics = await storage.getUserAnalytics(user.id);
+      res.json(analytics);
+    } catch (error) {
+      console.error('Analytics error:', error);
+      res.status(500).json({ error: 'Failed to fetch analytics' });
+    }
+  });
+
+  // Custom domains management
+  app.get('/api/v1/domains', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const domains = await storage.getUserCustomDomains(user.id);
+      res.json({ domains });
+    } catch (error) {
+      console.error('Get domains error:', error);
+      res.status(500).json({ error: 'Failed to fetch domains' });
+    }
+  });
+
+  app.post('/api/v1/domains', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { domain } = z.object({ domain: z.string().min(1) }).parse(req.body);
+
+      // Generate verification records
+      const verificationToken = crypto.randomBytes(16).toString('hex');
+      const cnameTarget = process.env.CUSTOM_DOMAIN_CNAME_TARGET || 'cdn.yourdomain.com';
+
+      const domainRecord = await storage.createCustomDomain(user.id, {
+        domain,
+        verificationToken,
+        cnameTarget,
+      });
+
+      res.json({
+        success: true,
+        domain: domainRecord,
+        dnsRecords: {
+          cname: {
+            name: domain,
+            value: cnameTarget,
+            type: 'CNAME'
+          },
+          txt: {
+            name: `_verification.${domain}`,
+            value: verificationToken,
+            type: 'TXT'
+          }
+        },
+        instructions: {
+          step1: `Add a CNAME record for ${domain} pointing to ${cnameTarget}`,
+          step2: `Add a TXT record for _verification.${domain} with value ${verificationToken}`,
+          step3: 'Wait for DNS propagation (usually 5-60 minutes)',
+          step4: 'Click verify to complete the setup'
+        }
+      });
+    } catch (error) {
+      console.error('Create domain error:', error);
+      res.status(500).json({ error: 'Failed to create domain' });
+    }
+  });
+
+  app.post('/api/v1/domains/:id/verify', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const domainId = req.params.id;
+
+      const domain = await storage.getCustomDomain(domainId);
+      if (!domain || domain.userId !== user.id) {
+        return res.status(404).json({ error: 'Domain not found' });
+      }
+
+      // Verify DNS records
+      const isVerified = await storage.verifyCustomDomain(domainId);
+      
+      if (isVerified) {
+        res.json({ success: true, message: 'Domain verified successfully' });
+      } else {
+        res.status(400).json({ error: 'Domain verification failed. Please check your DNS records.' });
+      }
+    } catch (error) {
+      console.error('Verify domain error:', error);
+      res.status(500).json({ error: 'Failed to verify domain' });
+    }
+  });
+
+  // File serving with custom domain support
+  app.get('/files/:userId/:path(*)', async (req, res) => {
+    try {
+      const { userId, path } = req.params;
+      
+      // Get the image from database
+      const image = await storage.getImageByPath(userId, path);
+      if (!image) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+
+      // Track view
+      await storage.trackImageView(image.id, req.ip, req.get('User-Agent'));
+
+      // Redirect to Backblaze URL or serve directly
+      const backblazeUrl = backblazeService.getFileUrl(image.backblazeFileName);
+      res.redirect(302, backblazeUrl);
+    } catch (error) {
+      console.error('File serve error:', error);
+      res.status(500).json({ error: 'Failed to serve file' });
     }
   });
 

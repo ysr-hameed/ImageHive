@@ -132,23 +132,28 @@ export default function Navigation() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  asChild
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/auth/logout', { method: 'POST' });
+                      window.location.href = '/';
+                    } catch (error) {
+                      console.error('Logout failed:', error);
+                    }
+                  }}
                   className="hidden sm:flex"
                   data-testid="button-logout"
                 >
-                  <a href="/api/logout">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </a>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
                 </Button>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
                 <Button variant="ghost" size="sm" asChild data-testid="button-signin">
-                  <a href="/api/login">Sign In</a>
+                  <a href="/auth/login">Sign In</a>
                 </Button>
                 <Button size="sm" asChild data-testid="button-get-started">
-                  <a href="/api/login">Get Started</a>
+                  <a href="/auth/login">Get Started</a>
                 </Button>
               </div>
             )}

@@ -37,7 +37,7 @@ export default function HeroSection() {
                 className="px-8 py-4 transition-all duration-200 transform hover:scale-105 shadow-lg"
                 data-testid="button-start-free-trial"
               >
-                <a href="/api/login">
+                <a href="/auth/login">
                   Start Free Trial
                 </a>
               </Button>

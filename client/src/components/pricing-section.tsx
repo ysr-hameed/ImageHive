@@ -177,7 +177,7 @@ export default function PricingSection() {
                     asChild
                     data-testid={`button-${plan.name.toLowerCase()}`}
                   >
-                    <a href="/api/login">
+                    <a href="/auth/login">
                       {plan.cta}
                     </a>
                   </Button>

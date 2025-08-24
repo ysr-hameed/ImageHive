@@ -4,32 +4,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import Navigation from "@/components/navigation";
-import ImageGrid from "@/components/image-grid";
+import EnhancedImageGrid from "@/components/enhanced-image-grid";
 import { Upload, Image as ImageIcon, BarChart3, Key, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { CreateApiKeyDialog } from "@/components/api-key-dialog";
 
 export default function Dashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
 
   // Fetch user analytics
-  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery({
+  const { data: analytics = {}, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ["/api/v1/analytics"],
     retry: false,
   });
 
   // Fetch user images
-  const { data: imagesData, isLoading: imagesLoading, error: imagesError } = useQuery({
+  const { data: imagesData = {}, isLoading: imagesLoading, error: imagesError } = useQuery({
     queryKey: ["/api/v1/images"],
     retry: false,
   });
 
   // Fetch user API keys
-  const { data: apiKeys, isLoading: apiKeysLoading, error: apiKeysError } = useQuery({
+  const { data: apiKeys = [], isLoading: apiKeysLoading, error: apiKeysError } = useQuery({
     queryKey: ["/api/v1/api-keys"],
     retry: false,
   });
@@ -81,10 +81,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <Navigation />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -116,7 +114,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Images</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-total-images">
-                    {analyticsLoading ? '...' : formatNumber(analytics?.totalImages || 0)}
+                    {analyticsLoading ? '...' : formatNumber((analytics as any)?.totalImages || 0)}
                   </p>
                 </div>
                 <ImageIcon className="w-8 h-8 text-blue-500" />
@@ -130,7 +128,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Storage Used</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-storage-used">
-                    {analyticsLoading ? '...' : formatBytes(analytics?.storageUsed || 0)}
+                    {analyticsLoading ? '...' : formatBytes((analytics as any)?.storageUsed || 0)}
                   </p>
                 </div>
                 <BarChart3 className="w-8 h-8 text-emerald-500" />
@@ -147,7 +145,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Views</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-total-views">
-                    {analyticsLoading ? '...' : formatNumber(analytics?.totalViews || 0)}
+                    {analyticsLoading ? '...' : formatNumber((analytics as any)?.totalViews || 0)}
                   </p>
                 </div>
                 <ImageIcon className="w-8 h-8 text-amber-500" />
@@ -161,7 +159,7 @@ export default function Dashboard() {
                 <div>
                   <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Downloads</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-total-downloads">
-                    {analyticsLoading ? '...' : formatNumber(analytics?.totalDownloads || 0)}
+                    {analyticsLoading ? '...' : formatNumber((analytics as any)?.totalDownloads || 0)}
                   </p>
                 </div>
                 <BarChart3 className="w-8 h-8 text-purple-500" />
@@ -199,7 +197,7 @@ export default function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <ImageGrid images={imagesData?.images || []} />
+                  <EnhancedImageGrid images={(imagesData as any)?.images || []} />
                 )}
               </CardContent>
             </Card>
@@ -210,10 +208,12 @@ export default function Dashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>API Keys</span>
-                  <Button size="sm" data-testid="button-create-api-key">
-                    <Key className="w-4 h-4 mr-2" />
-                    Create New Key
-                  </Button>
+                  <CreateApiKeyDialog>
+                    <Button size="sm" data-testid="button-create-api-key">
+                      <Key className="w-4 h-4 mr-2" />
+                      Create New Key
+                    </Button>
+                  </CreateApiKeyDialog>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -225,20 +225,22 @@ export default function Dashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {apiKeys?.length === 0 ? (
+                    {Array.isArray(apiKeys) && apiKeys.length === 0 ? (
                       <div className="text-center py-8">
                         <Key className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No API Keys</h3>
                         <p className="text-gray-600 dark:text-gray-400 mb-4">
                           Create your first API key to start using the ImageVault API.
                         </p>
-                        <Button data-testid="button-create-first-api-key">
-                          <Key className="w-4 h-4 mr-2" />
-                          Create API Key
-                        </Button>
+                        <CreateApiKeyDialog>
+                          <Button data-testid="button-create-first-api-key">
+                            <Key className="w-4 h-4 mr-2" />
+                            Create API Key
+                          </Button>
+                        </CreateApiKeyDialog>
                       </div>
                     ) : (
-                      apiKeys?.map((apiKey: any) => (
+                      (apiKeys as any[])?.map((apiKey: any) => (
                         <div key={apiKey.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg" data-testid={`api-key-${apiKey.id}`}>
                           <div>
                             <h4 className="font-medium text-gray-900 dark:text-white">{apiKey.name}</h4>
@@ -304,14 +306,14 @@ export default function Dashboard() {
                       <div className="flex justify-between text-sm mb-2">
                         <span className="text-gray-600 dark:text-gray-400">Storage</span>
                         <span className="text-gray-900 dark:text-white">
-                          {formatBytes(analytics?.storageUsed || 0)} / {formatBytes(user?.storageLimit || 0)}
+                          {formatBytes((analytics as any)?.storageUsed || 0)} / {formatBytes(user?.storageLimit || 0)}
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
                         <div 
                           className="bg-blue-600 h-2 rounded-full transition-all"
                           style={{ 
-                            width: `${Math.min(100, ((analytics?.storageUsed || 0) / (user?.storageLimit || 1)) * 100)}%`
+                            width: `${Math.min(100, (((analytics as any)?.storageUsed || 0) / (user?.storageLimit || 1)) * 100)}%`
                           }}
                           data-testid="storage-progress"
                         />

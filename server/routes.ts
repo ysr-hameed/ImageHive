@@ -4,9 +4,12 @@ import multer from "multer";
 import { storage } from "./storage";
 import { backblazeService } from "./services/backblaze";
 import { ImageProcessor, type ImageTransformOptions } from "./services/imageProcessor";
-import { insertImageSchema, insertApiKeySchema, insertCustomDomainSchema } from "@shared/schema";
+import { insertImageSchema, insertApiKeySchema, insertCustomDomainSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+import session from "express-session";
 
 // Multer configuration for file uploads
 const upload = multer({
@@ -36,8 +39,60 @@ const createRateLimit = (windowMs: number, max: number) =>
 const apiRateLimit = createRateLimit(15 * 60 * 1000, 100); // 100 requests per 15 minutes
 const uploadRateLimit = createRateLimit(60 * 1000, 10); // 10 uploads per minute
 
-// Authentication middleware - checks for API key or session
+// Authentication schemas
+const loginSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const registerSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: z.string().min(6),
+});
+
+// Session configuration
+const sessionMiddleware = session({
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+  },
+});
+
+// Authentication middleware - checks for session or API key
 async function isAuthenticated(req: Request, res: Response, next: Function) {
+  // Check for session-based authentication first
+  if (req.session?.userId) {
+    try {
+      const user = await storage.getUser(req.session.userId);
+      if (user) {
+        req.user = {
+          id: user.id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          emailVerified: user.emailVerified || false,
+        };
+        return next();
+      }
+    } catch (error) {
+      console.error('Session authentication error:', error);
+    }
+  }
+
   // Check for API key in Authorization header
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
@@ -50,7 +105,7 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
           req.user = {
             id: user.id,
             email: user.email,
-            name: user.name,
+            name: `${user.firstName} ${user.lastName}`,
             emailVerified: user.emailVerified || false,
           };
           req.apiKey = keyData;
@@ -62,8 +117,6 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
     }
   }
 
-  // Check for session-based authentication (if implemented later)
-  // For now, return unauthorized
   return res.status(401).json({ error: 'Authentication required' });
 }
 
@@ -102,37 +155,202 @@ async function authenticateApiKey(req: Request, res: Response, next: Function) {
 }
 
 export function registerRoutes(app: Express): Server {
-  // Authentication routes
+  // Apply session middleware
+  app.use(sessionMiddleware);
+
+  // Registration endpoint
   app.post('/api/auth/register', async (req, res) => {
     try {
-      // TODO: Implement user registration
-      res.status(501).json({ error: 'Registration not yet implemented' });
+      const { email, password, firstName, lastName } = registerSchema.parse(req.body);
+
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      const userData = {
+        email,
+        firstName,
+        lastName,
+        passwordHash: hashedPassword,
+        emailVerified: false,
+        profileImageUrl: null,
+      };
+
+      const user = await storage.createUser(userData);
+
+      // Generate email verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      await storage.createEmailVerificationToken(user.id, verificationToken);
+
+      // TODO: Send verification email
+      console.log(`Verification token for ${email}: ${verificationToken}`);
+
+      res.json({ 
+        success: true, 
+        message: 'Registration successful. Please check your email to verify your account.',
+        userId: user.id 
+      });
     } catch (error) {
       console.error('Registration error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid input data' });
+      }
       res.status(500).json({ error: 'Registration failed' });
     }
   });
 
+  // Login endpoint
   app.post('/api/auth/login', async (req, res) => {
     try {
-      // TODO: Implement user login
-      res.status(501).json({ error: 'Login not yet implemented' });
+      const { email, password } = loginSchema.parse(req.body);
+
+      // Get user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.passwordHash) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      // Create session
+      req.session.userId = user.id;
+
+      res.json({ 
+        success: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
+          emailVerified: user.emailVerified || false,
+        }
+      });
     } catch (error) {
       console.error('Login error:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: 'Invalid input data' });
+      }
       res.status(500).json({ error: 'Login failed' });
     }
   });
 
+  // Logout endpoint
   app.post('/api/auth/logout', (req, res) => {
-    // TODO: Implement logout
-    res.json({ success: true });
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Logout error:', err);
+        return res.status(500).json({ error: 'Logout failed' });
+      }
+      res.clearCookie('connect.sid');
+      res.json({ success: true });
+    });
   });
 
+  // Get current user
   app.get('/api/auth/user', (req, res) => {
-    if (req.user) {
-      res.json(req.user);
+    if (req.session?.userId) {
+      storage.getUser(req.session.userId)
+        .then(user => {
+          if (user) {
+            res.json({
+              id: user.id,
+              email: user.email,
+              name: `${user.firstName} ${user.lastName}`,
+              emailVerified: user.emailVerified || false,
+            });
+          } else {
+            res.status(401).json({ message: 'User not found' });
+          }
+        })
+        .catch(error => {
+          console.error('Get user error:', error);
+          res.status(500).json({ error: 'Failed to get user' });
+        });
     } else {
       res.status(401).json({ message: 'Unauthorized' });
+    }
+  });
+
+  // Forgot password endpoint
+  app.post('/api/auth/forgot-password', async (req, res) => {
+    try {
+      const { email } = forgotPasswordSchema.parse(req.body);
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if email exists
+        return res.json({ success: true, message: 'If the email exists, a reset link has been sent.' });
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      await storage.createPasswordResetToken(user.id, resetToken);
+
+      // TODO: Send reset email
+      console.log(`Password reset token for ${email}: ${resetToken}`);
+
+      res.json({ success: true, message: 'If the email exists, a reset link has been sent.' });
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Failed to process request' });
+    }
+  });
+
+  // Reset password endpoint
+  app.post('/api/auth/reset-password', async (req, res) => {
+    try {
+      const { token, password } = resetPasswordSchema.parse(req.body);
+
+      const tokenData = await storage.verifyPasswordResetToken(token);
+      if (!tokenData) {
+        return res.status(400).json({ error: 'Invalid or expired reset token' });
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Update user password
+      await storage.updateUserPassword(tokenData.userId, hashedPassword);
+
+      // Delete the token
+      await storage.deletePasswordResetToken(token);
+
+      res.json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
+  // Verify email endpoint
+  app.post('/api/auth/verify-email', async (req, res) => {
+    try {
+      const { token } = z.object({ token: z.string() }).parse(req.body);
+
+      const tokenData = await storage.verifyEmailToken(token);
+      if (!tokenData) {
+        return res.status(400).json({ error: 'Invalid or expired verification token' });
+      }
+
+      // Mark email as verified
+      await storage.markEmailAsVerified(tokenData.userId);
+
+      // Delete the token
+      await storage.deleteEmailVerificationToken(token);
+
+      res.json({ success: true, message: 'Email verified successfully' });
+    } catch (error) {
+      console.error('Verify email error:', error);
+      res.status(500).json({ error: 'Failed to verify email' });
     }
   });
 

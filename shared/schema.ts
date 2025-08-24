@@ -12,6 +12,9 @@ export const users = pgTable("users", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   profileImageUrl: text("profile_image_url"),
   plan: varchar("plan").default("free").notNull(), // free, starter, pro, enterprise
+  isAdmin: boolean("is_admin").default(false).notNull(),
+  apiRequestsUsed: integer("api_requests_used").default(0).notNull(),
+  apiRequestsLimit: integer("api_requests_limit").default(1000).notNull(),
   storageUsed: integer("storage_used").default(0).notNull(), // in bytes
   storageLimit: integer("storage_limit").default(sql`1024 * 1024 * 1024`).notNull(), // 1GB default
   createdAt: timestamp("created_at").defaultNow(),

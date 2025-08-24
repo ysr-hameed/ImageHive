@@ -107,12 +107,26 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
     if (req.session?.userId) {
       const user = await storage.getUser(req.session.userId);
       if (user) {
+        // Require email verification for web sessions
+        if (!user.emailVerified) {
+          req.session.destroy(() => {});
+          return res.status(403).json({ 
+            error: 'Email verification required',
+            code: 'EMAIL_NOT_VERIFIED' 
+          });
+        }
+        
         req.user = {
           id: user.id,
           email: user.email || '',
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
           name: `${user.firstName || ''} ${user.lastName || ''}`,
           emailVerified: user.emailVerified || false,
+          isAdmin: user.isAdmin || false,
           plan: user.plan || 'free',
+          apiRequestsUsed: user.apiRequestsUsed || 0,
+          apiRequestsLimit: user.apiRequestsLimit || 1000,
           storageUsed: user.storageUsed || 0,
           storageLimit: user.storageLimit || 1024 * 1024 * 1024, // 1GB default
         };
@@ -267,6 +281,15 @@ export function registerRoutes(app: Express): Server {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
+      // Check email verification requirement
+      if (!user.emailVerified) {
+        return res.status(403).json({ 
+          error: 'Email verification required', 
+          code: 'EMAIL_NOT_VERIFIED',
+          message: 'Please verify your email address before logging in. Check your inbox for the verification email.' 
+        });
+      }
+
       // Create session
       req.session.userId = user.id;
 
@@ -275,9 +298,14 @@ export function registerRoutes(app: Express): Server {
         user: {
           id: user.id,
           email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
           name: `${user.firstName} ${user.lastName}`,
           emailVerified: user.emailVerified || false,
+          isAdmin: user.isAdmin || false,
           plan: user.plan || 'free',
+          apiRequestsUsed: user.apiRequestsUsed || 0,
+          apiRequestsLimit: user.apiRequestsLimit || 1000,
           storageUsed: user.storageUsed || 0,
           storageLimit: user.storageLimit || 1024 * 1024 * 1024,
         }
@@ -312,9 +340,14 @@ export function registerRoutes(app: Express): Server {
           res.json({
             id: user.id,
             email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
             name: `${user.firstName} ${user.lastName}`,
             emailVerified: user.emailVerified || false,
+            isAdmin: user.isAdmin || false,
             plan: user.plan || 'free',
+            apiRequestsUsed: user.apiRequestsUsed || 0,
+            apiRequestsLimit: user.apiRequestsLimit || 1000,
             storageUsed: user.storageUsed || 0,
             storageLimit: user.storageLimit || 1024 * 1024 * 1024,
           });
@@ -327,6 +360,41 @@ export function registerRoutes(app: Express): Server {
       }
     } else {
       res.status(401).json({ message: 'Unauthorized' });
+    }
+  });
+
+  // Resend email verification endpoint
+  app.post('/api/auth/resend-verification', async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ error: 'Email already verified' });
+      }
+
+      // Generate new verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      await storage.createEmailVerificationToken(user.id, verificationToken);
+
+      // Send verification email
+      try {
+        const emailSent = await emailService.sendVerificationEmail(email, verificationToken);
+        if (emailSent) {
+          console.log(`Verification email resent to ${email}`);
+        }
+      } catch (emailError) {
+        console.error('Email sending error:', emailError);
+      }
+
+      res.json({ success: true, message: 'Verification email sent' });
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      res.status(500).json({ error: 'Failed to resend verification email' });
     }
   });
 
@@ -782,7 +850,8 @@ export function registerRoutes(app: Express): Server {
       const images = await storage.getUserImages(user.id, 1000, 0, '');
       
       // Extract unique folders from images
-      const folders = [...new Set(images.map(img => img.folder).filter(Boolean))];
+      const folderSet = new Set(images.map(img => img.folder).filter(Boolean));
+      const folders = Array.from(folderSet);
       const folderStats = folders.map(folder => ({
         name: folder,
         count: images.filter(img => img.folder === folder).length

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 import EnhancedImageGrid from "@/components/enhanced-image-grid";
+import EmailVerificationBanner from "@/components/email-verification-banner";
 import { Upload, Image as ImageIcon, BarChart3, Key, Settings } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
@@ -108,6 +109,11 @@ export default function Dashboard() {
     <SidebarContentLoader>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="max-w-7xl mx-auto">
+        {/* Email Verification Banner */}
+        {user && !user.emailVerified && (
+          <EmailVerificationBanner userEmail={user.email || ''} />
+        )}
+
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>

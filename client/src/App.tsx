@@ -60,7 +60,7 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user, error } = useAuth();
 
   // Show loading screen while checking authentication
   if (isLoading) {
@@ -72,6 +72,31 @@ function Router() {
         </div>
       </div>
     );
+  }
+
+  // Handle authentication errors
+  if (error && !isAuthenticated) {
+    // If it's an email verification error, redirect to a verification page
+    if (error.message?.includes('EMAIL_NOT_VERIFIED')) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+          <div className="text-center max-w-md p-6">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Email Verification Required
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Please verify your email address to continue. Check your inbox for the verification email.
+            </p>
+            <a 
+              href="/auth/login" 
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Back to Login
+            </a>
+          </div>
+        </div>
+      );
+    }
   }
 
   return (

@@ -4,15 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Mail, Lock, Github } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, Github, AlertCircle } from 'lucide-react';
 import { Link } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
-import { queryClient } from '@/lib/queryClient'; // Assuming queryClient is exported from '@/lib/queryClient'
+import { queryClient } from '@/lib/queryClient';
 
 export default function Login() {
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
+  const [emailVerificationError, setEmailVerificationError] = useState<string>("");
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -49,9 +51,32 @@ export default function Login() {
       }, 500);
     },
     onError: (error: any) => {
+      if (error.message && error.message.includes('Email verification required')) {
+        setEmailVerificationError(formData.email);
+      } else {
+        toast({
+          title: 'Login failed',
+          description: error.message || 'Invalid email or password',
+          variant: 'destructive',
+        });
+      }
+    },
+  });
+
+  const resendVerificationMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/auth/resend-verification', { email: emailVerificationError });
+    },
+    onSuccess: () => {
       toast({
-        title: 'Login failed',
-        description: error.message || 'Invalid email or password',
+        title: 'Verification email sent',
+        description: 'Please check your inbox for the verification email.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to send verification email. Please try again.',
         variant: 'destructive',
       });
     },
@@ -59,6 +84,7 @@ export default function Login() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailVerificationError("");
     if (!formData.email || !formData.password) {
       toast({
         title: 'Error',
@@ -100,6 +126,30 @@ export default function Login() {
             <CardTitle>Sign In</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {emailVerificationError && (
+              <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10">
+                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+                  <div className="flex flex-col gap-3">
+                    <p className="font-medium">Email verification required</p>
+                    <p className="text-sm">
+                      Please verify your email address ({emailVerificationError}) before logging in.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => resendVerificationMutation.mutate()}
+                      disabled={resendVerificationMutation.isPending}
+                      className="w-fit"
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      {resendVerificationMutation.isPending ? "Sending..." : "Resend Verification"}
+                    </Button>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="email">Email</Label>

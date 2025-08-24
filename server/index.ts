@@ -12,9 +12,6 @@ app.use(express.urlencoded({ extended: true }));
 // Trust proxy for secure cookies in production
 app.set('trust proxy', 1);
 
-// Parse JSON bodies
-app.use(express.json());
-
 // Setup routes
 registerRoutes(app);
 

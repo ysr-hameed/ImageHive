@@ -11,6 +11,27 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import session from "express-session";
 
+// Extend Express Request type to include session properties
+declare module 'express-session' {
+  interface SessionData {
+    userId: string;
+  }
+}
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        name: string;
+        emailVerified: boolean;
+      };
+      apiKey?: any;
+    }
+  }
+}
+
 // Multer configuration for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),

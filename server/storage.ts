@@ -134,21 +134,19 @@ export class DatabaseStorage implements IStorage {
 
   async createUser(userData: {
     email: string;
-    name: string;
-    password?: string;
-    emailVerified?: boolean;
-    emailVerificationToken?: string;
-    googleId?: string;
-    githubId?: string;
+    firstName: string;
+    lastName: string;
+    passwordHash: string;
+    emailVerified: boolean;
+    profileImageUrl: string | null;
   }): Promise<User> {
     const [user] = await this.db.insert(users).values({
       email: userData.email,
-      name: userData.name,
-      password: userData.password,
-      emailVerified: userData.emailVerified || false,
-      emailVerificationToken: userData.emailVerificationToken,
-      googleId: userData.googleId,
-      githubId: userData.githubId,
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      passwordHash: userData.passwordHash,
+      emailVerified: userData.emailVerified,
+      profileImageUrl: userData.profileImageUrl,
     }).returning();
     return user;
   }
@@ -411,42 +409,15 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
   }
 
-  // Authentication methods
-  async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await this.db.select().from(users).where(eq(users.email, email));
-    return user;
-  }
-
-  async createUser(userData: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    passwordHash: string;
-    emailVerified: boolean;
-    profileImageUrl: string | null;
-  }): Promise<User> {
-    const [user] = await this.db.insert(users).values({
-      email: userData.email,
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      passwordHash: userData.passwordHash,
-      emailVerified: userData.emailVerified,
-      profileImageUrl: userData.profileImageUrl,
-    }).returning();
-    return user;
-  }
-
-  async createEmailVerificationToken(userId: number, token: string) {
-    // Store in a simple way - you might want a separate table for this
-    // For now, we'll use a simple in-memory store or implement as needed
+  // Authentication helper methods
+  async createEmailVerificationToken(userId: string, token: string) {
     console.log(`Email verification token created for user ${userId}: ${token}`);
     await this.db.update(users)
       .set({ emailVerificationToken: token })
       .where(eq(users.id, userId));
   }
 
-  async createPasswordResetToken(userId: number, token: string) {
-    // Store in a simple way - you might want a separate table for this
+  async createPasswordResetToken(userId: string, token: string) {
     console.log(`Password reset token created for user ${userId}: ${token}`);
     await this.db.update(users)
       .set({ passwordResetToken: token, passwordResetExpires: new Date(Date.now() + 1000 * 60 * 60) }) // Expires in 1 hour
@@ -458,7 +429,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async updateUserPassword(userId: number, hashedPassword: string) {
+  async updateUserPassword(userId: string, hashedPassword: string) {
     await this.db.update(users)
       .set({ passwordHash: hashedPassword, passwordResetToken: null, passwordResetExpires: null })
       .where(eq(users.id, userId));
@@ -475,7 +446,7 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async markEmailAsVerified(userId: number) {
+  async markEmailAsVerified(userId: string) {
     await this.db.update(users)
       .set({ emailVerified: true, emailVerificationToken: null })
       .where(eq(users.id, userId));

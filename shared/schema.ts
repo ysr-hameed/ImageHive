@@ -41,7 +41,7 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  password: text("password"), // Optional for OAuth users
+  passwordHash: text("password_hash"), // Hashed password
   emailVerified: boolean("email_verified").default(false),
   emailVerificationToken: text("email_verification_token"),
   passwordResetToken: text("password_reset_token"),

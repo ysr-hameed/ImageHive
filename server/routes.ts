@@ -38,440 +38,262 @@ const apiRateLimit = createRateLimit(15 * 60 * 1000, 100); // 100 requests per 1
 const uploadRateLimit = createRateLimit(60 * 1000, 10); // 10 uploads per minute
 
 // API key authentication middleware
-const authenticateApiKey = async (req: any, res: Response, next: Function) => {
-  const apiKey = req.headers.authorization?.replace('Bearer ', '');
-  
-  if (!apiKey) {
+async function authenticateApiKey(req: Request, res: Response, next: Function) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'API key required' });
   }
 
+  const apiKey = authHeader.substring(7);
   try {
-    const key = await storage.getApiKey(apiKey);
-    if (!key) {
+    const keyData = await storage.getApiKey(apiKey);
+    if (!keyData || !keyData.isActive) {
       return res.status(401).json({ error: 'Invalid API key' });
     }
 
-    await storage.updateApiKeyUsage(key.id);
-    req.apiKey = key;
-    req.user = { claims: { sub: key.userId } };
+    // Check rate limits based on user's plan
+    const user = await storage.getUser(keyData.userId);
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
+
+    req.user = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      emailVerified: user.emailVerified || false,
+    };
+    req.apiKey = keyData;
     next();
   } catch (error) {
     console.error('API key authentication error:', error);
     res.status(500).json({ error: 'Authentication failed' });
   }
-};
+}
 
-export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
-  // Health check
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ error: "Failed to fetch user" });
+export function registerRoutes(app: Express): Server {
+  // Auth user endpoint
+  app.get('/api/auth/user', (req, res) => {
+    if (req.user) {
+      res.json(req.user);
+    } else {
+      res.status(401).json({ message: 'Unauthorized' });
     }
   });
 
-  // Image upload endpoint (supports both authenticated users and API keys)
-  app.post('/api/v1/images/upload', apiRateLimit, uploadRateLimit, upload.single('image'), async (req: any, res) => {
+  // Upload endpoint - requires authentication
+  app.post('/api/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
     try {
-      // Try API key authentication first
-      const apiKey = req.headers.authorization?.replace('Bearer ', '');
-      let userId: string;
-
-      if (apiKey) {
-        const key = await storage.getApiKey(apiKey);
-        if (!key) {
-          return res.status(401).json({ error: 'Invalid API key' });
-        }
-        userId = key.userId;
-        await storage.updateApiKeyUsage(key.id);
-      } else if (req.isAuthenticated()) {
-        userId = req.user.claims.sub;
-      } else {
-        return res.status(401).json({ error: 'Authentication required' });
-      }
-
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
       }
 
-      // Validate and parse upload parameters
-      const uploadParams = {
-        privacy: req.body.privacy || 'public',
-        description: req.body.description,
-        altText: req.body.altText,
-        tags: req.body.tags ? req.body.tags.split(',').map((tag: string) => tag.trim()) : [],
-        quality: parseInt(req.body.quality) || 80,
-        format: req.body.format,
-        width: req.body.width ? parseInt(req.body.width) : undefined,
-        height: req.body.height ? parseInt(req.body.height) : undefined,
-      };
+      const user = req.user!;
 
-      // Process image if transformation parameters are provided
-      let processedBuffer = req.file.buffer;
-      let contentType = req.file.mimetype;
-
-      const transformOptions: ImageTransformOptions = {};
-      if (uploadParams.width) transformOptions.width = uploadParams.width;
-      if (uploadParams.height) transformOptions.height = uploadParams.height;
-      if (uploadParams.format) transformOptions.format = uploadParams.format as any;
-      if (uploadParams.quality) transformOptions.quality = uploadParams.quality;
-
-      if (Object.keys(transformOptions).length > 0) {
-        processedBuffer = await ImageProcessor.processImage(req.file.buffer, transformOptions);
-        if (uploadParams.format) {
-          contentType = `image/${uploadParams.format}`;
-        }
+      // Check storage limits
+      const userData = await storage.getUser(user.id);
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found' });
       }
 
-      // Get image metadata
-      const metadata = await ImageProcessor.getImageMetadata(processedBuffer);
+      if (userData.storageUsed + req.file.size > userData.storageLimit) {
+        return res.status(413).json({ error: 'Storage limit exceeded' });
+      }
 
-      // Upload to Backblaze B2
-      const uploadResult = await backblazeService.uploadFile(
-        processedBuffer,
-        req.file.originalname,
-        contentType,
-        {
-          userId,
-          privacy: uploadParams.privacy,
-          description: uploadParams.description || '',
-        }
-      );
+      // Process image with transforms if provided
+      let processedBuffer = req.file.buffer;
+      const transforms: ImageTransformOptions = {};
 
-      // Save image record to database
+      // Parse transform parameters
+      if (req.body.width) transforms.width = parseInt(req.body.width);
+      if (req.body.height) transforms.height = parseInt(req.body.height);
+      if (req.body.quality) transforms.quality = parseInt(req.body.quality);
+      if (req.body.format) transforms.format = req.body.format;
+      if (req.body.blur) transforms.blur = parseFloat(req.body.blur);
+      if (req.body.sharpen) transforms.sharpen = parseFloat(req.body.sharpen);
+      if (req.body.brightness) transforms.brightness = parseFloat(req.body.brightness);
+      if (req.body.contrast) transforms.contrast = parseFloat(req.body.contrast);
+      if (req.body.saturation) transforms.saturation = parseFloat(req.body.saturation);
+      if (req.body.hue) transforms.hue = parseInt(req.body.hue);
+      if (req.body.sepia) transforms.sepia = req.body.sepia === 'true';
+      if (req.body.grayscale) transforms.grayscale = req.body.grayscale === 'true';
+      if (req.body.invert) transforms.invert = req.body.invert === 'true';
+
+      // Apply transforms if any are specified
+      if (Object.keys(transforms).length > 0) {
+        processedBuffer = await ImageProcessor.processImage(processedBuffer, transforms);
+      }
+
+      // Upload to Backblaze
+      const fileName = `${Date.now()}-${req.file.originalname}`;
+      const uploadResult = await backblazeService.uploadFile(processedBuffer, fileName, req.file.mimetype);
+
+      // Create image record
       const imageData = {
-        filename: uploadResult.fileName,
-        originalName: req.file.originalname,
-        mimeType: contentType,
+        title: req.body.title || req.file.originalname,
+        description: req.body.description || '',
+        filename: fileName,
+        originalFilename: req.file.originalname,
+        mimeType: req.file.mimetype,
         size: processedBuffer.length,
-        width: metadata.width || null,
-        height: metadata.height || null,
-        privacy: uploadParams.privacy as 'public' | 'private',
-        description: uploadParams.description,
-        altText: uploadParams.altText,
-        tags: uploadParams.tags,
+        width: 0, // Will be updated after processing
+        height: 0, // Will be updated after processing
+        isPublic: req.body.isPublic === 'true',
+        tags: req.body.tags ? JSON.parse(req.body.tags) : [],
         backblazeFileId: uploadResult.fileId,
         backblazeFileName: uploadResult.fileName,
-        cdnUrl: backblazeService.getFileUrl(uploadResult.fileName),
+        cdnUrl: uploadResult.downloadUrl,
       };
 
-      const image = await storage.createImage(userId, imageData);
+      // Get image dimensions
+      const metadata = await ImageProcessor.getImageMetadata(processedBuffer);
+      imageData.width = metadata.width || 0;
+      imageData.height = metadata.height || 0;
 
-      await storage.createSystemLog('info', `Image uploaded: ${image.filename}`, userId);
+      const image = await storage.createImage(user.id, imageData);
 
-      res.status(201).json({
+      res.json({
         success: true,
-        id: image.id,
-        url: image.cdnUrl,
-        filename: image.filename,
-        size: image.size,
-        dimensions: {
+        image: {
+          id: image.id,
+          title: image.title,
+          url: image.cdnUrl,
+          thumbnailUrl: `${image.cdnUrl}?w=300&h=300&fit=cover`,
           width: image.width,
           height: image.height,
-        },
-        privacy: image.privacy,
+          size: image.size,
+          mimeType: image.mimeType,
+          isPublic: image.isPublic,
+          createdAt: image.createdAt,
+        }
       });
     } catch (error) {
       console.error('Upload error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      await storage.createSystemLog('error', `Image upload failed: ${errorMessage}`, req.user?.claims?.sub);
       res.status(500).json({ error: 'Upload failed' });
     }
   });
 
-  // Get image by ID
-  app.get('/api/v1/images/:id', apiRateLimit, async (req, res) => {
-    try {
-      const image = await storage.getImage(req.params.id);
-      if (!image) {
-        return res.status(404).json({ error: 'Image not found' });
-      }
-
-      // Check privacy permissions
-      if (image.privacy === 'private') {
-        const apiKey = req.headers.authorization?.replace('Bearer ', '');
-        let userId: string | null = null;
-
-        if (apiKey) {
-          const key = await storage.getApiKey(apiKey);
-          userId = key?.userId || null;
-        } else if (req.isAuthenticated()) {
-          userId = req.user.claims.sub;
-        }
-
-        if (!userId || userId !== image.userId) {
-          return res.status(403).json({ error: 'Access denied' });
-        }
-      }
-
-      await storage.incrementImageView(image.id);
-      await storage.recordImageAnalytic(image.id, 'view', {
-        userAgent: req.headers['user-agent'],
-        ipAddress: req.ip,
-        referer: req.headers.referer,
-      });
-
-      res.json(image);
-    } catch (error) {
-      console.error('Get image error:', error);
-      res.status(500).json({ error: 'Failed to fetch image' });
-    }
-  });
-
   // Get user's images
-  app.get('/api/v1/images', isAuthenticated, async (req: any, res) => {
+  app.get('/api/images', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user!;
+      const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const offset = parseInt(req.query.offset as string) || 0;
+      const offset = (page - 1) * limit;
 
-      const images = await storage.getUserImages(userId, limit, offset);
-      res.json({ images, limit, offset });
+      const images = await storage.getUserImages(user.id, limit, offset);
+
+      const formattedImages = images.map(image => ({
+        id: image.id,
+        title: image.title,
+        description: image.description,
+        url: image.cdnUrl,
+        thumbnailUrl: `${image.cdnUrl}?w=300&h=300&fit=cover`,
+        width: image.width,
+        height: image.height,
+        size: image.size,
+        mimeType: image.mimeType,
+        isPublic: image.isPublic,
+        tags: image.tags,
+        views: image.views,
+        downloads: image.downloads,
+        createdAt: image.createdAt,
+        updatedAt: image.updatedAt,
+      }));
+
+      res.json({
+        images: formattedImages,
+        pagination: {
+          page,
+          limit,
+          hasMore: images.length === limit,
+        }
+      });
     } catch (error) {
-      console.error('Get user images error:', error);
+      console.error('Get images error:', error);
       res.status(500).json({ error: 'Failed to fetch images' });
-    }
-  });
-
-  // Update image
-  app.put('/api/v1/images/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const image = await storage.getImage(req.params.id);
-
-      if (!image || image.userId !== userId) {
-        return res.status(404).json({ error: 'Image not found' });
-      }
-
-      const updateData = {
-        privacy: req.body.privacy,
-        description: req.body.description,
-        altText: req.body.altText,
-        tags: req.body.tags ? req.body.tags.split(',').map((tag: string) => tag.trim()) : undefined,
-      };
-
-      const updatedImage = await storage.updateImage(req.params.id, updateData);
-      res.json(updatedImage);
-    } catch (error) {
-      console.error('Update image error:', error);
-      res.status(500).json({ error: 'Failed to update image' });
-    }
-  });
-
-  // Delete image
-  app.delete('/api/v1/images/:id', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const image = await storage.getImage(req.params.id);
-
-      if (!image || image.userId !== userId) {
-        return res.status(404).json({ error: 'Image not found' });
-      }
-
-      // Delete from Backblaze B2
-      if (image.backblazeFileId && image.backblazeFileName) {
-        await backblazeService.deleteFile(image.backblazeFileId, image.backblazeFileName);
-      }
-
-      await storage.deleteImage(req.params.id);
-      await storage.createSystemLog('info', `Image deleted: ${image.filename}`, userId);
-
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Delete image error:', error);
-      res.status(500).json({ error: 'Failed to delete image' });
     }
   });
 
   // Get public images
-  app.get('/api/v1/public/images', apiRateLimit, async (req, res) => {
+  app.get('/api/public/images', async (req, res) => {
     try {
+      const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const offset = parseInt(req.query.offset as string) || 0;
+      const offset = (page - 1) * limit;
 
       const images = await storage.getPublicImages(limit, offset);
-      res.json({ images, limit, offset });
+
+      const formattedImages = images.map(image => ({
+        id: image.id,
+        title: image.title,
+        url: image.cdnUrl,
+        thumbnailUrl: `${image.cdnUrl}?w=300&h=300&fit=cover`,
+        width: image.width,
+        height: image.height,
+        size: image.size,
+        mimeType: image.mimeType,
+        tags: image.tags,
+        views: image.views,
+        downloads: image.downloads,
+        createdAt: image.createdAt,
+      }));
+
+      res.json({
+        images: formattedImages,
+        pagination: {
+          page,
+          limit,
+          hasMore: images.length === limit,
+        }
+      });
     } catch (error) {
       console.error('Get public images error:', error);
-      res.status(500).json({ error: 'Failed to fetch images' });
+      res.status(500).json({ error: 'Failed to fetch public images' });
     }
   });
 
-  // API Key management
-  app.post('/api/v1/api-keys', isAuthenticated, async (req: any, res) => {
+  // API Keys management
+  app.get('/api/api-keys', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const keyData = insertApiKeySchema.parse(req.body);
+      const user = req.user!;
+      const apiKeys = await storage.getUserApiKeys(user.id);
 
-      const apiKey = await storage.createApiKey(userId, keyData);
-      res.status(201).json(apiKey);
-    } catch (error) {
-      console.error('Create API key error:', error);
-      res.status(500).json({ error: 'Failed to create API key' });
-    }
-  });
+      const formattedKeys = apiKeys.map(key => ({
+        id: key.id,
+        name: key.name,
+        keyPreview: `${key.keyHash.substring(0, 8)}...`,
+        isActive: key.isActive,
+        lastUsed: key.lastUsed,
+        createdAt: key.createdAt,
+      }));
 
-  app.get('/api/v1/api-keys', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const apiKeys = await storage.getUserApiKeys(userId);
-      res.json(apiKeys);
+      res.json({ apiKeys: formattedKeys });
     } catch (error) {
       console.error('Get API keys error:', error);
       res.status(500).json({ error: 'Failed to fetch API keys' });
     }
   });
 
-  app.delete('/api/v1/api-keys/:id', isAuthenticated, async (req: any, res) => {
+  app.post('/api/api-keys', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const apiKeys = await storage.getUserApiKeys(userId);
-      const apiKey = apiKeys.find(key => key.id === req.params.id);
+      const user = req.user!;
+      const { name } = insertApiKeySchema.parse(req.body);
 
-      if (!apiKey) {
-        return res.status(404).json({ error: 'API key not found' });
-      }
+      const apiKey = await storage.createApiKey(user.id, { name });
 
-      await storage.deactivateApiKey(req.params.id);
-      res.json({ success: true });
-    } catch (error) {
-      console.error('Delete API key error:', error);
-      res.status(500).json({ error: 'Failed to delete API key' });
-    }
-  });
-
-  // User analytics
-  app.get('/api/v1/analytics', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const analytics = await storage.getUserAnalytics(userId);
-      res.json(analytics);
-    } catch (error) {
-      console.error('Get analytics error:', error);
-      res.status(500).json({ error: 'Failed to fetch analytics' });
-    }
-  });
-
-  // Admin routes
-  app.get('/api/v1/admin/stats', isAuthenticated, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: 'Admin access required' });
-      }
-
-      const stats = await storage.getAdminStats();
-      res.json(stats);
-    } catch (error) {
-      console.error('Get admin stats error:', error);
-      res.status(500).json({ error: 'Failed to fetch admin stats' });
-    }
-  });
-
-  app.get('/api/v1/admin/logs', isAuthenticated, async (req: any, res) => {
-    try {
-      const user = await storage.getUser(req.user.claims.sub);
-      if (!user?.isAdmin) {
-        return res.status(403).json({ error: 'Admin access required' });
-      }
-
-      const limit = parseInt(req.query.limit as string) || 100;
-      const logs = await storage.getSystemLogs(limit);
-      res.json(logs);
-    } catch (error) {
-      console.error('Get admin logs error:', error);
-      res.status(500).json({ error: 'Failed to fetch logs' });
-    }
-  });
-
-  // Image proxy with transformations
-  app.get('/api/v1/transform/:id', apiRateLimit, async (req, res) => {
-    try {
-      const image = await storage.getImage(req.params.id);
-      if (!image) {
-        return res.status(404).json({ error: 'Image not found' });
-      }
-
-      // Check privacy permissions
-      if (image.privacy === 'private') {
-        const apiKey = req.headers.authorization?.replace('Bearer ', '');
-        let userId: string | null = null;
-
-        if (apiKey) {
-          const key = await storage.getApiKey(apiKey);
-          userId = key?.userId || null;
-        } else if (req.isAuthenticated()) {
-          userId = req.user.claims.sub;
+      res.json({
+        success: true,
+        apiKey: {
+          id: apiKey.id,
+          name: apiKey.name,
+          key: apiKey.keyHash, // Return full key only on creation
+          createdAt: apiKey.createdAt,
         }
-
-        if (!userId || userId !== image.userId) {
-          return res.status(403).json({ error: 'Access denied' });
-        }
-      }
-
-      // Parse transformation parameters
-      const transformOptions: ImageTransformOptions = {};
-      if (req.query.w) transformOptions.width = parseInt(req.query.w as string);
-      if (req.query.h) transformOptions.height = parseInt(req.query.h as string);
-      if (req.query.q) transformOptions.quality = parseInt(req.query.q as string);
-      if (req.query.f) transformOptions.format = req.query.f as any;
-      if (req.query.blur) transformOptions.blur = parseInt(req.query.blur as string);
-      if (req.query.sharpen === 'true') transformOptions.sharpen = true;
-      if (req.query.grayscale === 'true') transformOptions.grayscale = true;
-      if (req.query.rotate) transformOptions.rotate = parseInt(req.query.rotate as string);
-
-      // Fetch original image from Backblaze
-      const imageResponse = await fetch(image.cdnUrl!);
-      if (!imageResponse.ok) {
-        return res.status(404).json({ error: 'Image file not found' });
-      }
-
-      const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
-
-      // Apply transformations if any
-      let finalBuffer = imageBuffer;
-      if (Object.keys(transformOptions).length > 0) {
-        finalBuffer = await ImageProcessor.processImage(imageBuffer, transformOptions);
-      }
-
-      // Set appropriate headers
-      const contentType = transformOptions.format 
-        ? `image/${transformOptions.format}` 
-        : image.mimeType;
-
-      res.set({
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=31536000', // 1 year
-        'ETag': `"${image.id}-${JSON.stringify(transformOptions)}"`,
       });
-
-      // Record analytics
-      await storage.recordImageAnalytic(image.id, 'transform', {
-        transformations: transformOptions,
-        userAgent: req.headers['user-agent'],
-        ipAddress: req.ip,
-        referer: req.headers.referer,
-      });
-
-      res.send(finalBuffer);
     } catch (error) {
-      console.error('Transform image error:', error);
-      res.status(500).json({ error: 'Failed to transform image' });
+      console.error('Create API key error:', error);
+      res.status(500).json({ error: 'Failed to create API key' });
     }
   });
 

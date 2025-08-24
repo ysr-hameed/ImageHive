@@ -1,3 +1,4 @@
+
 import {
   users,
   images,
@@ -22,42 +23,9 @@ import crypto from "crypto";
 
 // Interface for storage operations
 export interface IStorage {
-  // User operations (required for Replit Auth)
+  // User operations (required for auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-
-  // Image operations
-  createImage(userId: string, imageData: InsertImage & { backblazeFileId?: string; backblazeFileName?: string; cdnUrl?: string }): Promise<Image>;
-  getImage(id: string): Promise<Image | undefined>;
-  getUserImages(userId: string, limit?: number, offset?: number): Promise<Image[]>;
-  updateImage(id: string, updates: Partial<Image>): Promise<Image | undefined>;
-  deleteImage(id: string): Promise<boolean>;
-  incrementImageView(id: string): Promise<void>;
-  incrementImageDownload(id: string): Promise<void>;
-  getPublicImages(limit?: number, offset?: number): Promise<Image[]>;
-
-  // API Key operations
-  createApiKey(userId: string, keyData: InsertApiKey): Promise<ApiKey>;
-  getApiKey(key: string): Promise<ApiKey | undefined>;
-  getUserApiKeys(userId: string): Promise<ApiKey[]>;
-  updateApiKeyUsage(id: string): Promise<void>;
-  deactivateApiKey(id: string): Promise<boolean>;
-
-  // Custom Domain operations
-  createCustomDomain(userId: string, domain: string): Promise<CustomDomain>;
-  getUserCustomDomains(userId: string): Promise<CustomDomain[]>;
-  verifyCustomDomain(id: string): Promise<boolean>;
-
-  // Analytics operations
-  recordImageAnalytic(imageId: string, event: string, metadata?: any): Promise<void>;
-  getImageAnalytics(imageId: string): Promise<ImageAnalytic[]>;
-  getUserAnalytics(userId: string): Promise<any>;
-
-  // System operations
-  createSystemLog(level: string, message: string, userId?: string, apiKeyId?: string, metadata?: any): Promise<SystemLog>;
-  getSystemLogs(limit?: number): Promise<SystemLog[]>;
-  getUserStats(userId: string): Promise<any>;
-  getAdminStats(): Promise<any>;
 
   // New methods for OAuth and email verification
   getUserByEmail(email: string): Promise<User | undefined>;
@@ -82,13 +50,65 @@ export interface IStorage {
     googleId?: string;
     githubId?: string;
   }): Promise<User | undefined>;
+
+  // Image operations
+  createImage(userId: string, imageData: InsertImage & { backblazeFileId?: string; backblazeFileName?: string; cdnUrl?: string }): Promise<Image>;
+  getImage(id: string): Promise<Image | undefined>;
+  getUserImages(userId: string, limit?: number, offset?: number): Promise<Image[]>;
+  updateImage(id: string, updates: Partial<Image>): Promise<Image | undefined>;
+  deleteImage(id: string): Promise<boolean>;
+  incrementImageView(id: string): Promise<void>;
+  incrementImageDownload(id: string): Promise<void>;
+  getPublicImages(limit?: number, offset?: number): Promise<Image[]>;
+
+  // API key operations
+  createApiKey(userId: string, data: InsertApiKey): Promise<ApiKey>;
+  getApiKey(keyHash: string): Promise<ApiKey | undefined>;
+  getUserApiKeys(userId: string): Promise<ApiKey[]>;
+  updateApiKey(id: string, updates: Partial<ApiKey>): Promise<ApiKey | undefined>;
+  deleteApiKey(id: string): Promise<boolean>;
+
+  // Custom domain operations
+  createCustomDomain(userId: string, domain: string): Promise<CustomDomain>;
+  getCustomDomain(domain: string): Promise<CustomDomain | undefined>;
+  getUserCustomDomains(userId: string): Promise<CustomDomain[]>;
+  updateCustomDomain(id: string, updates: Partial<CustomDomain>): Promise<CustomDomain | undefined>;
+  deleteCustomDomain(id: string): Promise<boolean>;
+
+  // Analytics operations
+  recordImageView(imageId: string, viewerIp?: string, userAgent?: string): Promise<void>;
+  getImageAnalytics(imageId: string, days?: number): Promise<ImageAnalytic[]>;
+  getUserAnalytics(userId: string, days?: number): Promise<any>;
+
+  // System operations
+  createSystemLog(level: string, message: string, metadata?: any): Promise<SystemLog>;
+  getSystemLogs(limit?: number, offset?: number): Promise<SystemLog[]>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // User operations (required for Replit Auth)
+  // User operations (required for auth)
   async getUser(id: string): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
     return result[0];
+  }
+
+  async upsertUser(user: UpsertUser): Promise<User> {
+    const [result] = await db
+      .insert(users)
+      .values(user)
+      .onConflictDoUpdate({
+        target: users.email,
+        set: {
+          name: user.name || sql`${users.name}`,
+          firstName: user.firstName || sql`${users.firstName}`,
+          lastName: user.lastName || sql`${users.lastName}`,
+          profileImageUrl: user.profileImageUrl || sql`${users.profileImageUrl}`,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+
+    return result;
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
@@ -102,7 +122,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByResetToken(token: string): Promise<User | undefined> {
-    const result = await db.select().from(users).where(eq(users.passwordResetToken, token)).limit(1);
+    const result = await db.select().from(users)
+      .where(and(
+        eq(users.passwordResetToken, token),
+        sql`${users.passwordResetExpires} > NOW()`
+      )).limit(1);
     return result[0];
   }
 
@@ -115,12 +139,16 @@ export class DatabaseStorage implements IStorage {
     googleId?: string;
     githubId?: string;
   }): Promise<User> {
-    const id = crypto.randomUUID();
-    const result = await db.insert(users).values({
-      id,
-      ...userData,
+    const [user] = await db.insert(users).values({
+      email: userData.email,
+      name: userData.name,
+      password: userData.password,
+      emailVerified: userData.emailVerified || false,
+      emailVerificationToken: userData.emailVerificationToken,
+      googleId: userData.googleId,
+      githubId: userData.githubId,
     }).returning();
-    return result[0];
+    return user;
   }
 
   async updateUser(id: string, updates: {
@@ -133,24 +161,9 @@ export class DatabaseStorage implements IStorage {
     googleId?: string;
     githubId?: string;
   }): Promise<User | undefined> {
-    const result = await db.update(users)
+    const [user] = await db.update(users)
       .set({ ...updates, updatedAt: new Date() })
       .where(eq(users.id, id))
-      .returning();
-    return result[0];
-  }
-
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
       .returning();
     return user;
   }
@@ -205,34 +218,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteImage(id: string): Promise<boolean> {
-    const [image] = await db.select({ size: images.size, userId: images.userId }).from(images).where(eq(images.id, id));
-    if (!image) return false;
-
-    await db.delete(images).where(eq(images.id, id));
-
-    // Update user storage usage
-    await db
-      .update(users)
-      .set({
-        storageUsed: sql`${users.storageUsed} - ${image.size}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, image.userId));
-
-    return true;
+    const result = await db.delete(images).where(eq(images.id, id));
+    return result.rowCount > 0;
   }
 
   async incrementImageView(id: string): Promise<void> {
     await db
       .update(images)
-      .set({ viewCount: sql`${images.viewCount} + 1` })
+      .set({
+        views: sql`${images.views} + 1`,
+        updatedAt: new Date(),
+      })
       .where(eq(images.id, id));
   }
 
   async incrementImageDownload(id: string): Promise<void> {
     await db
       .update(images)
-      .set({ downloadCount: sql`${images.downloadCount} + 1` })
+      .set({
+        downloads: sql`${images.downloads} + 1`,
+        updatedAt: new Date(),
+      })
       .where(eq(images.id, id));
   }
 
@@ -240,28 +246,39 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(images)
-      .where(eq(images.privacy, "public"))
+      .where(eq(images.isPublic, true))
       .orderBy(desc(images.createdAt))
       .limit(limit)
       .offset(offset);
   }
 
-  // API Key operations
-  async createApiKey(userId: string, keyData: InsertApiKey): Promise<ApiKey> {
-    const key = `iv_${randomBytes(32).toString('hex')}`;
+  // API key operations
+  async createApiKey(userId: string, data: InsertApiKey): Promise<ApiKey> {
+    const key = crypto.randomBytes(32).toString('hex');
+    const keyHash = crypto.createHash('sha256').update(key).digest('hex');
+
     const [apiKey] = await db
       .insert(apiKeys)
       .values({
-        ...keyData,
+        ...data,
         userId,
-        key,
+        keyHash: key, // Store the original key for first return
       })
       .returning();
-    return apiKey;
+
+    // Update the stored key to be hashed
+    await db
+      .update(apiKeys)
+      .set({ keyHash })
+      .where(eq(apiKeys.id, apiKey.id));
+
+    // Return with original key for client
+    return { ...apiKey, keyHash: key };
   }
 
-  async getApiKey(key: string): Promise<ApiKey | undefined> {
-    const [apiKey] = await db.select().from(apiKeys).where(and(eq(apiKeys.key, key), eq(apiKeys.isActive, true)));
+  async getApiKey(keyHash: string): Promise<ApiKey | undefined> {
+    const hash = crypto.createHash('sha256').update(keyHash).digest('hex');
+    const [apiKey] = await db.select().from(apiKeys).where(eq(apiKeys.keyHash, hash));
     return apiKey;
   }
 
@@ -273,30 +290,35 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(apiKeys.createdAt));
   }
 
-  async updateApiKeyUsage(id: string): Promise<void> {
-    await db
+  async updateApiKey(id: string, updates: Partial<ApiKey>): Promise<ApiKey | undefined> {
+    const [apiKey] = await db
       .update(apiKeys)
-      .set({
-        requestCount: sql`${apiKeys.requestCount} + 1`,
-        lastUsedAt: new Date(),
-      })
-      .where(eq(apiKeys.id, id));
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(apiKeys.id, id))
+      .returning();
+    return apiKey;
   }
 
-  async deactivateApiKey(id: string): Promise<boolean> {
-    const result = await db
-      .update(apiKeys)
-      .set({ isActive: false })
-      .where(eq(apiKeys.id, id));
-    return (result.rowCount ?? 0) > 0;
+  async deleteApiKey(id: string): Promise<boolean> {
+    const result = await db.delete(apiKeys).where(eq(apiKeys.id, id));
+    return result.rowCount > 0;
   }
 
-  // Custom Domain operations
+  // Custom domain operations
   async createCustomDomain(userId: string, domain: string): Promise<CustomDomain> {
     const [customDomain] = await db
       .insert(customDomains)
-      .values({ userId, domain })
+      .values({
+        userId,
+        domain,
+        status: 'pending',
+      })
       .returning();
+    return customDomain;
+  }
+
+  async getCustomDomain(domain: string): Promise<CustomDomain | undefined> {
+    const [customDomain] = await db.select().from(customDomains).where(eq(customDomains.domain, domain));
     return customDomain;
   }
 
@@ -308,84 +330,83 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(customDomains.createdAt));
   }
 
-  async verifyCustomDomain(id: string): Promise<boolean> {
-    const [domain] = await db
+  async updateCustomDomain(id: string, updates: Partial<CustomDomain>): Promise<CustomDomain | undefined> {
+    const [customDomain] = await db
       .update(customDomains)
-      .set({ isVerified: true, verifiedAt: new Date() })
+      .set({ ...updates, updatedAt: new Date() })
       .where(eq(customDomains.id, id))
       .returning();
-    return !!domain;
+    return customDomain;
+  }
+
+  async deleteCustomDomain(id: string): Promise<boolean> {
+    const result = await db.delete(customDomains).where(eq(customDomains.id, id));
+    return result.rowCount > 0;
   }
 
   // Analytics operations
-  async recordImageAnalytic(imageId: string, event: string, metadata?: any): Promise<void> {
+  async recordImageView(imageId: string, viewerIp?: string, userAgent?: string): Promise<void> {
     await db.insert(imageAnalytics).values({
       imageId,
-      event,
-      userAgent: metadata?.userAgent,
-      ipAddress: metadata?.ipAddress,
-      referer: metadata?.referer,
+      eventType: 'view',
+      viewerIp,
+      userAgent,
     });
   }
 
-  async getImageAnalytics(imageId: string): Promise<ImageAnalytic[]> {
+  async getImageAnalytics(imageId: string, days = 30): Promise<ImageAnalytic[]> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
     return await db
       .select()
       .from(imageAnalytics)
-      .where(eq(imageAnalytics.imageId, imageId))
-      .orderBy(desc(imageAnalytics.timestamp));
+      .where(and(
+        eq(imageAnalytics.imageId, imageId),
+        sql`${imageAnalytics.createdAt} >= ${startDate}`
+      ))
+      .orderBy(desc(imageAnalytics.createdAt));
   }
 
-  async getUserAnalytics(userId: string): Promise<any> {
-    // Get user's images analytics
-    const result = await db
-      .select({
-        totalViews: sql<number>`COALESCE(SUM(${images.viewCount}), 0)`,
-        totalDownloads: sql<number>`COALESCE(SUM(${images.downloadCount}), 0)`,
-        totalImages: sql<number>`COUNT(${images.id})`,
-        storageUsed: sql<number>`COALESCE(${users.storageUsed}, 0)`,
-      })
-      .from(images)
-      .rightJoin(users, eq(users.id, images.userId))
-      .where(eq(users.id, userId))
-      .groupBy(users.id);
+  async getUserAnalytics(userId: string, days = 30): Promise<any> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    return result[0] || { totalViews: 0, totalDownloads: 0, totalImages: 0, storageUsed: 0 };
+    // This would need a more complex query joining images and analytics
+    const [result] = await db
+      .select({
+        totalViews: sql<number>`COUNT(*)`,
+      })
+      .from(imageAnalytics)
+      .leftJoin(images, eq(imageAnalytics.imageId, images.id))
+      .where(and(
+        eq(images.userId, userId),
+        sql`${imageAnalytics.createdAt} >= ${startDate}`
+      ));
+
+    return result;
   }
 
   // System operations
-  async createSystemLog(level: string, message: string, userId?: string, apiKeyId?: string, metadata?: any): Promise<SystemLog> {
+  async createSystemLog(level: string, message: string, metadata?: any): Promise<SystemLog> {
     const [log] = await db
       .insert(systemLogs)
-      .values({ level, message, userId, apiKeyId, metadata })
+      .values({
+        level,
+        message,
+        metadata,
+      })
       .returning();
     return log;
   }
 
-  async getSystemLogs(limit = 100): Promise<SystemLog[]> {
+  async getSystemLogs(limit = 100, offset = 0): Promise<SystemLog[]> {
     return await db
       .select()
       .from(systemLogs)
-      .orderBy(desc(systemLogs.timestamp))
-      .limit(limit);
-  }
-
-  async getUserStats(userId: string): Promise<any> {
-    return await this.getUserAnalytics(userId);
-  }
-
-  async getAdminStats(): Promise<any> {
-    const [stats] = await db
-      .select({
-        totalUsers: sql<number>`COUNT(DISTINCT ${users.id})`,
-        totalImages: sql<number>`COUNT(DISTINCT ${images.id})`,
-        totalStorage: sql<number>`COALESCE(SUM(${users.storageUsed}), 0)`,
-        totalViews: sql<number>`COALESCE(SUM(${images.viewCount}), 0)`,
-      })
-      .from(users)
-      .leftJoin(images, eq(images.userId, users.id));
-
-    return stats;
+      .orderBy(desc(systemLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
   }
 }
 

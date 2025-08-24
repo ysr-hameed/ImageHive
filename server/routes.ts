@@ -1490,6 +1490,65 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Payment routes for plan upgrades
+  app.post('/api/v1/payments/create-session', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const { planId, successUrl, cancelUrl } = req.body;
+
+      // Mock UPay integration - replace with actual UPay API
+      const paymentSession = {
+        id: `pi_${crypto.randomBytes(16).toString('hex')}`,
+        paymentUrl: `https://upay.com/checkout?session_id=${crypto.randomBytes(16).toString('hex')}&plan=${planId}&user=${user.id}`,
+        amount: planId === 'starter' ? 900 : planId === 'pro' ? 2900 : 9900, // in cents
+        currency: 'USD',
+        planId,
+        userId: user.id,
+        status: 'pending'
+      };
+
+      // Store payment session in database
+      await storage.createPaymentSession(paymentSession);
+
+      res.json({
+        success: true,
+        paymentUrl: paymentSession.paymentUrl,
+        sessionId: paymentSession.id
+      });
+    } catch (error) {
+      console.error('Payment session creation error:', error);
+      res.status(500).json({ error: 'Failed to create payment session' });
+    }
+  });
+
+  app.post('/api/v1/payments/webhook', async (req, res) => {
+    try {
+      const { sessionId, status, planId, userId } = req.body;
+
+      if (status === 'completed') {
+        // Update user plan
+        await storage.updateUserPlan(userId, planId);
+        
+        // Update storage and API limits based on plan
+        const limits = {
+          starter: { storage: 10 * 1024 * 1024 * 1024, apiRequests: 10000 }, // 10GB
+          pro: { storage: 100 * 1024 * 1024 * 1024, apiRequests: 100000 }, // 100GB
+          enterprise: { storage: -1, apiRequests: -1 } // Unlimited
+        };
+
+        const planLimits = limits[planId as keyof typeof limits];
+        if (planLimits) {
+          await storage.updateUserLimits(userId, planLimits.storage, planLimits.apiRequests);
+        }
+      }
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Payment webhook error:', error);
+      res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  });
+
   // Debug route to test server connectivity
   app.get('/api/debug', (req, res) => {
     res.json({ 

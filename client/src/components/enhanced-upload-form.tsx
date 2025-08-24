@@ -13,14 +13,24 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus } from 'lucide-react';
+import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, Bell, LayoutDashboard, FileText, Code } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Check, AlertCircle } from 'lucide-react';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs'; // Or any other style
+
+// Mocking Upay integration for now, replace with actual integration
+const upayPayment = {
+  init: () => console.log('Upay initialized'),
+  open: (options) => console.log('Opening Upay with:', options),
+};
 
 interface UploadFile extends File {
   id: string;
   preview?: string;
   status?: 'pending' | 'uploading' | 'completed' | 'error';
   error?: string;
+  progress?: number; // Added progress for visual feedback
 }
 
 export function EnhancedUploadForm() {
@@ -55,6 +65,7 @@ export function EnhancedUploadForm() {
     rotate: 0,
     grayscale: false,
     sharpen: false,
+    watermark: false, // Added watermark state
   });
 
   if (!isAuthenticated) {
@@ -99,8 +110,19 @@ export function EnhancedUploadForm() {
       if (transforms.rotate !== 0) formData.append('rotate', transforms.rotate.toString());
       if (transforms.grayscale) formData.append('grayscale', 'true');
       if (transforms.sharpen) formData.append('sharpen', 'true');
+      if (transforms.watermark) formData.append('watermark', 'true'); // Append watermark if selected
 
       console.log('Uploading file:', file.name, 'with options:', { ...metadata, ...transforms });
+
+      // Mocking upload progress
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress = Math.min(progress + 10, 100);
+        setFiles(prev => prev.map(f =>
+          f.id === file.id ? { ...f, progress: progress, status: 'uploading' } : f
+        ));
+        if (progress === 100) clearInterval(interval);
+      }, 100);
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -110,6 +132,7 @@ export function EnhancedUploadForm() {
 
       if (!response.ok) {
         const error = await response.json();
+        clearInterval(interval); // Clear interval on error
         throw new Error(error.error || 'Upload failed');
       }
 
@@ -118,7 +141,7 @@ export function EnhancedUploadForm() {
     onSuccess: (data, file) => {
       setFiles(prev => prev.map(f =>
         f.id === file.id
-          ? { ...f, status: 'completed' }
+          ? { ...f, status: 'completed', progress: 100 }
           : f
       ));
       queryClient.invalidateQueries({ queryKey: ['images'] });
@@ -131,7 +154,7 @@ export function EnhancedUploadForm() {
     onError: (error: any, file) => {
       setFiles(prev => prev.map(f =>
         f.id === file.id
-          ? { ...f, status: 'error', error: error.message }
+          ? { ...f, status: 'error', error: error.message, progress: 0 }
           : f
       ));
       toast({
@@ -148,6 +171,7 @@ export function EnhancedUploadForm() {
       id: Math.random().toString(36).substr(2, 9),
       preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
       status: 'pending',
+      progress: 0,
     }));
 
     setFiles(prev => [...prev, ...newFiles]);
@@ -156,7 +180,7 @@ export function EnhancedUploadForm() {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.svg']
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif']
     },
     maxSize: 10 * 1024 * 1024, // 10MB
     onDropRejected: (rejectedFiles) => {
@@ -194,10 +218,6 @@ export function EnhancedUploadForm() {
           await uploadMutation.mutateAsync(file as UploadFile);
         }
       }
-      // Optionally clear files after all uploads are attempted
-      // setTimeout(() => {
-      //   setFiles([]);
-      // }, 2000);
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -206,8 +226,16 @@ export function EnhancedUploadForm() {
   };
 
   const totalProgress = files.length > 0
-    ? Math.round(files.reduce((acc, file) => acc + (file.status === 'completed' ? 100 : 0), 0) / files.length)
+    ? Math.round(files.reduce((acc, file) => acc + (file.progress || 0), 0) / files.length)
     : 0;
+
+  const handleUpgradePlan = () => {
+    upayPayment.open({
+      amount: 1000, // Example amount for upgrade
+      currency: 'USD',
+      metadata: { userId: user?.id, plan: 'pro' },
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -601,6 +629,119 @@ export function EnhancedUploadForm() {
           </CardContent>
         </Card>
       )}
+      {/* Added Section for Documentation and Library Usage */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Documentation & Usage
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <h4 className="text-lg font-semibold mb-2">How to Use</h4>
+            <Tabs defaultValue="library" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="library">Library</TabsTrigger>
+                <TabsTrigger value="sdk">SDK</TabsTrigger>
+                <TabsTrigger value="api">API</TabsTrigger>
+              </TabsList>
+              <TabsContent value="library">
+                <Card className="mt-4">
+                  <CardContent className="p-4">
+                    <h5 className="font-medium mb-2">Using the Library</h5>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Integrate our React component seamlessly into your project.
+                      Follow the installation instructions and import `EnhancedUploadForm`
+                      wherever you need an upload interface.
+                    </p>
+                    <SyntaxHighlighter language="jsx" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+                      {`import { EnhancedUploadForm } from './your-upload-component';
+
+function App() {
+  return (
+    <div>
+      {/* Other components */}
+      <EnhancedUploadForm />
+      {/* Other components */}
+    </div>
+  );
+}`}
+                    </SyntaxHighlighter>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="sdk">
+                <Card className="mt-4">
+                  <CardContent className="p-4">
+                    <h5 className="font-medium mb-2">Using the SDK</h5>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Our SDK simplifies interactions with our services. Install it via npm
+                      and leverage its functions for more advanced control.
+                    </p>
+                    <SyntaxHighlighter language="bash" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+                      {`npm install your-service-sdk
+# or
+yarn add your-service-sdk`}
+                    </SyntaxHighlighter>
+                    <SyntaxHighlighter language="javascript" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+                      {`import { YourService } from 'your-service-sdk';
+
+const service = new YourService({ apiKey: 'YOUR_API_KEY' });
+service.uploadImage({ file: imageFile, options: {...} }).then(res => console.log(res));`}
+                    </SyntaxHighlighter>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              <TabsContent value="api">
+                <Card className="mt-4">
+                  <CardContent className="p-4">
+                    <h5 className="font-medium mb-2">Using the API</h5>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Interact directly with our robust API endpoints for maximum flexibility.
+                      Refer to the API documentation for detailed endpoint specifications and request/response formats.
+                    </p>
+                    <SyntaxHighlighter language="bash" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
+                      {`POST /api/upload
+Content-Type: multipart/form-data
+
+{
+  "image": "<binary file data>",
+  "title": "Optional Title",
+  "description": "Optional Description",
+  // ... other metadata and transform options
+}`}
+                    </SyntaxHighlighter>
+                    <a href="/api/docs" className="text-blue-600 hover:underline mt-2 inline-block">View Full API Documentation</a>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+          {/* Upgrade Plan Section */}
+          {user?.plan !== 'pro' && user?.plan !== 'enterprise' && (
+            <div className="mt-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <LayoutDashboard className="w-5 h-5" />
+                    Upgrade Your Plan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Unlock advanced features and higher limits by upgrading your plan.
+                    Click the button below to proceed with the upgrade.
+                  </p>
+                  <Button onClick={handleUpgradePlan} className="bg-green-600 hover:bg-green-700">
+                    Upgrade to Pro Plan
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

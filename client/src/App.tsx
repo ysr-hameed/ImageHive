@@ -25,6 +25,7 @@ import VerifyEmail from "@/pages/auth/verify-email";
 import NotFound from "@/pages/not-found";
 import ApiDocs from "@/pages/docs";
 import ApiUsage from "@/pages/api-usage";
+import Upgrade from "./pages/upgrade";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -127,6 +128,7 @@ function Router() {
           <Route path="/api-usage" component={ApiUsage} />
           <Route path="/activity" component={Activity} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
+          <Route path="/upgrade" component={Upgrade} />
           <Route component={NotFound} />
         </AppLayout>
       ) : (

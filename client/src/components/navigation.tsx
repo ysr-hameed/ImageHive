@@ -9,18 +9,21 @@ import {
   Sun, 
   Menu, 
   X,
-  Image as ImageIcon,
+  ImageIcon,
   Upload,
   BarChart3,
   Settings,
   LogOut,
-  Shield
+  Shield,
+  Bell,
+  Crown,
+  CreditCard
 } from "lucide-react";
 
 export default function Navigation() {
   const { isAuthenticated, user } = useAuth();
   const { theme, setTheme } = useTheme();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -38,6 +41,15 @@ export default function Navigation() {
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
+  };
+
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const navLinks = isAuthenticated ? [
@@ -71,7 +83,7 @@ export default function Navigation() {
             {navLinks.map((link) => {
               const isActive = location === link.href;
               const Icon = link.icon;
-              
+
               return (
                 <Link
                   key={link.href}
@@ -130,7 +142,7 @@ export default function Navigation() {
                       </div>
                     )}
                   </button>
-                  
+
                   {/* Dropdown menu */}
                   {userMenuOpen && (
                     <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
@@ -231,7 +243,7 @@ export default function Navigation() {
             {navLinks.map((link) => {
               const isActive = location === link.href;
               const Icon = link.icon;
-              
+
               return (
                 <Link
                   key={link.href}
@@ -249,7 +261,7 @@ export default function Navigation() {
                 </Link>
               );
             })}
-            
+
             {isAuthenticated && (
               <div className="border-t border-gray-200 dark:border-slate-700 pt-4 mt-4">
                 <Button

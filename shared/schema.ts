@@ -50,6 +50,7 @@ export const apiKeys = pgTable("api_keys", {
   keyHash: varchar("key_hash").unique().notNull(),
   isActive: boolean("is_active").default(true).notNull(),
   lastUsed: timestamp("last_used"),
+  requestCount: integer("request_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

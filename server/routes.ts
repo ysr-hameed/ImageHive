@@ -1,4 +1,3 @@
-
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
@@ -53,7 +52,7 @@ const upload = multer({
 });
 
 // Rate limiting for API endpoints
-const createRateLimit = (windowMs: number, max: number) => 
+const createRateLimit = (windowMs: number, max: number) =>
   rateLimit({
     windowMs,
     max,
@@ -235,10 +234,10 @@ export function registerRoutes(app: Express): Server {
         console.error('Email sending error:', emailError);
       }
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Registration successful. Please check your email to verify your account.',
-        userId: user.id 
+        userId: user.id
       });
     } catch (error) {
       console.error('Registration error:', error);
@@ -269,7 +268,7 @@ export function registerRoutes(app: Express): Server {
       // Create session
       req.session.userId = user.id;
 
-      res.json({ 
+      res.json({
         success: true,
         user: {
           id: user.id,
@@ -457,7 +456,7 @@ export function registerRoutes(app: Express): Server {
       // Create folder structure: userId/folder/filename
       const folderPath = folder ? `${folder}/` : '';
       const fileName = `${user.id}/${folderPath}${Date.now()}-${req.file.originalname}`;
-      
+
       // Upload to Backblaze
       const uploadResult = await backblazeService.uploadFile(processedBuffer, fileName, req.file.mimetype);
 
@@ -467,7 +466,7 @@ export function registerRoutes(app: Express): Server {
       // Create custom CDN URL
       const customDomain = await storage.getUserCustomDomain(user.id);
       let cdnUrl = uploadResult.downloadUrl;
-      
+
       if (customDomain && customDomain.isVerified) {
         // Use custom domain instead of Backblaze URL
         cdnUrl = `https://${customDomain.domain}/${fileName}`;
@@ -750,7 +749,7 @@ export function registerRoutes(app: Express): Server {
 
       // Verify DNS records
       const isVerified = await storage.verifyCustomDomain(domainId);
-      
+
       if (isVerified) {
         res.json({ success: true, message: 'Domain verified successfully' });
       } else {
@@ -766,7 +765,7 @@ export function registerRoutes(app: Express): Server {
   app.get('/files/:userId/:path(*)', async (req, res) => {
     try {
       const { userId, path } = req.params;
-      
+
       // Get the image from database
       const image = await storage.getImageByPath(userId, path);
       if (!image) {

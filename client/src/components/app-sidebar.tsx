@@ -54,42 +54,36 @@ const data = {
       title: 'Dashboard',
       url: '/',
       icon: BarChart3,
-      items: [
-        { title: 'Overview', url: '/' },
-        { title: 'Analytics', url: '/analytics' },
-        { title: 'Activity', url: '/activity' },
-      ],
     },
     {
       title: 'Images',
       url: '/images',
       icon: ImageIcon,
-      items: [
-        { title: 'All Images', url: '/images' },
-        { title: 'Recent', url: '/images/recent' },
-        { title: 'Favorites', url: '/images/favorites' },
-        { title: 'Collections', url: '/images/collections' },
-      ],
     },
     {
       title: 'Upload',
       url: '/upload',
       icon: Upload,
-      items: [
-        { title: 'Single Upload', url: '/upload' },
-        { title: 'Bulk Upload', url: '/upload/bulk' },
-        { title: 'URL Import', url: '/upload/url' },
-      ],
     },
     {
-      title: 'API',
-      url: '/api',
+      title: 'Analytics',
+      url: '/analytics',
+      icon: Activity,
+    },
+    {
+      title: 'API Keys',
+      url: '/api/keys',
       icon: Key,
-      items: [
-        { title: 'API Keys', url: '/api/keys' },
-        { title: 'Documentation', url: '/api/docs' },
-        { title: 'Usage', url: '/api/usage' },
-      ],
+    },
+    {
+      title: 'API Docs',
+      url: '/api/docs',
+      icon: FileImage,
+    },
+    {
+      title: 'Settings',
+      url: '/settings',
+      icon: Settings,
     },
   ],
 };
@@ -140,7 +134,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {data.navMain.map((item) => {
-                const isActive = location === item.url || location.startsWith(item.url + '/');
+                const isActive = location === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive}>
@@ -149,19 +143,6 @@ export function AppSidebar() {
                         <span>{item.title}</span>
                       </a>
                     </SidebarMenuButton>
-                    {item.items?.length ? (
-                      <SidebarMenuSub>
-                        {item.items.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild isActive={location === subItem.url}>
-                              <a href={subItem.url}>
-                                <span>{subItem.title}</span>
-                              </a>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    ) : null}
                   </SidebarMenuItem>
                 );
               })}
@@ -169,67 +150,26 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarSeparator />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Quick Actions</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/upload">
-                    <Zap />
-                    <span>Quick Upload</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/images/recent">
-                    <Clock />
-                    <span>Recent Images</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild>
-                  <a href="/images/favorites">
-                    <Star />
-                    <span>Favorites</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarSeparator />
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Management</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={location === '/settings'}>
-                  <a href="/settings">
-                    <Settings />
-                    <span>Settings</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              {user?.isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location === '/admin'}>
-                    <a href="/admin">
-                      <Shield />
-                      <span>Admin Panel</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {user?.isAdmin && (
+          <>
+            <SidebarSeparator />
+            <SidebarGroup>
+              <SidebarGroupLabel>Admin</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild isActive={location === '/admin'}>
+                      <a href="/admin">
+                        <Shield />
+                        <span>Admin Panel</span>
+                      </a>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </>
+        )}
       </SidebarContent>
 
       <SidebarFooter>
@@ -262,13 +202,17 @@ export function AppSidebar() {
                 align="end"
                 sideOffset={4}
               >
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Account Settings
+                <DropdownMenuItem asChild>
+                  <a href="/settings">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Account Settings
+                  </a>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Activity className="mr-2 h-4 w-4" />
-                  Usage & Billing
+                <DropdownMenuItem asChild>
+                  <a href="/api/usage">
+                    <Activity className="mr-2 h-4 w-4" />
+                    Usage & Billing
+                  </a>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={toggleTheme}>

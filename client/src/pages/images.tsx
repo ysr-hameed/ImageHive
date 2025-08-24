@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { SidebarContentLoader } from '@/components/sidebar-content-loader';
 import EnhancedImageGrid from '@/components/enhanced-image-grid';
 import { 
   Image as ImageIcon, 
@@ -56,7 +57,8 @@ export default function Images() {
   const filteredImages = filterImages((imagesData as any)?.images || [], activeTab);
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+    <SidebarContentLoader>
+      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -239,5 +241,6 @@ export default function Images() {
         </Tabs>
       </div>
     </div>
+    </SidebarContentLoader>
   );
 }

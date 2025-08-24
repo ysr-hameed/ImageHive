@@ -123,31 +123,61 @@ export default function ApiDocs() {
                           <td className="py-2"><code>image</code></td>
                           <td>File</td>
                           <td>Yes</td>
-                          <td>Image file (JPEG, PNG, WebP)</td>
+                          <td>Image file (JPEG, PNG, WebP, GIF, BMP) - Max 50MB</td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-2"><code>title</code></td>
                           <td>String</td>
                           <td>No</td>
-                          <td>Image title</td>
+                          <td>Image title (max 255 characters)</td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-2"><code>description</code></td>
                           <td>String</td>
                           <td>No</td>
-                          <td>Image description</td>
+                          <td>Image description (max 1000 characters)</td>
                         </tr>
                         <tr className="border-b">
                           <td className="py-2"><code>isPublic</code></td>
                           <td>Boolean</td>
                           <td>No</td>
-                          <td>Make image publicly accessible</td>
+                          <td>Make image publicly accessible (default: false)</td>
                         </tr>
-                        <tr>
+                        <tr className="border-b">
                           <td className="py-2"><code>tags</code></td>
                           <td>JSON Array</td>
                           <td>No</td>
-                          <td>Array of tags for organization</td>
+                          <td>Array of tags for organization (max 10 tags, 50 chars each)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>quality</code></td>
+                          <td>Integer</td>
+                          <td>No</td>
+                          <td>JPEG quality (1-100, default: 85)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>width</code></td>
+                          <td>Integer</td>
+                          <td>No</td>
+                          <td>Resize width in pixels (max 4000px)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>height</code></td>
+                          <td>Integer</td>
+                          <td>No</td>
+                          <td>Resize height in pixels (max 4000px)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>format</code></td>
+                          <td>String</td>
+                          <td>No</td>
+                          <td>Output format: jpeg, png, webp, avif (default: auto)</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2"><code>watermark</code></td>
+                          <td>Boolean</td>
+                          <td>No</td>
+                          <td>Apply custom watermark (Pro plan feature)</td>
                         </tr>
                       </tbody>
                     </table>
@@ -159,9 +189,37 @@ export default function ApiDocs() {
                   <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400">
                     <div>curl -X POST /api/upload \</div>
                     <div className="ml-4">-H "Authorization: Bearer your-api-key" \</div>
+                    <div className="ml-4">-H "Content-Type: multipart/form-data" \</div>
                     <div className="ml-4">-F "image=@photo.jpg" \</div>
-                    <div className="ml-4">-F "title=My Photo" \</div>
-                    <div className="ml-4">-F "isPublic=true"</div>
+                    <div className="ml-4">-F "title=Professional Headshot" \</div>
+                    <div className="ml-4">-F "description=Corporate headshot for company website" \</div>
+                    <div className="ml-4">-F "isPublic=true" \</div>
+                    <div className="ml-4">-F 'tags=["professional", "headshot", "corporate"]' \</div>
+                    <div className="ml-4">-F "width=800" \</div>
+                    <div className="ml-4">-F "height=600" \</div>
+                    <div className="ml-4">-F "quality=90" \</div>
+                    <div className="ml-4">-F "format=webp"</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Example Response</h4>
+                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-blue-300">
+                    <div>{'{'}</div>
+                    <div className="ml-2">"success": true,</div>
+                    <div className="ml-2">"data": {'{'}</div>
+                    <div className="ml-4">"id": "img_abc123def456",</div>
+                    <div className="ml-4">"url": "https://cdn.imagevault.app/uploads/abc123.webp",</div>
+                    <div className="ml-4">"thumbnailUrl": "https://cdn.imagevault.app/thumbnails/abc123.webp",</div>
+                    <div className="ml-4">"title": "Professional Headshot",</div>
+                    <div className="ml-4">"size": 245760,</div>
+                    <div className="ml-4">"width": 800,</div>
+                    <div className="ml-4">"height": 600,</div>
+                    <div className="ml-4">"format": "webp",</div>
+                    <div className="ml-4">"isPublic": true,</div>
+                    <div className="ml-4">"createdAt": "2024-01-15T10:30:00Z"</div>
+                    <div className="ml-2">{'}'}</div>
+                    <div>{'}'}</div>
                   </div>
                 </div>
               </CardContent>
@@ -180,31 +238,93 @@ export default function ApiDocs() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">Available Transforms</h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <h5 className="font-medium text-sm">Resize</h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">width, height, quality</p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-sm">Format</h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">jpeg, png, webp, avif</p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-sm">Filters</h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">blur, brightness, contrast</p>
-                    </div>
-                    <div>
-                      <h5 className="font-medium text-sm">Effects</h5>
-                      <p className="text-xs text-gray-600 dark:text-gray-300">grayscale, saturation, hue</p>
-                    </div>
+                  <h4 className="font-medium mb-2">Transform Parameters</h4>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2">Parameter</th>
+                          <th className="text-left py-2">Values</th>
+                          <th className="text-left py-2">Description</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-gray-600 dark:text-gray-300">
+                        <tr className="border-b">
+                          <td className="py-2"><code>w</code> / <code>width</code></td>
+                          <td>1-4000</td>
+                          <td>Resize width in pixels</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>h</code> / <code>height</code></td>
+                          <td>1-4000</td>
+                          <td>Resize height in pixels</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>quality</code> / <code>q</code></td>
+                          <td>1-100</td>
+                          <td>JPEG/WebP quality (default: 85)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>format</code> / <code>f</code></td>
+                          <td>jpeg, png, webp, avif</td>
+                          <td>Output format (default: auto)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>fit</code></td>
+                          <td>cover, contain, fill, inside, outside</td>
+                          <td>How to resize image (default: cover)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>blur</code></td>
+                          <td>0.3-1000</td>
+                          <td>Gaussian blur radius</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>brightness</code></td>
+                          <td>0.1-3.0</td>
+                          <td>Brightness multiplier (1.0 = no change)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>contrast</code></td>
+                          <td>0.1-3.0</td>
+                          <td>Contrast multiplier (1.0 = no change)</td>
+                        </tr>
+                        <tr className="border-b">
+                          <td className="py-2"><code>saturation</code></td>
+                          <td>0.0-3.0</td>
+                          <td>Saturation multiplier (0 = grayscale)</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2"><code>rotate</code></td>
+                          <td>0-360</td>
+                          <td>Rotation angle in degrees</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-medium mb-2">URL Transform Example</h4>
-                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-blue-300 break-all">
-                    https://cdn.imagevault.app/uploads/abc123.jpg?w=800&h=600&quality=85&format=webp
+                  <h4 className="font-medium mb-2">URL Transform Examples</h4>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-sm font-medium">Basic resize with format conversion:</p>
+                      <div className="bg-gray-900 rounded-lg p-3 text-sm font-mono text-blue-300 break-all">
+                        https://cdn.imagevault.app/uploads/abc123.jpg?w=800&h=600&format=webp
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">High quality with effects:</p>
+                      <div className="bg-gray-900 rounded-lg p-3 text-sm font-mono text-blue-300 break-all">
+                        https://cdn.imagevault.app/uploads/abc123.jpg?w=1200&q=95&brightness=1.1&contrast=1.05
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">Thumbnail with blur effect:</p>
+                      <div className="bg-gray-900 rounded-lg p-3 text-sm font-mono text-blue-300 break-all">
+                        https://cdn.imagevault.app/uploads/abc123.jpg?w=300&h=300&fit=cover&blur=2
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardContent>
@@ -225,14 +345,41 @@ export default function ApiDocs() {
                 <div>
                   <h4 className="font-medium mb-2">List Images</h4>
                   <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400">
-                    <div>GET /api/images?page=1&limit=20</div>
+                    <div>GET /api/images?page=1&limit=20&sortBy=createdAt&order=desc&tag=professional</div>
+                  </div>
+                  <div className="mt-2">
+                    <h5 className="font-medium text-sm">Query Parameters:</h5>
+                    <ul className="text-sm text-gray-600 dark:text-gray-300 mt-1 space-y-1">
+                      <li><code>page</code> - Page number (default: 1)</li>
+                      <li><code>limit</code> - Items per page (max: 100, default: 20)</li>
+                      <li><code>sortBy</code> - Sort field: createdAt, size, title (default: createdAt)</li>
+                      <li><code>order</code> - Sort order: asc, desc (default: desc)</li>
+                      <li><code>tag</code> - Filter by tag</li>
+                      <li><code>isPublic</code> - Filter by visibility: true, false</li>
+                      <li><code>format</code> - Filter by format: jpeg, png, webp, gif</li>
+                    </ul>
                   </div>
                 </div>
 
                 <div>
-                  <h4 className="font-medium mb-2">Get Public Images</h4>
+                  <h4 className="font-medium mb-2">Get Image Details</h4>
                   <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400">
-                    <div>GET /api/public/images?page=1&limit=20</div>
+                    <div>GET /api/images/{'{imageId}'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Update Image</h4>
+                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-yellow-400">
+                    <div>PATCH /api/images/{'{imageId}'}</div>
+                    <div className="text-gray-500 mt-2">Body: {'{"title": "New Title", "isPublic": false}'}</div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-medium mb-2">Delete Image</h4>
+                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-red-400">
+                    <div>DELETE /api/images/{'{imageId}'}</div>
                   </div>
                 </div>
               </CardContent>
@@ -295,31 +442,75 @@ export default function ApiDocs() {
               <CardHeader>
                 <CardTitle>SDK & Libraries</CardTitle>
                 <CardDescription>
-                  Official SDKs and community libraries for popular languages.
+                  Official SDKs and code examples for popular programming languages.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Button variant="outline" asChild>
-                    <a href="/auth/register" target="_blank">
-                      JavaScript SDK
-                    </a>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href="/auth/register" target="_blank">
-                      Python SDK
-                    </a>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href="/auth/register" target="_blank">
-                      Node.js SDK
-                    </a>
-                  </Button>
-                  <Button variant="outline" asChild>
-                    <a href="/auth/register" target="_blank">
-                      PHP SDK
-                    </a>
-                  </Button>
+              <CardContent className="space-y-6">
+                <div>
+                  <h4 className="font-medium mb-2">JavaScript / Node.js</h4>
+                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400">
+                    <div className="text-gray-500">// npm install imagevault-js</div>
+                    <div className="mt-2">import ImageVault from 'imagevault-js';</div>
+                    <div></div>
+                    <div>const client = new ImageVault('your-api-key');</div>
+                    <div></div>
+                    <div>// Upload image</div>
+                    <div>const result = await client.upload(file, {'{'}</div>
+                    <div className="ml-2">title: 'My Image',</div>
+                    <div className="ml-2">isPublic: true,</div>
+                    <div className="ml-2">width: 800,</div>
+                    <div className="ml-2">format: 'webp'</div>
+                    <div>{'});'}</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Python</h4>
+                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400">
+                    <div className="text-gray-500"># pip install imagevault-python</div>
+                    <div className="mt-2">from imagevault import ImageVault</div>
+                    <div></div>
+                    <div>client = ImageVault('your-api-key')</div>
+                    <div></div>
+                    <div># Upload image</div>
+                    <div>with open('image.jpg', 'rb') as f:</div>
+                    <div className="ml-4">result = client.upload(f, {'{'}</div>
+                    <div className="ml-8">'title': 'My Image',</div>
+                    <div className="ml-8">'isPublic': True,</div>
+                    <div className="ml-8">'width': 800</div>
+                    <div className="ml-4">{'})'})</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">PHP</h4>
+                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400">
+                    <div className="text-gray-500">// composer require imagevault/php-sdk</div>
+                    <div className="mt-2">use ImageVault\Client;</div>
+                    <div></div>
+                    <div>$client = new Client('your-api-key');</div>
+                    <div></div>
+                    <div>// Upload image</div>
+                    <div>$result = $client-{'>'} upload('image.jpg', [</div>
+                    <div className="ml-4">'title' ={'>'} 'My Image',</div>
+                    <div className="ml-4">'isPublic' ={'>'} true,</div>
+                    <div className="ml-4">'width' ={'>'} 800</div>
+                    <div>]);</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">curl Example</h4>
+                  <div className="bg-gray-900 rounded-lg p-4 text-sm font-mono text-green-400">
+                    <div># Using curl with JSON response parsing</div>
+                    <div>response=$(curl -s -X POST /api/upload \</div>
+                    <div className="ml-4">-H "Authorization: Bearer $API_KEY" \</div>
+                    <div className="ml-4">-F "image=@image.jpg" \</div>
+                    <div className="ml-4">-F "title=My Image")</div>
+                    <div></div>
+                    <div>image_url=$(echo $response | jq -r '.data.url')</div>
+                    <div>echo "Image uploaded: $image_url"</div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 import EnhancedUploadForm from "@/components/enhanced-upload-form";
 import { Upload as UploadIcon, Image as ImageIcon, Zap, Shield } from "lucide-react";
 import { useEffect } from "react";
@@ -63,7 +64,8 @@ export default function Upload() {
   }
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <SidebarContentLoader>
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -208,5 +210,6 @@ export default function Upload() {
         </Card>
       </div>
     </div>
+    </SidebarContentLoader>
   );
 }

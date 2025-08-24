@@ -4,6 +4,7 @@ import multer from "multer";
 import { storage } from "./storage";
 import { backblazeService } from "./services/backblaze";
 import { ImageProcessor, type ImageTransformOptions } from "./services/imageProcessor";
+import { emailService } from "./services/emailService";
 import { insertImageSchema, insertApiKeySchema, insertCustomDomainSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import rateLimit from "express-rate-limit";
@@ -209,7 +210,13 @@ export function registerRoutes(app: Express): Server {
       const verificationToken = crypto.randomBytes(32).toString('hex');
       await storage.createEmailVerificationToken(user.id, verificationToken);
 
-      // TODO: Send verification email
+      // Send verification email
+      const emailSent = await emailService.sendVerificationEmail(email, verificationToken);
+      if (emailSent) {
+        console.log(`Verification email sent to ${email}`);
+      } else {
+        console.error(`Failed to send verification email to ${email}`);
+      }
       console.log(`Verification token for ${email}: ${verificationToken}`);
 
       res.json({ 
@@ -316,7 +323,13 @@ export function registerRoutes(app: Express): Server {
       const resetToken = crypto.randomBytes(32).toString('hex');
       await storage.createPasswordResetToken(user.id, resetToken);
 
-      // TODO: Send reset email
+      // Send reset email
+      const emailSent = await emailService.sendPasswordResetEmail(email, resetToken);
+      if (emailSent) {
+        console.log(`Password reset email sent to ${email}`);
+      } else {
+        console.error(`Failed to send password reset email to ${email}`);
+      }
       console.log(`Password reset token for ${email}: ${resetToken}`);
 
       res.json({ success: true, message: 'If the email exists, a reset link has been sent.' });

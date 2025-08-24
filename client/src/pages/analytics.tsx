@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { SidebarContentLoader } from '@/components/sidebar-content-loader';
 import { 
   BarChart3,
   TrendingUp,
@@ -54,7 +55,8 @@ export default function Analytics() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+    <SidebarContentLoader>
+      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center gap-3 mb-6">
@@ -270,5 +272,6 @@ export default function Analytics() {
         </Card>
       </div>
     </div>
+    </SidebarContentLoader>
   );
 }

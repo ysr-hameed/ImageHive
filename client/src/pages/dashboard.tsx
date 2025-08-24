@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 import EnhancedImageGrid from "@/components/enhanced-image-grid";
 import { Upload, Image as ImageIcon, BarChart3, Key, Settings } from "lucide-react";
 import { Link } from "wouter";
@@ -81,7 +82,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <SidebarContentLoader>
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -345,5 +347,6 @@ export default function Dashboard() {
         </Tabs>
       </div>
     </div>
+    </SidebarContentLoader>
   );
 }

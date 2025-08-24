@@ -92,16 +92,8 @@ export default function Settings() {
     });
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
-      </div>
-    );
-  }
-
   return (
-    <SidebarContentLoader>
+    <SidebarContentLoader isLoading={!user}>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -159,7 +151,7 @@ export default function Settings() {
                       <div className="text-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
                       </div>
-                    ) : domainsData.domains.length === 0 ? (
+                    ) : (domainsData as any).domains.length === 0 ? (
                       <div className="text-center py-8">
                         <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
@@ -170,7 +162,7 @@ export default function Settings() {
                         </p>
                       </div>
                     ) : (
-                      domainsData.domains.map((domain: any) => (
+                      (domainsData as any).domains.map((domain: any) => (
                         <Card key={domain.id} className="border">
                           <CardContent className="pt-6">
                             <div className="flex items-center justify-between mb-4">

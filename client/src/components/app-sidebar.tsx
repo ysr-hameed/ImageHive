@@ -1,6 +1,8 @@
-import { useLocation } from 'wouter';
+import { useLocation, Link } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
 import { useTheme } from '@/components/theme-provider';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import {
   Sidebar,
   SidebarContent,
@@ -89,9 +91,19 @@ const data = {
 };
 
 export function AppSidebar() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
+  
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/auth/logout', {});
+    },
+    onSettled: () => {
+      // Force a full page reload to clear all state
+      window.location.href = '/';
+    }
+  });
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
@@ -138,10 +150,10 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive}>
-                      <a href={item.url}>
+                      <Link href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
@@ -159,10 +171,10 @@ export function AppSidebar() {
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={location === '/admin'}>
-                      <a href="/admin">
+                      <Link href="/admin">
                         <Shield />
                         <span>Admin Panel</span>
-                      </a>
+                      </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
@@ -203,16 +215,16 @@ export function AppSidebar() {
                 sideOffset={4}
               >
                 <DropdownMenuItem asChild>
-                  <a href="/settings">
+                  <Link href="/settings">
                     <Settings className="mr-2 h-4 w-4" />
                     Account Settings
-                  </a>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href="/api-usage">
+                  <Link href="/api-usage">
                     <Activity className="mr-2 h-4 w-4" />
                     Usage & Billing
-                  </a>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={toggleTheme}>
@@ -225,13 +237,11 @@ export function AppSidebar() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
-                  onClick={async () => { 
-                    await fetch('/api/auth/logout', { method: 'POST' }); 
-                    window.location.href = '/'; 
-                  }}
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Sign out
+                  {logoutMutation.isPending ? 'Signing out...' : 'Sign out'}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { CreateApiKeyDialog } from '@/components/api-key-dialog';
+import { SidebarContentLoader } from '@/components/sidebar-content-loader';
 import { useToast } from '@/hooks/use-toast';
 import { 
   Key,
@@ -115,23 +116,10 @@ export default function ApiKeys() {
     key.key.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (isLoading) {
-    return (
+  return (
+    <SidebarContentLoader isLoading={isLoading}>
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div className="max-w-7xl mx-auto">
-          <div className="space-y-4">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 dark:bg-slate-700 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-      <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -333,7 +321,8 @@ export default function ApiKeys() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
-    </div>
+    </SidebarContentLoader>
   );
 }

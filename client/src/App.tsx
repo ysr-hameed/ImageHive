@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -87,12 +87,12 @@ function Router() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Please verify your email address to continue. Check your inbox for the verification email.
             </p>
-            <a 
+            <Link 
               href="/auth/login" 
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               Back to Login
-            </a>
+            </Link>
           </div>
         </div>
       );

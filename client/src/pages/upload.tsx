@@ -23,7 +23,7 @@ export default function Upload() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/auth/login";
       }, 500);
     }
   }, [isAuthenticated, isLoading, toast]);
@@ -51,20 +51,13 @@ export default function Upload() {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-600"></div>
-      </div>
-    );
-  }
-
+  // Don't render anything if not authenticated to avoid flashing
   if (!isAuthenticated) {
     return null; // Will redirect via useEffect
   }
 
   return (
-    <SidebarContentLoader>
+    <SidebarContentLoader isLoading={isLoading}>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="max-w-4xl mx-auto">
         {/* Header */}

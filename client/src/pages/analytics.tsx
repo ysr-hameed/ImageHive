@@ -40,22 +40,8 @@ export default function Analytics() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  if (isLoading) {
-    return (
-      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[...Array(8)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 dark:bg-slate-700 rounded-lg animate-pulse" />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <SidebarContentLoader>
+    <SidebarContentLoader isLoading={isLoading}>
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}

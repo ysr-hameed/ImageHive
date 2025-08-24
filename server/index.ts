@@ -1,6 +1,5 @@
 import express from "express";
 import { registerRoutes } from "./routes";
-import { setupAuth } from "./replitAuth";
 import { setupVite, serveStatic } from "./vite";
 
 const app = express();
@@ -12,9 +11,6 @@ app.use(express.urlencoded({ extended: true }));
 
 // Trust proxy for secure cookies in production
 app.set('trust proxy', 1);
-
-// Setup authentication
-setupAuth(app);
 
 // Setup routes
 registerRoutes(app);

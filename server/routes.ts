@@ -2,7 +2,6 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import multer from "multer";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { backblazeService } from "./services/backblaze";
 import { ImageProcessor, type ImageTransformOptions } from "./services/imageProcessor";
 import { insertImageSchema, insertApiKeySchema, insertCustomDomainSchema } from "@shared/schema";
@@ -72,14 +71,6 @@ async function authenticateApiKey(req: Request, res: Response, next: Function) {
 }
 
 export function registerRoutes(app: Express): Server {
-  // Auth user endpoint
-  app.get('/api/auth/user', (req, res) => {
-    if (req.user) {
-      res.json(req.user);
-    } else {
-      res.status(401).json({ message: 'Unauthorized' });
-    }
-  });
 
   // Upload endpoint - requires authentication
   app.post('/api/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {

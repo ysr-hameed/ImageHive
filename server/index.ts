@@ -11,12 +11,16 @@ dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
+const STATUS = process.env.STATUS || 'development';
+const isProduction = STATUS === 'production';
+
+console.log(`🔧 Running in ${STATUS} mode`);
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'development' 
-    ? ['http://localhost:5000', 'http://localhost:3000', 'http://0.0.0.0:5000']
-    : true,
+  origin: isProduction 
+    ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : true)
+    : ['http://localhost:5000', 'http://localhost:3000', 'http://0.0.0.0:5000'],
   credentials: true
 }));
 app.use(express.json({ limit: '50mb' }));
@@ -34,7 +38,7 @@ app.get('/health', (req, res) => {
 registerRoutes(app);
 
 // Setup Vite or static serving
-if (process.env.NODE_ENV === "development") {
+if (!isProduction) {
   const httpServer = createServer(app);
   setupVite(app, httpServer);
 } else {
@@ -46,7 +50,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   console.error('Server error:', err);
   res.status(500).json({ 
     error: 'Internal server error',
-    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    message: !isProduction ? err.message : 'Something went wrong'
   });
 });
 

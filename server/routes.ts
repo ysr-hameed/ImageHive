@@ -92,7 +92,7 @@ const sessionMiddleware = session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.STATUS === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
   },
@@ -414,10 +414,11 @@ export function registerRoutes(app: Express): Server {
   // Google OAuth endpoints
   app.get('/api/auth/google', (req, res) => {
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const baseUrl = process.env.NODE_ENV === 'production' 
+    const isProduction = process.env.STATUS === 'production';
+    const baseUrl = isProduction 
       ? process.env.BASE_URL || `https://${req.get('host')}`
-      : `http://localhost:5000`;
-    
+      : `http://0.0.0.0:5000`;
+
     if (!googleClientId) {
       return res.redirect('/login?error=oauth_not_configured');
     }
@@ -449,9 +450,10 @@ export function registerRoutes(app: Express): Server {
 
       const googleClientId = process.env.GOOGLE_CLIENT_ID;
       const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
-      const baseUrl = process.env.NODE_ENV === 'production' 
+      const isProduction = process.env.STATUS === 'production';
+      const baseUrl = isProduction 
         ? process.env.BASE_URL || `https://${req.get('host')}`
-        : `http://localhost:5000`;
+        : `http://0.0.0.0:5000`;
 
       if (!googleClientId || !googleClientSecret) {
         return res.redirect('/login?error=oauth_not_configured');
@@ -529,15 +531,16 @@ export function registerRoutes(app: Express): Server {
   // GitHub OAuth endpoints
   app.get('/api/auth/github', (req, res) => {
     const githubClientId = process.env.GITHUB_CLIENT_ID;
-    
+
     if (!githubClientId) {
       return res.redirect('/login?error=oauth_not_configured');
     }
 
-    const baseUrl = process.env.NODE_ENV === 'production' 
+    const isProduction = process.env.STATUS === 'production';
+    const baseUrl = isProduction 
       ? process.env.BASE_URL || `https://${req.get('host')}`
-      : `http://localhost:5000`;
-    
+      : `http://0.0.0.0:5000`;
+
     const redirectUri = `${baseUrl}/api/auth/github/callback`;
     const scope = 'user:email';
     const githubAuthUrl = `https://github.com/login/oauth/authorize?` +

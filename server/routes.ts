@@ -670,7 +670,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       const user = req.user!;
-      const folder = req.body.folder || ''; // Optional folder path
+      const folder = req.body.folder || ''; // Optional folder path for organization
 
       // Check storage limits
       const userData = await storage.getUser(user.id);
@@ -773,6 +773,26 @@ export function registerRoutes(app: Express): Server {
     // Redirect to new endpoint
     req.url = '/api/v1/images/upload';
     return app._router.handle(req, res);
+  });
+
+  // Get user folders
+  app.get('/api/v1/folders', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const images = await storage.getUserImages(user.id, 1000, 0, '');
+      
+      // Extract unique folders from images
+      const folders = [...new Set(images.map(img => img.folder).filter(Boolean))];
+      const folderStats = folders.map(folder => ({
+        name: folder,
+        count: images.filter(img => img.folder === folder).length
+      }));
+      
+      res.json(folderStats);
+    } catch (error) {
+      console.error('Get folders error:', error);
+      res.status(500).json({ error: 'Failed to fetch folders' });
+    }
   });
 
   // Get user's images with folder filtering

@@ -4,11 +4,11 @@ import { CheckCircle } from "lucide-react";
 
 export default function HeroSection() {
   return (
-    <section className="relative py-20 lg:py-32 overflow-hidden">
+    <section className="relative py-12 sm:py-20 lg:py-32 overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-brand-50 to-emerald-50 dark:from-slate-900 dark:to-slate-800"></div>
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           <div className="animate-fade-in">
             <Badge 
               className="inline-flex items-center px-3 py-1 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 text-sm font-medium mb-6"
@@ -18,23 +18,23 @@ export default function HeroSection() {
               Live: Professional Image Hosting API
             </Badge>
             
-            <h1 className="text-4xl lg:text-6xl font-display font-bold text-gray-900 dark:text-white mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-display font-bold text-gray-900 dark:text-white mb-4 sm:mb-6 leading-tight">
               Professional Image Hosting for{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-emerald-600">
                 Developers
               </span>
             </h1>
             
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+            <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-300 mb-6 sm:mb-8 leading-relaxed">
               Scale your image hosting to millions of users with our lightning-fast API. 
               Built on Backblaze B2 with global CDN, custom domains, and enterprise-grade security.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
               <Button 
                 size="lg" 
                 asChild 
-                className="px-8 py-4 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
                 data-testid="button-start-free-trial"
               >
                 <a href="/auth/register">
@@ -45,10 +45,10 @@ export default function HeroSection() {
                 variant="outline" 
                 size="lg"
                 asChild
-                className="px-8 py-4"
+                className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
                 data-testid="button-view-docs"
               >
-                <a href="/api/docs">
+                <a href="/docs">
                   View Documentation
                 </a>
               </Button>

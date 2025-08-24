@@ -205,14 +205,15 @@ export default function Navigation() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  asChild
                   className="w-full justify-start"
                   data-testid="mobile-button-logout"
+                  onClick={async () => { 
+                    await fetch('/api/auth/logout', { method: 'POST' }); 
+                    window.location.href = '/'; 
+                  }}
                 >
-                  <a href="/api/logout">
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </a>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
                 </Button>
               </div>
             )}

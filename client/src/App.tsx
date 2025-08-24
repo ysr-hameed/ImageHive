@@ -98,9 +98,9 @@ function Router() {
           <Route path="/analytics" component={Analytics} />
           <Route path="/activity" component={Activity} />
           <Route path="/settings" component={Settings} />
-          <Route path="/api/keys" component={ApiKeys} />
-          <Route path="/api/docs" component={ApiDocs} />
-          <Route path="/api/usage" component={ApiUsage} />
+          <Route path="/api-keys" component={ApiKeys} />
+          <Route path="/docs" component={ApiDocs} />
+          <Route path="/api-usage" component={ApiUsage} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
           <Route component={NotFound} />
         </AppLayout>
@@ -108,7 +108,7 @@ function Router() {
         /* Public Routes - Only for non-authenticated users */
         <>
           <Route path="/" component={Landing} />
-          <Route path="/api/docs" component={ApiDocs} />
+          <Route path="/docs" component={ApiDocs} />
           <Route path="/terms" component={Landing} />
           <Route path="/privacy" component={Landing} />
           <Route path="/support" component={Landing} />

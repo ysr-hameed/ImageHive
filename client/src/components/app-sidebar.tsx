@@ -72,12 +72,12 @@ const data = {
     },
     {
       title: 'API Keys',
-      url: '/api/keys',
+      url: '/api-keys',
       icon: Key,
     },
     {
       title: 'API Docs',
-      url: '/api/docs',
+      url: '/docs',
       icon: FileImage,
     },
     {
@@ -209,7 +209,7 @@ export function AppSidebar() {
                   </a>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href="/api/usage">
+                  <a href="/api-usage">
                     <Activity className="mr-2 h-4 w-4" />
                     Usage & Billing
                   </a>
@@ -224,11 +224,14 @@ export function AppSidebar() {
                   Toggle Theme
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a href="/api/logout">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </a>
+                <DropdownMenuItem 
+                  onClick={async () => { 
+                    await fetch('/api/auth/logout', { method: 'POST' }); 
+                    window.location.href = '/'; 
+                  }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

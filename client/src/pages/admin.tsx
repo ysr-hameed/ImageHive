@@ -30,7 +30,6 @@ import {
   Activity,
   HardDrive,
   Cpu,
-  Memory,
   Network,
   Globe,
   Lock,
@@ -448,7 +447,7 @@ export default function Admin() {
                     <div>
                       <div className="flex justify-between text-sm mb-2">
                         <div className="flex items-center">
-                          <Memory className="w-4 h-4 mr-2" />
+                          <HardDrive className="w-4 h-4 mr-2" />
                           <span>Memory</span>
                         </div>
                         <span>{systemHealth?.memory || 0}%</span>

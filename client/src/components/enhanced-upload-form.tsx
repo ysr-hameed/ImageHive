@@ -28,8 +28,11 @@ import {
   Palette,
   Maximize2,
   Zap,
+  Folder,
+  FolderPlus,
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import FolderSelector from './folder-selector';
 
 interface UploadFormProps {
   onUploadComplete?: () => void;
@@ -38,6 +41,12 @@ interface UploadFormProps {
 export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Fetch existing folders
+  const { data: folders = [] } = useQuery({
+    queryKey: ['/api/v1/folders'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -49,6 +58,8 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
     description: '',
     altText: '',
     tags: '',
+    folder: '',
+    newFolder: '',
     quality: 85,
     format: 'auto',
     width: '',
@@ -170,6 +181,12 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
         formData.append('optimizeForWeb', uploadSettings.optimizeForWeb.toString());
         formData.append('enableCDN', uploadSettings.enableCDN.toString());
         formData.append('exifStripping', uploadSettings.exifStripping.toString());
+        
+        // Add folder
+        const selectedFolder = uploadSettings.newFolder || uploadSettings.folder;
+        if (selectedFolder) {
+          formData.append('folder', selectedFolder);
+        }
 
         await uploadMutation.mutateAsync(formData);
         setUploadProgress(((i + 1) / files.length) * 100);
@@ -335,6 +352,15 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
               />
             </div>
           </div>
+
+          {/* Folder Organization */}
+          <FolderSelector
+            folders={folders}
+            selectedFolder={uploadSettings.folder}
+            newFolder={uploadSettings.newFolder}
+            onFolderChange={(folder) => setUploadSettings({ ...uploadSettings, folder })}
+            onNewFolderChange={(newFolder) => setUploadSettings({ ...uploadSettings, newFolder })}
+          />
 
           <div>
             <Label htmlFor="description">Description</Label>

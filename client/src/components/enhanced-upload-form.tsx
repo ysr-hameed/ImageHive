@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -43,10 +42,11 @@ export function EnhancedUploadForm() {
       formData.append('image', file);
       if (folderName) formData.append('folder', folderName);
 
-      return apiRequest('POST', '/api/upload', formData, {
-        headers: {
-          // Remove Content-Type to let browser set boundary for FormData
-        },
+      console.log('Uploading file:', file.name, 'to folder:', folderName);
+
+      return apiRequest('/api/upload', {
+        method: 'POST',
+        body: formData,
       });
     },
     onSuccess: (data, variables) => {
@@ -118,28 +118,28 @@ export function EnhancedUploadForm() {
     if (files.length === 0) return;
 
     setIsUploading(true);
-    
+
     try {
       for (const file of files) {
         if (file.status === 'pending') {
           setFiles(prev => prev.map(f => 
             f.id === file.id ? { ...f, status: 'uploading', progress: 0 } : f
           ));
-          
+
           await uploadMutation.mutateAsync({ file, folderName: folder });
         }
       }
-      
+
       toast({
         title: "Upload completed",
         description: `Successfully uploaded ${files.filter(f => f.status === 'completed').length} images`,
       });
-      
+
       // Clear completed files after a delay
       setTimeout(() => {
         setFiles(prev => prev.filter(f => f.status !== 'completed'));
       }, 2000);
-      
+
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -250,11 +250,11 @@ export function EnhancedUploadForm() {
                     <p className="text-sm text-gray-500">
                       {(file.size / 1024 / 1024).toFixed(2)} MB
                     </p>
-                    
+
                     {file.status === 'uploading' && (
                       <Progress value={file.progress || 0} className="h-1 mt-1" />
                     )}
-                    
+
                     {file.status === 'error' && (
                       <p className="text-sm text-red-500 mt-1">{file.error}</p>
                     )}

@@ -732,6 +732,7 @@ export function registerRoutes(app: Express): Server {
 
   // Upload endpoint - requires authentication with folder path support
   app.post('/api/v1/images/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
+    console.log('Upload endpoint hit:', req.method, req.path);
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
@@ -838,9 +839,101 @@ export function registerRoutes(app: Express): Server {
 
   // Legacy upload endpoint for backward compatibility
   app.post('/api/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
-    // Redirect to new endpoint
-    req.url = '/api/v1/images/upload';
-    return app._router.handle(req, res);
+    console.log('Legacy upload endpoint hit:', req.method, req.path);
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No image file provided' });
+      }
+
+      const user = req.user!;
+      const folder = req.body.folder || '';
+
+      // Check storage limits
+      const userData = await storage.getUser(user.id);
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      if (userData.storageUsed + req.file.size > userData.storageLimit) {
+        return res.status(413).json({ error: 'Storage limit exceeded' });
+      }
+
+      // Process image with transforms if provided
+      let processedBuffer = req.file.buffer;
+      const transforms: ImageTransformOptions = {};
+
+      // Parse transform parameters
+      if (req.body.width) transforms.width = parseInt(req.body.width);
+      if (req.body.height) transforms.height = parseInt(req.body.height);
+      if (req.body.quality) transforms.quality = parseInt(req.body.quality);
+      if (req.body.format) transforms.format = req.body.format;
+
+      // Apply transforms if any are specified
+      if (Object.keys(transforms).length > 0) {
+        processedBuffer = await ImageProcessor.processImage(processedBuffer, transforms);
+      }
+
+      // Create folder structure: userId/folder/filename
+      const folderPath = folder ? `${folder}/` : '';
+      const fileName = `${user.id}/${folderPath}${Date.now()}-${req.file.originalname}`;
+
+      // Upload to Backblaze
+      const uploadResult = await backblazeService.uploadFile(processedBuffer, fileName, req.file.mimetype);
+
+      // Get image dimensions
+      const metadata = await ImageProcessor.getImageMetadata(processedBuffer);
+
+      // Create custom CDN URL
+      const customDomain = await storage.getUserCustomDomain(user.id);
+      let cdnUrl = uploadResult.downloadUrl;
+
+      if (customDomain && customDomain.isVerified) {
+        cdnUrl = `https://${customDomain.domain}/${fileName}`;
+      }
+
+      // Create image record
+      const imageData = {
+        title: req.body.title || req.file.originalname,
+        description: req.body.description || '',
+        filename: fileName,
+        originalFilename: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: processedBuffer.length,
+        width: metadata.width || 0,
+        height: metadata.height || 0,
+        isPublic: true,
+        tags: req.body.tags ? JSON.parse(req.body.tags) : [],
+        backblazeFileId: uploadResult.fileId,
+        backblazeFileName: uploadResult.fileName,
+        cdnUrl: cdnUrl,
+        folder: folder,
+      };
+
+      const image = await storage.createImage(user.id, imageData);
+
+      // Update user storage usage
+      await storage.updateUserStorageUsage(user.id, userData.storageUsed + processedBuffer.length);
+
+      res.json({
+        success: true,
+        image: {
+          id: image.id,
+          title: image.title,
+          url: image.cdnUrl,
+          thumbnailUrl: `${image.cdnUrl}?w=300&h=300&fit=cover`,
+          width: image.width,
+          height: image.height,
+          size: image.size,
+          mimeType: image.mimeType,
+          isPublic: image.isPublic,
+          folder: image.folder,
+          createdAt: image.createdAt,
+        }
+      });
+    } catch (error) {
+      console.error('Legacy upload error:', error);
+      res.status(500).json({ error: 'Upload failed', details: error instanceof Error ? error.message : 'Unknown error' });
+    }
   });
 
   // Get user folders
@@ -1099,6 +1192,16 @@ export function registerRoutes(app: Express): Server {
       console.error('Verify domain error:', error);
       res.status(500).json({ error: 'Failed to verify domain' });
     }
+  });
+
+  // Debug route to test server connectivity
+  app.get('/api/debug', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      authenticated: !!req.user,
+      session: !!req.session?.userId
+    });
   });
 
   // File serving with custom domain support

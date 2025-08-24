@@ -4,10 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EnhancedUploadForm } from "@/components/enhanced-upload-form";
+import { useLocation } from "wouter";
 
 export default function Upload() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -16,9 +18,9 @@ export default function Upload() {
         description: "Please log in to access this page",
         variant: "destructive",
       });
-      window.location.href = "/auth/login";
+      setLocation("/auth/login");
     }
-  }, [isAuthenticated, isLoading, toast]);
+  }, [isAuthenticated, isLoading, toast, setLocation]);
 
   // Show loading state while checking authentication
   if (isLoading) {

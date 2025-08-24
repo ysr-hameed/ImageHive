@@ -4,6 +4,10 @@ import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { initializeDatabase } from "./db";
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
@@ -46,12 +50,19 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-// 404 handler
+// 404 handler - serve index.html for client-side routing
 app.use('*', (req, res) => {
   if (req.path.startsWith('/api/')) {
     res.status(404).json({ error: 'API endpoint not found' });
   } else {
-    res.status(404).send('Page not found');
+    // For all other routes, serve the React app
+    if (process.env.NODE_ENV === "development") {
+      // In development, Vite will handle this
+      res.status(404).send('Page not found - check Vite setup');
+    } else {
+      // In production, serve index.html for client-side routing
+      res.sendFile('index.html', { root: 'dist' });
+    }
   }
 });
 

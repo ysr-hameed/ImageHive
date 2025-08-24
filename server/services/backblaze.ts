@@ -1,4 +1,3 @@
-
 import { randomUUID } from 'crypto';
 
 interface BackblazeConfig {
@@ -48,6 +47,21 @@ export class BackblazeB2Service {
   }
 
   private async authorize(): Promise<void> {
+    console.log('Backblaze config check:', {
+      keyId: !!this.config.applicationKeyId,
+      appKey: !!this.config.applicationKey,
+      bucketId: !!this.config.bucketId
+    });
+
+    if (!this.config.applicationKeyId || !this.config.applicationKey || !this.config.bucketId) {
+      console.error('Missing Backblaze configuration:', {
+        BACKBLAZE_KEY_ID: !!process.env.BACKBLAZE_KEY_ID,
+        BACKBLAZE_APPLICATION_KEY: !!process.env.BACKBLAZE_APPLICATION_KEY,
+        BACKBLAZE_BUCKET_ID: !!process.env.BACKBLAZE_BUCKET_ID
+      });
+      throw new Error('Backblaze configuration is incomplete. Please check environment variables.');
+    }
+
     try {
       // Check if auth is still valid (expires after 24 hours)
       if (this.authToken && Date.now() < this.authExpiry) {
@@ -55,7 +69,7 @@ export class BackblazeB2Service {
       }
 
       const credentials = Buffer.from(`${this.config.applicationKeyId}:${this.config.applicationKey}`).toString('base64');
-      
+
       const response = await fetch(`${this.config.endpoint}/b2api/v2/b2_authorize_account`, {
         method: 'GET',
         headers: {
@@ -73,7 +87,7 @@ export class BackblazeB2Service {
       this.apiUrl = data.apiUrl;
       this.downloadUrl = data.downloadUrl;
       this.authExpiry = Date.now() + (23 * 60 * 60 * 1000); // 23 hours
-      
+
       console.log('Backblaze authorization successful');
     } catch (error) {
       console.error('Backblaze authorization error:', error);
@@ -144,22 +158,22 @@ export class BackblazeB2Service {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Upload response error:', errorText);
-        
+
         // Reset upload URL on auth errors
         if (response.status === 401) {
           this.uploadUrl = null;
           this.uploadAuthToken = null;
           this.authToken = null;
         }
-        
+
         throw new Error(`File upload failed: ${response.status} ${errorText}`);
       }
 
       const uploadData: BackblazeUploadResponse = await response.json();
-      
+
       // Add download URL
       uploadData.downloadUrl = this.getFileUrl(uploadData.fileName);
-      
+
       console.log(`File uploaded successfully: ${fileName}`);
       return uploadData;
     } catch (error) {
@@ -204,12 +218,12 @@ export class BackblazeB2Service {
     if (customDomain) {
       return `https://${customDomain}/${fileName}`;
     }
-    
+
     // Use the download URL from auth response
     if (this.downloadUrl) {
       return `${this.downloadUrl}/file/${this.config.bucketName}/${fileName}`;
     }
-    
+
     // Fallback to standard URL format
     return `https://f005.backblazeb2.com/file/${this.config.bucketName}/${fileName}`;
   }

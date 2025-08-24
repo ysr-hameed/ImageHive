@@ -8,62 +8,81 @@ export interface EmailOptions {
 }
 
 class EmailService {
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
   private isConfigured: boolean = false;
+  private gmailUser: string | undefined;
+  private gmailPass: string | undefined;
 
   constructor() {
+    this.gmailUser = process.env.GMAIL_USER;
+    this.gmailPass = process.env.GMAIL_APP_PASSWORD;
     this.setupTransporter();
   }
 
   private setupTransporter() {
-    try {
-      if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-        console.warn('Gmail credentials not configured. Email functionality will be disabled.');
-        this.isConfigured = false;
-        return;
-      }
-
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: process.env.GMAIL_USER,
-          pass: process.env.GMAIL_APP_PASSWORD,
-        },
-        pool: true,
-        maxConnections: 1,
-        maxMessages: 10,
-        connectionTimeout: 60000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
-      });
-
-      this.isConfigured = true;
-      console.log('Email service configured successfully');
-
-      // Test the connection
-      this.transporter.verify((error, success) => {
-        if (error) {
-          console.error('Email configuration error:', error);
-          this.isConfigured = false;
-        } else {
-          console.log('Email server connection verified');
-        }
-      });
-    } catch (error) {
-      console.error('Email transporter setup error:', error);
+    if (!this.gmailUser || !this.gmailPass) {
+      console.warn('Gmail credentials not configured. Email functionality will be disabled.');
       this.isConfigured = false;
+      return;
+    }
+
+    this.createTransporter()
+      .then(transporter => {
+        if (transporter) {
+          this.transporter = transporter;
+          this.isConfigured = true;
+          console.log('Email service configured successfully');
+        } else {
+          console.error('Failed to configure email transporter.');
+          this.isConfigured = false;
+        }
+      })
+      .catch(error => {
+        console.error('Error during email transporter setup:', error);
+        this.isConfigured = false;
+      });
+  }
+
+  private async createTransporter() {
+    if (!this.gmailUser || !this.gmailPass) {
+      console.error('Gmail credentials not configured');
+      return null;
+    }
+
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: this.gmailUser,
+        pass: this.gmailPass,
+      },
+      pool: true,
+      maxConnections: 1,
+      maxMessages: 3,
+      rateDelta: 20000,
+      rateLimit: 5,
+    });
+
+    try {
+      await transporter.verify();
+      console.log('Email service configured successfully');
+      return transporter;
+    } catch (error) {
+      console.error('Email configuration error:', error);
+      // Don't throw error, just return null and continue without email
+      return null;
     }
   }
 
+
   async sendEmail(options: EmailOptions): Promise<boolean> {
-    if (!this.isConfigured) {
-      console.warn('Email service not configured, skipping email send');
+    if (!this.isConfigured || !this.transporter) {
+      console.warn('Email service not configured or transporter not available, skipping email send');
       return false;
     }
 
     try {
       const mailOptions = {
-        from: `"ImageVault" <${process.env.GMAIL_USER}>`,
+        from: `"ImageVault" <${this.gmailUser}>`,
         to: options.to,
         subject: options.subject,
         html: options.html,
@@ -75,6 +94,10 @@ class EmailService {
       return true;
     } catch (error) {
       console.error('Email sending failed:', error);
+      // If sending fails, try to re-configure transporter for next time
+      this.isConfigured = false;
+      this.transporter = null;
+      this.setupTransporter(); // Attempt to re-setup
       return false;
     }
   }

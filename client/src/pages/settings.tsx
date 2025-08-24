@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,10 +23,22 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newDomain, setNewDomain] = useState("");
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access this page",
+        variant: "destructive",
+      });
+      window.location.href = "/auth/login";
+    }
+  }, [isAuthenticated, isLoading, toast]);
 
   // Fetch custom domains
   const { data: domainsData = { domains: [] }, isLoading: domainsLoading } = useQuery({

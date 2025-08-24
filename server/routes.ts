@@ -95,7 +95,9 @@ const sessionMiddleware = session({
     secure: process.env.STATUS === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: process.env.STATUS === 'production' ? 'strict' : 'lax',
   },
+  name: 'imagevault.session',
 });
 
 // Authentication middleware - checks for session or API key

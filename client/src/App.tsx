@@ -62,6 +62,18 @@ function AppLayout({ children }: { children: React.ReactNode }) {
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
 
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Switch>
       {/* Auth Routes - Always Available */}
@@ -71,10 +83,11 @@ function Router() {
       <Route path="/auth/reset-password" component={ResetPassword} />
       <Route path="/auth/verify-email" component={VerifyEmail} />
       
-      {/* Protected Routes */}
-      {!isLoading && isAuthenticated ? (
+      {/* Protected Routes - Only for authenticated users */}
+      {isAuthenticated ? (
         <AppLayout>
           <Route path="/" component={Dashboard} />
+          <Route path="/dashboard" component={Dashboard} />
           <Route path="/upload" component={Upload} />
           <Route path="/upload/bulk" component={Upload} />
           <Route path="/upload/url" component={Upload} />
@@ -89,18 +102,19 @@ function Router() {
           <Route path="/api/docs" component={ApiDocs} />
           <Route path="/api/usage" component={ApiUsage} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
+          <Route component={NotFound} />
         </AppLayout>
       ) : (
-        /* Public Routes */
+        /* Public Routes - Only for non-authenticated users */
         <>
           <Route path="/" component={Landing} />
           <Route path="/api/docs" component={ApiDocs} />
           <Route path="/terms" component={Landing} />
           <Route path="/privacy" component={Landing} />
           <Route path="/support" component={Landing} />
+          <Route component={Login} />
         </>
       )}
-      <Route component={NotFound} />
     </Switch>
   );
 }

@@ -14,26 +14,49 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { CreateApiKeyDialog } from "@/components/api-key-dialog";
 
 export default function Dashboard() {
-  const { user } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
+
+  // Don't render dashboard if not authenticated
+  if (!isAuthenticated && !authLoading) {
+    window.location.href = "/auth/login";
+    return null;
+  }
+
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Fetch user analytics
   const { data: analytics = {}, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ["/api/v1/analytics"],
-    retry: false,
+    retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
+    enabled: !!user, // Only fetch when user is available
   });
 
   // Fetch user images
   const { data: imagesData = {}, isLoading: imagesLoading, error: imagesError } = useQuery({
     queryKey: ["/api/v1/images"],
-    retry: false,
+    retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
+    enabled: !!user, // Only fetch when user is available
   });
 
   // Fetch user API keys
-  const { data: apiKeys = [], isLoading: apiKeysLoading, error: apiKeysError } = useQuery({
+  const { data: apiKeysData = {}, isLoading: apiKeysLoading, error: apiKeysError } = useQuery({
     queryKey: ["/api/v1/api-keys"],
-    retry: false,
+    retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
+    enabled: !!user, // Only fetch when user is available
   });
+
+  const apiKeys = (apiKeysData as any)?.apiKeys || [];
 
   // Handle unauthorized errors
   useEffect(() => {
@@ -41,13 +64,13 @@ export default function Dashboard() {
     for (const error of errors) {
       if (isUnauthorizedError(error as Error)) {
         toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
+          title: "Session expired",
+          description: "Please log in again.",
           variant: "destructive",
         });
         setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
+          window.location.href = "/auth/login";
+        }, 1000);
         return;
       }
     }
@@ -242,15 +265,16 @@ export default function Dashboard() {
                         </CreateApiKeyDialog>
                       </div>
                     ) : (
-                      (apiKeys as any[])?.map((apiKey: any) => (
+                      apiKeys?.map((apiKey: any) => (
                         <div key={apiKey.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg" data-testid={`api-key-${apiKey.id}`}>
                           <div>
                             <h4 className="font-medium text-gray-900 dark:text-white">{apiKey.name}</h4>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                              {apiKey.requestCount} requests • Created {new Date(apiKey.createdAt).toLocaleDateString()}
+                              Created {new Date(apiKey.createdAt).toLocaleDateString()}
+                              {apiKey.lastUsed && ` • Last used ${new Date(apiKey.lastUsed).toLocaleDateString()}`}
                             </p>
                             <code className="text-xs bg-gray-200 dark:bg-slate-700 px-2 py-1 rounded font-mono">
-                              {apiKey.key.substring(0, 20)}...
+                              {apiKey.keyPreview || `${apiKey.key?.substring(0, 20)}...`}
                             </code>
                           </div>
                           <div className="flex items-center space-x-2">

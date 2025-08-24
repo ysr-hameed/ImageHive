@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Eye, EyeOff, Mail, Lock, Github } from 'lucide-react';
 import { Link } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
+import { queryClient } from '@/lib/queryClient'; // Assuming queryClient is exported from '@/lib/queryClient'
 
 export default function Login() {
   const { toast } = useToast();
@@ -21,7 +22,7 @@ export default function Login() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
-    
+
     if (error === 'oauth_failed') {
       toast({
         title: 'Authentication failed',
@@ -41,8 +42,11 @@ export default function Login() {
         title: 'Welcome back!',
         description: 'You have been successfully logged in.',
       });
-      // Redirect to dashboard
-      window.location.href = '/';
+      // Refresh auth state and redirect to dashboard
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
     },
     onError: (error: any) => {
       toast({

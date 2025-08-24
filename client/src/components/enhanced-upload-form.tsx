@@ -16,8 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, Bell, LayoutDashboard, FileText, Code } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Check, AlertCircle } from 'lucide-react';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs'; // Or any other style
+// Removed syntax highlighter imports for now
 
 // Mocking Upay integration for now, replace with actual integration
 const upayPayment = {
@@ -655,8 +654,8 @@ export function EnhancedUploadForm() {
                       Follow the installation instructions and import `EnhancedUploadForm`
                       wherever you need an upload interface.
                     </p>
-                    <SyntaxHighlighter language="jsx" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
-                      {`import { EnhancedUploadForm } from './your-upload-component';
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                      <code>{`import { EnhancedUploadForm } from './your-upload-component';
 
 function App() {
   return (
@@ -666,8 +665,8 @@ function App() {
       {/* Other components */}
     </div>
   );
-}`}
-                    </SyntaxHighlighter>
+}`}</code>
+                    </pre>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -679,17 +678,17 @@ function App() {
                       Our SDK simplifies interactions with our services. Install it via npm
                       and leverage its functions for more advanced control.
                     </p>
-                    <SyntaxHighlighter language="bash" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
-                      {`npm install your-service-sdk
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                      <code>{`npm install your-service-sdk
 # or
-yarn add your-service-sdk`}
-                    </SyntaxHighlighter>
-                    <SyntaxHighlighter language="javascript" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
-                      {`import { YourService } from 'your-service-sdk';
+yarn add your-service-sdk`}</code>
+                    </pre>
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                      <code>{`import { YourService } from 'your-service-sdk';
 
 const service = new YourService({ apiKey: 'YOUR_API_KEY' });
-service.uploadImage({ file: imageFile, options: {...} }).then(res => console.log(res));`}
-                    </SyntaxHighlighter>
+service.uploadImage({ file: imageFile, options: {...} }).then(res => console.log(res));`}</code>
+                    </pre>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -701,8 +700,8 @@ service.uploadImage({ file: imageFile, options: {...} }).then(res => console.log
                       Interact directly with our robust API endpoints for maximum flexibility.
                       Refer to the API documentation for detailed endpoint specifications and request/response formats.
                     </p>
-                    <SyntaxHighlighter language="bash" style={docco} customStyle={{ padding: '15px', borderRadius: '8px', marginTop: '10px' }}>
-                      {`POST /api/upload
+                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                      <code>{`POST /api/upload
 Content-Type: multipart/form-data
 
 {
@@ -710,8 +709,8 @@ Content-Type: multipart/form-data
   "title": "Optional Title",
   "description": "Optional Description",
   // ... other metadata and transform options
-}`}
-                    </SyntaxHighlighter>
+}`}</code>
+                    </pre>
                     <a href="/api/docs" className="text-blue-600 hover:underline mt-2 inline-block">View Full API Documentation</a>
                   </CardContent>
                 </Card>

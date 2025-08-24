@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Code, ExternalLink, Copy, BookOpen, Zap, Globe, Download } from "lucide-react";
+import { Code, ExternalLink, Copy, BookOpen, Zap, Globe, Download, Key, Image, Settings, Upload, BarChart3, DollarSign, Check, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/navigation";
 
@@ -250,7 +250,7 @@ export default function ApiDocs() {
         </Button>
       </div>
       <pre className="bg-gray-900 text-gray-100 p-4 rounded-b-lg overflow-x-auto">
-        <code className={`language-${language.toLowerCase()}`}>{code}</code>
+        <code>{code}</code>
       </pre>
     </div>
   );

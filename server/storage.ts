@@ -18,13 +18,14 @@ import {
 import { db } from "./db";
 import { eq, desc, and, sql, count } from "drizzle-orm";
 import { randomBytes } from "crypto";
+import crypto from "crypto";
 
 // Interface for storage operations
 export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
-  
+
   // Image operations
   createImage(userId: string, imageData: InsertImage & { backblazeFileId?: string; backblazeFileName?: string; cdnUrl?: string }): Promise<Image>;
   getImage(id: string): Promise<Image | undefined>;
@@ -34,36 +35,109 @@ export interface IStorage {
   incrementImageView(id: string): Promise<void>;
   incrementImageDownload(id: string): Promise<void>;
   getPublicImages(limit?: number, offset?: number): Promise<Image[]>;
-  
+
   // API Key operations
   createApiKey(userId: string, keyData: InsertApiKey): Promise<ApiKey>;
   getApiKey(key: string): Promise<ApiKey | undefined>;
   getUserApiKeys(userId: string): Promise<ApiKey[]>;
   updateApiKeyUsage(id: string): Promise<void>;
   deactivateApiKey(id: string): Promise<boolean>;
-  
+
   // Custom Domain operations
   createCustomDomain(userId: string, domain: string): Promise<CustomDomain>;
   getUserCustomDomains(userId: string): Promise<CustomDomain[]>;
   verifyCustomDomain(id: string): Promise<boolean>;
-  
+
   // Analytics operations
   recordImageAnalytic(imageId: string, event: string, metadata?: any): Promise<void>;
   getImageAnalytics(imageId: string): Promise<ImageAnalytic[]>;
   getUserAnalytics(userId: string): Promise<any>;
-  
+
   // System operations
   createSystemLog(level: string, message: string, userId?: string, apiKeyId?: string, metadata?: any): Promise<SystemLog>;
   getSystemLogs(limit?: number): Promise<SystemLog[]>;
   getUserStats(userId: string): Promise<any>;
   getAdminStats(): Promise<any>;
+
+  // New methods for OAuth and email verification
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
+  getUserByResetToken(token: string): Promise<User | undefined>;
+  createUser(userData: {
+    email: string;
+    name: string;
+    password?: string;
+    emailVerified?: boolean;
+    emailVerificationToken?: string;
+    googleId?: string;
+    githubId?: string;
+  }): Promise<User>;
+  updateUser(id: string, updates: {
+    name?: string;
+    password?: string;
+    emailVerified?: boolean;
+    emailVerificationToken?: string | null;
+    passwordResetToken?: string | null;
+    passwordResetExpires?: Date | null;
+    googleId?: string;
+    githubId?: string;
+  }): Promise<User | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
   // User operations (required for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.emailVerificationToken, token)).limit(1);
+    return result[0];
+  }
+
+  async getUserByResetToken(token: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.passwordResetToken, token)).limit(1);
+    return result[0];
+  }
+
+  async createUser(userData: {
+    email: string;
+    name: string;
+    password?: string;
+    emailVerified?: boolean;
+    emailVerificationToken?: string;
+    googleId?: string;
+    githubId?: string;
+  }): Promise<User> {
+    const id = crypto.randomUUID();
+    const result = await db.insert(users).values({
+      id,
+      ...userData,
+    }).returning();
+    return result[0];
+  }
+
+  async updateUser(id: string, updates: {
+    name?: string;
+    password?: string;
+    emailVerified?: boolean;
+    emailVerificationToken?: string | null;
+    passwordResetToken?: string | null;
+    passwordResetExpires?: Date | null;
+    googleId?: string;
+    githubId?: string;
+  }): Promise<User | undefined> {
+    const result = await db.update(users)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return result[0];
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -93,7 +167,7 @@ export class DatabaseStorage implements IStorage {
         cdnUrl: imageData.cdnUrl,
       })
       .returning();
-    
+
     // Update user storage usage
     await db
       .update(users)
@@ -102,7 +176,7 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
-    
+
     return image;
   }
 
@@ -135,7 +209,7 @@ export class DatabaseStorage implements IStorage {
     if (!image) return false;
 
     await db.delete(images).where(eq(images.id, id));
-    
+
     // Update user storage usage
     await db
       .update(users)
@@ -144,7 +218,7 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(users.id, image.userId));
-    
+
     return true;
   }
 

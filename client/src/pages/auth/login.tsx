@@ -17,6 +17,20 @@ export default function Login() {
     password: '',
   });
 
+  // Check for OAuth errors in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    
+    if (error === 'oauth_failed') {
+      toast({
+        title: 'Authentication failed',
+        description: 'OAuth authentication failed. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  }, [toast]);
+
   const loginMutation = useMutation({
     mutationFn: async (data: any) => {
       const response = await apiRequest('POST', '/api/auth/login', data);

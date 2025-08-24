@@ -40,6 +40,13 @@ export const users = pgTable("users", {
   isAdmin: boolean("is_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  password: text("password"), // Optional for OAuth users
+  emailVerified: boolean("email_verified").default(false),
+  emailVerificationToken: text("email_verification_token"),
+  passwordResetToken: text("password_reset_token"),
+  passwordResetExpires: timestamp("password_reset_expires"),
+  googleId: text("google_id"),
+  githubId: text("github_id"),
 });
 
 // API Keys table

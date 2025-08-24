@@ -173,7 +173,7 @@ async function authenticateApiKey(req: Request, res: Response, next: Function) {
     req.user = {
       id: user.id,
       email: user.email || '',
-      name: user.name || `${user.firstName || ''} ${user.lastName || ''}`,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
       emailVerified: user.emailVerified || false,
       plan: user.plan || 'free',
       storageUsed: user.storageUsed || 0,
@@ -378,7 +378,9 @@ export function registerRoutes(app: Express): Server {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Update user password
-      await storage.updateUserPassword(tokenData.id, hashedPassword);
+      if (tokenData.id) {
+        await storage.updateUserPassword(tokenData.id, hashedPassword);
+      }
 
       // Delete the token
       await storage.deletePasswordResetToken(token);
@@ -401,7 +403,9 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Mark email as verified
-      await storage.markEmailAsVerified(tokenData.id);
+      if (tokenData.id) {
+        await storage.markEmailAsVerified(tokenData.id);
+      }
 
       // Delete the token
       await storage.deleteEmailVerificationToken(token);
@@ -760,7 +764,7 @@ export function registerRoutes(app: Express): Server {
       });
     } catch (error) {
       console.error('Upload error:', error);
-      res.status(500).json({ error: 'Upload failed', details: error.message });
+      res.status(500).json({ error: 'Upload failed', details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -1023,7 +1027,7 @@ export function registerRoutes(app: Express): Server {
       await storage.trackImageView(image.id, req.ip, req.get('User-Agent'));
 
       // Redirect to Backblaze URL or serve directly
-      const backblazeUrl = backblazeService.getFileUrl(image.backblazeFileName);
+      const backblazeUrl = backblazeService.getFileUrl(image.backblazeFileName || image.filename);
       res.redirect(302, backblazeUrl);
     } catch (error) {
       console.error('File serve error:', error);

@@ -17,7 +17,7 @@ export interface CreateUserData {
   email: string;
   firstName: string;
   lastName: string;
-  passwordHash: string;
+  passwordHash: string | null;
   emailVerified: boolean;
   profileImageUrl?: string | null;
   plan?: string;
@@ -38,7 +38,7 @@ export interface CreateImageData {
   tags: string[];
   backblazeFileId: string;
   backblazeFileName: string;
-  cdnUrl: string;
+  cdnUrl: string | undefined;
   folder?: string;
 }
 
@@ -198,14 +198,14 @@ class Storage {
   }
 
   async getUserImages(userId: string, limit: number = 20, offset: number = 0, folder: string = '') {
-    let query = db.select().from(images)
-      .where(eq(images.userId, userId));
-
+    const conditions = [eq(images.userId, userId)];
+    
     if (folder) {
-      query = query.where(like(images.folder, `${folder}%`)) as any;
+      conditions.push(like(images.folder, `${folder}%`));
     }
 
-    return await query
+    return await db.select().from(images)
+      .where(and(...conditions))
       .orderBy(desc(images.createdAt))
       .limit(limit)
       .offset(offset);

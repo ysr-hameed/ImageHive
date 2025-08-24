@@ -36,7 +36,38 @@ const createRateLimit = (windowMs: number, max: number) =>
 const apiRateLimit = createRateLimit(15 * 60 * 1000, 100); // 100 requests per 15 minutes
 const uploadRateLimit = createRateLimit(60 * 1000, 10); // 10 uploads per minute
 
-// API key authentication middleware
+// Authentication middleware - checks for API key or session
+async function isAuthenticated(req: Request, res: Response, next: Function) {
+  // Check for API key in Authorization header
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const apiKey = authHeader.substring(7);
+    try {
+      const keyData = await storage.getApiKey(apiKey);
+      if (keyData && keyData.isActive) {
+        const user = await storage.getUser(keyData.userId);
+        if (user) {
+          req.user = {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            emailVerified: user.emailVerified || false,
+          };
+          req.apiKey = keyData;
+          return next();
+        }
+      }
+    } catch (error) {
+      console.error('API key authentication error:', error);
+    }
+  }
+
+  // Check for session-based authentication (if implemented later)
+  // For now, return unauthorized
+  return res.status(401).json({ error: 'Authentication required' });
+}
+
+// API key authentication middleware (separate for API-only endpoints)
 async function authenticateApiKey(req: Request, res: Response, next: Function) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -71,6 +102,39 @@ async function authenticateApiKey(req: Request, res: Response, next: Function) {
 }
 
 export function registerRoutes(app: Express): Server {
+  // Authentication routes
+  app.post('/api/auth/register', async (req, res) => {
+    try {
+      // TODO: Implement user registration
+      res.status(501).json({ error: 'Registration not yet implemented' });
+    } catch (error) {
+      console.error('Registration error:', error);
+      res.status(500).json({ error: 'Registration failed' });
+    }
+  });
+
+  app.post('/api/auth/login', async (req, res) => {
+    try {
+      // TODO: Implement user login
+      res.status(501).json({ error: 'Login not yet implemented' });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    // TODO: Implement logout
+    res.json({ success: true });
+  });
+
+  app.get('/api/auth/user', (req, res) => {
+    if (req.user) {
+      res.json(req.user);
+    } else {
+      res.status(401).json({ message: 'Unauthorized' });
+    }
+  });
 
   // Upload endpoint - requires authentication
   app.post('/api/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {

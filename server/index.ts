@@ -50,20 +50,9 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   });
 });
 
-// 404 handler - serve index.html for client-side routing
-app.use('*', (req, res) => {
-  if (req.path.startsWith('/api/')) {
-    res.status(404).json({ error: 'API endpoint not found' });
-  } else {
-    // For all other routes, serve the React app
-    if (process.env.NODE_ENV === "development") {
-      // In development, Vite will handle this
-      res.status(404).send('Page not found - check Vite setup');
-    } else {
-      // In production, serve index.html for client-side routing
-      res.sendFile('index.html', { root: 'dist' });
-    }
-  }
+// 404 handler for API routes only (Vite handles client routes)
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
 });
 
 // Initialize database and start server

@@ -41,7 +41,13 @@ export async function setupVite(app: Express, server: Server) {
   });
 
   app.use(vite.middlewares);
-  app.use("*", async (req, res, next) => {
+  // Handle client-side routing - serve index.html for non-API routes
+  app.get("*", async (req, res, next) => {
+    // Skip API routes
+    if (req.path.startsWith('/api/')) {
+      return next();
+    }
+
     const url = req.originalUrl;
 
     try {

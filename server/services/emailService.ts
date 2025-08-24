@@ -49,26 +49,30 @@ class EmailService {
       return null;
     }
 
-    const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransporter({
       service: 'gmail',
       auth: {
         user: this.gmailUser,
         pass: this.gmailPass,
       },
-      pool: true,
-      maxConnections: 1,
-      maxMessages: 3,
-      rateDelta: 20000,
-      rateLimit: 5,
+      pool: false, // Disable connection pooling to avoid connection issues
+      secure: true,
+      port: 465,
+      tls: {
+        rejectUnauthorized: false,
+        ciphers: 'SSLv3'
+      },
+      connectionTimeout: 60000,
+      greetingTimeout: 30000,
+      socketTimeout: 60000,
     });
 
     try {
-      await transporter.verify();
-      console.log('Email service configured successfully');
+      // Don't verify connection during startup to avoid blocking
+      console.log('Email service initialized (verification skipped for faster startup)');
       return transporter;
     } catch (error) {
       console.error('Email configuration error:', error);
-      // Don't throw error, just return null and continue without email
       return null;
     }
   }

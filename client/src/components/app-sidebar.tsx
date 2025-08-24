@@ -125,34 +125,36 @@ export function AppSidebar() {
   };
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader>
-        <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-brand-500 to-emerald-500 text-white">
-            <FileImage className="h-4 w-4" />
+    <Sidebar collapsible="icon" className="bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-3 px-1 py-2 text-left text-sm">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-brand-500 to-emerald-500 text-white">
+            <FileImage className="h-5 w-5" />
           </div>
           <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold">ImageVault</span>
-            <span className="truncate text-xs text-sidebar-foreground/70">
+            <span className="truncate font-semibold text-lg">ImageVault</span>
+            <span className="truncate text-xs text-sidebar-foreground/70 mt-1">
               {user?.plan || 'Free'} Plan
             </span>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+          <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Navigation
+          </SidebarGroupLabel>
+          <SidebarGroupContent className="space-y-1">
+            <SidebarMenu className="space-y-1">
               {data.navMain.map((item) => {
                 const isActive = location === item.url || (item.url !== '/' && location.startsWith(item.url));
                 return (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive}>
+                    <SidebarMenuButton asChild isActive={isActive} className="h-10 px-3 py-2">
                       <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
+                        <item.icon className="h-4 w-4" />
+                        <span className="ml-3">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -164,16 +166,18 @@ export function AppSidebar() {
 
         {user?.isAdmin && (
           <>
-            <SidebarSeparator />
+            <SidebarSeparator className="my-4" />
             <SidebarGroup>
-              <SidebarGroupLabel>Admin</SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu>
+              <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                Admin
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="space-y-1">
+                <SidebarMenu className="space-y-1">
                   <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location === '/admin'}>
+                    <SidebarMenuButton asChild isActive={location === '/admin'} className="h-10 px-3 py-2">
                       <Link href="/admin">
-                        <Shield />
-                        <span>Admin Panel</span>
+                        <Shield className="h-4 w-4" />
+                        <span className="ml-3">Admin Panel</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -184,26 +188,26 @@ export function AppSidebar() {
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="p-4">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
+                  <Avatar className="h-9 w-9 rounded-lg">
                     <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || 'User'} />
                     <AvatarFallback className="rounded-lg bg-gradient-to-r from-brand-500 to-emerald-500 text-white">
                       {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
+                  <div className="grid flex-1 text-left text-sm leading-tight ml-3">
                     <span className="truncate font-semibold">
                       {user?.firstName || user?.email?.split('@')[0]}
                     </span>
-                    <span className="truncate text-xs">{user?.email}</span>
+                    <span className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</span>
                   </div>
                   <ChevronUp className="ml-auto size-4" />
                 </SidebarMenuButton>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,6 +22,19 @@ export default function Navigation() {
   const { theme, setTheme } = useTheme();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
@@ -96,56 +109,92 @@ export default function Navigation() {
             {/* User section */}
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
-                {user?.plan && (
-                  <Badge 
-                    variant="secondary" 
-                    className="hidden sm:inline-flex"
-                    data-testid="nav-user-plan"
+                {/* User dropdown */}
+                <div className="relative" ref={userMenuRef}>
+                  <button
+                    className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    data-testid="user-menu-button"
                   >
-                    {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
-                  </Badge>
-                )}
-                
-                {/* User avatar/profile */}
-                <div className="flex items-center space-x-2">
-                  {user?.profileImageUrl ? (
-                    <img
-                      src={user.profileImageUrl}
-                      alt="Profile"
-                      className="w-8 h-8 rounded-full object-cover"
-                      data-testid="user-avatar"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center text-white text-sm font-medium" data-testid="user-avatar-fallback">
-                      {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </div>
-                  )}
+                    {user?.profileImageUrl ? (
+                      <img
+                        src={user.profileImageUrl}
+                        alt="Profile"
+                        className="w-8 h-8 rounded-full object-cover"
+                        data-testid="user-avatar"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-brand-500 rounded-full flex items-center justify-center text-white text-sm font-medium" data-testid="user-avatar-fallback">
+                        {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                  </button>
                   
-                  <div className="hidden sm:block text-sm">
-                    <div className="text-gray-900 dark:text-white font-medium" data-testid="user-name">
-                      {user?.firstName || user?.email?.split('@')[0]}
+                  {/* Dropdown menu */}
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
+                    <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                      <div className="flex items-center space-x-3">
+                        {user?.profileImageUrl ? (
+                          <img
+                            src={user.profileImageUrl}
+                            alt="Profile"
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-brand-500 rounded-full flex items-center justify-center text-white text-lg font-medium">
+                            {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                          </div>
+                        )}
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-white">
+                            {user?.firstName || user?.email?.split('@')[0]}
+                          </div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            {user?.email}
+                          </div>
+                          {user?.plan && (
+                            <Badge className="mt-1 text-xs">
+                              {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)} Plan
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="py-2">
+                      <a
+                        href="/settings"
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center space-x-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        <span>Settings</span>
+                      </a>
+                      <a
+                        href="/api-usage"
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center space-x-2"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                        <span>Usage & Billing</span>
+                      </a>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await fetch('/api/auth/logout', { method: 'POST' });
+                            window.location.href = '/';
+                          } catch (error) {
+                            console.error('Logout failed:', error);
+                          }
+                        }}
+                        className="w-full text-left block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center space-x-2"
+                        data-testid="button-logout"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Logout</span>
+                      </button>
                     </div>
                   </div>
+                  )}
                 </div>
-
-                {/* Logout button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={async () => {
-                    try {
-                      await fetch('/api/auth/logout', { method: 'POST' });
-                      window.location.href = '/';
-                    } catch (error) {
-                      console.error('Logout failed:', error);
-                    }
-                  }}
-                  className="hidden sm:flex"
-                  data-testid="button-logout"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </Button>
               </div>
             ) : (
               <div className="flex items-center space-x-4">

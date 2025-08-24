@@ -137,6 +137,11 @@ function Router() {
           <Route path="/terms" component={Landing} />
           <Route path="/privacy" component={Landing} />
           <Route path="/support" component={Landing} />
+          <Route path="/auth/login" component={Login} />
+          <Route path="/auth/register" component={Register} />
+          <Route path="/auth/forgot-password" component={ForgotPassword} />
+          <Route path="/auth/reset-password" component={ResetPassword} />
+          <Route path="/auth/verify-email" component={VerifyEmail} />
           <Route component={Login} />
         </>
       )}

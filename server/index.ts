@@ -1,6 +1,8 @@
 import express from "express";
+import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
+import { initializeDatabase } from "./db";
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
@@ -17,11 +19,19 @@ registerRoutes(app);
 
 // Setup Vite or static serving
 if (process.env.NODE_ENV === "development") {
-  setupVite(app);
+  const httpServer = createServer(app);
+  setupVite(app, httpServer);
 } else {
   serveStatic(app);
 }
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
-});
+// Initialize database and start server
+async function startServer() {
+  await initializeDatabase();
+  
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+startServer().catch(console.error);

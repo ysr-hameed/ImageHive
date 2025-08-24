@@ -103,8 +103,8 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
       if (user) {
         req.user = {
           id: user.id,
-          email: user.email,
-          name: `${user.firstName} ${user.lastName}`,
+          email: user.email || '',
+          name: `${user.firstName || ''} ${user.lastName || ''}`,
           emailVerified: user.emailVerified || false,
         };
         return next();
@@ -125,8 +125,8 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
         if (user) {
           req.user = {
             id: user.id,
-            email: user.email,
-            name: `${user.firstName} ${user.lastName}`,
+            email: user.email || '',
+            name: `${user.firstName || ''} ${user.lastName || ''}`,
             emailVerified: user.emailVerified || false,
           };
           req.apiKey = keyData;
@@ -163,8 +163,8 @@ async function authenticateApiKey(req: Request, res: Response, next: Function) {
 
     req.user = {
       id: user.id,
-      email: user.email,
-      name: user.name,
+      email: user.email || '',
+      name: user.name || `${user.firstName || ''} ${user.lastName || ''}`,
       emailVerified: user.emailVerified || false,
     };
     req.apiKey = keyData;
@@ -340,7 +340,7 @@ export function registerRoutes(app: Express): Server {
       const hashedPassword = await bcrypt.hash(password, 10);
 
       // Update user password
-      await storage.updateUserPassword(tokenData.userId, hashedPassword);
+      await storage.updateUserPassword(tokenData.id, hashedPassword);
 
       // Delete the token
       await storage.deletePasswordResetToken(token);
@@ -363,7 +363,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Mark email as verified
-      await storage.markEmailAsVerified(tokenData.userId);
+      await storage.markEmailAsVerified(tokenData.id);
 
       // Delete the token
       await storage.deleteEmailVerificationToken(token);
@@ -404,14 +404,12 @@ export function registerRoutes(app: Express): Server {
       if (req.body.quality) transforms.quality = parseInt(req.body.quality);
       if (req.body.format) transforms.format = req.body.format;
       if (req.body.blur) transforms.blur = parseFloat(req.body.blur);
-      if (req.body.sharpen) transforms.sharpen = parseFloat(req.body.sharpen);
+      if (req.body.sharpen) transforms.sharpen = req.body.sharpen === 'true';
       if (req.body.brightness) transforms.brightness = parseFloat(req.body.brightness);
       if (req.body.contrast) transforms.contrast = parseFloat(req.body.contrast);
       if (req.body.saturation) transforms.saturation = parseFloat(req.body.saturation);
       if (req.body.hue) transforms.hue = parseInt(req.body.hue);
-      if (req.body.sepia) transforms.sepia = req.body.sepia === 'true';
       if (req.body.grayscale) transforms.grayscale = req.body.grayscale === 'true';
-      if (req.body.invert) transforms.invert = req.body.invert === 'true';
 
       // Apply transforms if any are specified
       if (Object.keys(transforms).length > 0) {
@@ -436,7 +434,7 @@ export function registerRoutes(app: Express): Server {
         tags: req.body.tags ? JSON.parse(req.body.tags) : [],
         backblazeFileId: uploadResult.fileId,
         backblazeFileName: uploadResult.fileName,
-        cdnUrl: uploadResult.downloadUrl,
+        cdnUrl: (uploadResult as any).cdnUrl || (uploadResult as any).downloadUrl || `https://f005.backblazeb2.com/file/${process.env.BACKBLAZE_BUCKET_NAME}/${uploadResult.fileName}`,
       };
 
       // Get image dimensions

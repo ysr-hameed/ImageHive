@@ -32,12 +32,11 @@ export interface IStorage {
   getUserByResetToken(token: string): Promise<User | undefined>;
   createUser(userData: {
     email: string;
-    name: string;
-    password?: string;
-    emailVerified?: boolean;
-    emailVerificationToken?: string;
-    googleId?: string;
-    githubId?: string;
+    firstName: string;
+    lastName: string;
+    passwordHash: string;
+    emailVerified: boolean;
+    profileImageUrl: string | null;
   }): Promise<User>;
   updateUser(id: string, updates: {
     name?: string;
@@ -219,7 +218,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteImage(id: string): Promise<boolean> {
     const result = await this.db.delete(images).where(eq(images.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   async incrementImageView(id: string): Promise<void> {
@@ -293,7 +292,7 @@ export class DatabaseStorage implements IStorage {
   async updateApiKey(id: string, updates: Partial<ApiKey>): Promise<ApiKey | undefined> {
     const [apiKey] = await this.db
       .update(apiKeys)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updates)
       .where(eq(apiKeys.id, id))
       .returning();
     return apiKey;
@@ -301,7 +300,7 @@ export class DatabaseStorage implements IStorage {
 
   async deleteApiKey(id: string): Promise<boolean> {
     const result = await this.db.delete(apiKeys).where(eq(apiKeys.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Custom domain operations
@@ -311,7 +310,6 @@ export class DatabaseStorage implements IStorage {
       .values({
         userId,
         domain,
-        status: 'pending',
       })
       .returning();
     return customDomain;
@@ -333,7 +331,7 @@ export class DatabaseStorage implements IStorage {
   async updateCustomDomain(id: string, updates: Partial<CustomDomain>): Promise<CustomDomain | undefined> {
     const [customDomain] = await this.db
       .update(customDomains)
-      .set({ ...updates, updatedAt: new Date() })
+      .set(updates)
       .where(eq(customDomains.id, id))
       .returning();
     return customDomain;
@@ -341,15 +339,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCustomDomain(id: string): Promise<boolean> {
     const result = await this.db.delete(customDomains).where(eq(customDomains.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Analytics operations
   async recordImageView(imageId: string, viewerIp?: string, userAgent?: string): Promise<void> {
     await this.db.insert(imageAnalytics).values({
       imageId,
-      eventType: 'view',
-      viewerIp,
+      event: 'view',
+      ipAddress: viewerIp,
       userAgent,
     });
   }
@@ -363,9 +361,9 @@ export class DatabaseStorage implements IStorage {
       .from(imageAnalytics)
       .where(and(
         eq(imageAnalytics.imageId, imageId),
-        sql`${imageAnalytics.createdAt} >= ${startDate}`
+        sql`${imageAnalytics.timestamp} >= ${startDate}`
       ))
-      .orderBy(desc(imageAnalytics.createdAt));
+      .orderBy(desc(imageAnalytics.timestamp));
   }
 
   async getUserAnalytics(userId: string, days = 30): Promise<any> {
@@ -381,7 +379,7 @@ export class DatabaseStorage implements IStorage {
       .leftJoin(images, eq(imageAnalytics.imageId, images.id))
       .where(and(
         eq(images.userId, userId),
-        sql`${imageAnalytics.createdAt} >= ${startDate}`
+        sql`${imageAnalytics.timestamp} >= ${startDate}`
       ));
 
     return result;
@@ -404,7 +402,7 @@ export class DatabaseStorage implements IStorage {
     return await this.db
       .select()
       .from(systemLogs)
-      .orderBy(desc(systemLogs.createdAt))
+      .orderBy(desc(systemLogs.timestamp))
       .limit(limit)
       .offset(offset);
   }

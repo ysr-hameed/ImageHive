@@ -15,7 +15,7 @@ export default function HeroSection() {
               data-testid="hero-badge"
             >
               <span className="w-2 h-2 bg-brand-500 rounded-full mr-2 animate-pulse"></span>
-              New: CDN Integration with Cloudflare
+              Live: Professional Image Hosting API
             </Badge>
             
             <h1 className="text-4xl lg:text-6xl font-display font-bold text-gray-900 dark:text-white mb-6 leading-tight">
@@ -37,17 +37,20 @@ export default function HeroSection() {
                 className="px-8 py-4 transition-all duration-200 transform hover:scale-105 shadow-lg"
                 data-testid="button-start-free-trial"
               >
-                <a href="/auth/login">
-                  Start Free Trial
+                <a href="/auth/register">
+                  Get Started Free
                 </a>
               </Button>
               <Button 
                 variant="outline" 
                 size="lg"
+                asChild
                 className="px-8 py-4"
                 data-testid="button-view-docs"
               >
-                View Documentation
+                <a href="/api/docs">
+                  View Documentation
+                </a>
               </Button>
             </div>
             
@@ -77,16 +80,16 @@ export default function HeroSection() {
                 <span className="ml-4 text-gray-400">api-demo.sh</span>
               </div>
               <div className="text-green-400">
-                <div className="mb-2">$ curl -X POST https://api.imagevault.com/v1/upload \</div>
+                <div className="mb-2">$ curl -X POST /api/upload \</div>
                 <div className="ml-4 mb-2">-H "Authorization: Bearer your-api-key" \</div>
                 <div className="ml-4 mb-2">-F "image=@photo.jpg" \</div>
-                <div className="ml-4 mb-4">-F "privacy=public"</div>
+                <div className="ml-4 mb-4">-F "isPublic=true"</div>
                 <div className="text-blue-300">
                   {"{"}
                   <br />
                   <span className="ml-2">"success": true,</span>
                   <br />
-                  <span className="ml-2">"url": "https://cdn.yourdomain.com/abc123.jpg",</span>
+                  <span className="ml-2">"url": "https://cdn.imagevault.app/uploads/abc123.jpg",</span>
                   <br />
                   <span className="ml-2">"id": "abc123",</span>
                   <br />

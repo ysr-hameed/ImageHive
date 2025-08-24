@@ -23,6 +23,8 @@ import ForgotPassword from "@/pages/auth/forgot-password";
 import ResetPassword from "@/pages/auth/reset-password";
 import VerifyEmail from "@/pages/auth/verify-email";
 import NotFound from "@/pages/not-found";
+import ApiDocs from "@/pages/docs";
+import ApiUsage from "@/pages/api-usage";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -84,14 +86,15 @@ function Router() {
           <Route path="/activity" component={Activity} />
           <Route path="/settings" component={Settings} />
           <Route path="/api/keys" component={ApiKeys} />
-          <Route path="/api/docs" component={ApiKeys} />
-          <Route path="/api/usage" component={ApiKeys} />
+          <Route path="/api/docs" component={ApiDocs} />
+          <Route path="/api/usage" component={ApiUsage} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
         </AppLayout>
       ) : (
         /* Public Routes */
         <>
           <Route path="/" component={Landing} />
+          <Route path="/api/docs" component={ApiDocs} />
           <Route path="/terms" component={Landing} />
           <Route path="/privacy" component={Landing} />
           <Route path="/support" component={Landing} />

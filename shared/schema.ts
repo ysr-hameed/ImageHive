@@ -54,35 +54,33 @@ export const users = pgTable("users", {
 export const apiKeys = pgTable("api_keys", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  key: varchar("key").unique().notNull(),
+  keyHash: varchar("key_hash").unique().notNull(),
   name: varchar("name").notNull(),
   isActive: boolean("is_active").default(true).notNull(),
-  lastUsedAt: timestamp("last_used_at"),
+  lastUsed: timestamp("last_used"),
   requestCount: integer("request_count").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 // Images table
-export const privacyEnum = pgEnum("privacy", ["public", "private"]);
-
 export const images = pgTable("images", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  title: varchar("title").notNull(),
+  description: text("description"),
   filename: varchar("filename").notNull(),
-  originalName: varchar("original_name").notNull(),
+  originalFilename: varchar("original_filename").notNull(),
   mimeType: varchar("mime_type").notNull(),
   size: integer("size").notNull(), // in bytes
   width: integer("width"),
   height: integer("height"),
-  privacy: privacyEnum("privacy").default("public").notNull(),
-  description: text("description"),
-  altText: varchar("alt_text"),
-  tags: text("tags").array(),
+  isPublic: boolean("is_public").default(true).notNull(),
+  tags: jsonb("tags").default('[]'),
   backblazeFileId: varchar("backblaze_file_id").unique(),
   backblazeFileName: varchar("backblaze_file_name"),
   cdnUrl: varchar("cdn_url"),
-  viewCount: integer("view_count").default(0).notNull(),
-  downloadCount: integer("download_count").default(0).notNull(),
+  views: integer("views").default(0).notNull(),
+  downloads: integer("downloads").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -178,15 +176,15 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export const insertImageSchema = createInsertSchema(images).pick({
+  title: true,
   filename: true,
-  originalName: true,
+  originalFilename: true,
   mimeType: true,
   size: true,
   width: true,
   height: true,
-  privacy: true,
+  isPublic: true,
   description: true,
-  altText: true,
   tags: true,
 });
 

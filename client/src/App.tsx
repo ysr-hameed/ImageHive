@@ -28,14 +28,14 @@ import ApiUsage from "@/pages/api-usage";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  
+
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center justify-between border-b px-4">
           <SidebarTrigger className="-ml-1" />
-          
+
           {/* Profile Section */}
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
@@ -87,8 +87,8 @@ function Router() {
             <p className="text-gray-600 dark:text-gray-400 mb-6">
               Please verify your email address to continue. Check your inbox for the verification email.
             </p>
-            <Link 
-              href="/auth/login" 
+            <Link
+              href="/auth/login"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               Back to Login
@@ -107,7 +107,7 @@ function Router() {
       <Route path="/auth/forgot-password" component={ForgotPassword} />
       <Route path="/auth/reset-password" component={ResetPassword} />
       <Route path="/auth/verify-email" component={VerifyEmail} />
-      
+
       {/* Protected Routes - Only for authenticated users */}
       {isAuthenticated ? (
         <AppLayout>
@@ -120,12 +120,12 @@ function Router() {
           <Route path="/images/recent" component={Images} />
           <Route path="/images/favorites" component={Images} />
           <Route path="/images/collections" component={Collections} />
+          <Route path="/docs" component={ApiDocs} />
           <Route path="/analytics" component={Analytics} />
-          <Route path="/activity" component={Activity} />
           <Route path="/settings" component={Settings} />
           <Route path="/api-keys" component={ApiKeys} />
-          <Route path="/docs" component={ApiDocs} />
           <Route path="/api-usage" component={ApiUsage} />
+          <Route path="/activity" component={Activity} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
           <Route component={NotFound} />
         </AppLayout>

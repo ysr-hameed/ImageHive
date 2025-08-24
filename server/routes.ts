@@ -840,6 +840,9 @@ export function registerRoutes(app: Express): Server {
   // Legacy upload endpoint for backward compatibility
   app.post('/api/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
     console.log('Legacy upload endpoint hit:', req.method, req.path);
+    console.log('Request body keys:', Object.keys(req.body));
+    console.log('File info:', req.file ? { name: req.file.originalname, size: req.file.size, mimetype: req.file.mimetype } : 'No file');
+    
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
@@ -858,15 +861,52 @@ export function registerRoutes(app: Express): Server {
         return res.status(413).json({ error: 'Storage limit exceeded' });
       }
 
-      // Process image with transforms if provided
+      // Process image with all transforms
       let processedBuffer = req.file.buffer;
       const transforms: ImageTransformOptions = {};
 
-      // Parse transform parameters
-      if (req.body.width) transforms.width = parseInt(req.body.width);
-      if (req.body.height) transforms.height = parseInt(req.body.height);
-      if (req.body.quality) transforms.quality = parseInt(req.body.quality);
-      if (req.body.format) transforms.format = req.body.format;
+      // Parse transform parameters with better validation
+      if (req.body.width && !isNaN(parseInt(req.body.width))) {
+        transforms.width = parseInt(req.body.width);
+      }
+      if (req.body.height && !isNaN(parseInt(req.body.height))) {
+        transforms.height = parseInt(req.body.height);
+      }
+      if (req.body.quality && !isNaN(parseInt(req.body.quality))) {
+        transforms.quality = Math.max(1, Math.min(100, parseInt(req.body.quality)));
+      }
+      if (req.body.format && ['jpeg', 'png', 'webp', 'avif'].includes(req.body.format)) {
+        transforms.format = req.body.format;
+      }
+      if (req.body.fit && ['cover', 'contain', 'fill', 'inside', 'outside'].includes(req.body.fit)) {
+        transforms.fit = req.body.fit;
+      }
+      if (req.body.blur && !isNaN(parseFloat(req.body.blur))) {
+        transforms.blur = parseFloat(req.body.blur);
+      }
+      if (req.body.brightness && !isNaN(parseFloat(req.body.brightness))) {
+        transforms.brightness = parseFloat(req.body.brightness);
+      }
+      if (req.body.contrast && !isNaN(parseFloat(req.body.contrast))) {
+        transforms.contrast = parseFloat(req.body.contrast);
+      }
+      if (req.body.saturation && !isNaN(parseFloat(req.body.saturation))) {
+        transforms.saturation = parseFloat(req.body.saturation);
+      }
+      if (req.body.hue && !isNaN(parseInt(req.body.hue))) {
+        transforms.hue = parseInt(req.body.hue);
+      }
+      if (req.body.rotate && !isNaN(parseInt(req.body.rotate))) {
+        transforms.rotate = parseInt(req.body.rotate);
+      }
+      if (req.body.grayscale === 'true') {
+        transforms.grayscale = true;
+      }
+      if (req.body.sharpen === 'true') {
+        transforms.sharpen = true;
+      }
+
+      console.log('Applied transforms:', transforms);
 
       // Apply transforms if any are specified
       if (Object.keys(transforms).length > 0) {
@@ -891,6 +931,27 @@ export function registerRoutes(app: Express): Server {
         cdnUrl = `https://${customDomain.domain}/${fileName}`;
       }
 
+      // Parse tags properly
+      let tags = [];
+      if (req.body.tags) {
+        try {
+          if (typeof req.body.tags === 'string') {
+            // If it's a JSON string, parse it
+            if (req.body.tags.startsWith('[') || req.body.tags.startsWith('{')) {
+              tags = JSON.parse(req.body.tags);
+            } else {
+              // If it's comma-separated, split it
+              tags = req.body.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean);
+            }
+          } else if (Array.isArray(req.body.tags)) {
+            tags = req.body.tags;
+          }
+        } catch (e) {
+          console.log('Failed to parse tags:', e);
+          tags = [];
+        }
+      }
+
       // Create image record
       const imageData = {
         title: req.body.title || req.file.originalname,
@@ -901,8 +962,8 @@ export function registerRoutes(app: Express): Server {
         size: processedBuffer.length,
         width: metadata.width || 0,
         height: metadata.height || 0,
-        isPublic: true,
-        tags: req.body.tags ? JSON.parse(req.body.tags) : [],
+        isPublic: req.body.isPublic !== 'false', // Default to true unless explicitly false
+        tags: tags,
         backblazeFileId: uploadResult.fileId,
         backblazeFileName: uploadResult.fileName,
         cdnUrl: cdnUrl,
@@ -927,6 +988,7 @@ export function registerRoutes(app: Express): Server {
           mimeType: image.mimeType,
           isPublic: image.isPublic,
           folder: image.folder,
+          tags: image.tags,
           createdAt: image.createdAt,
         }
       });

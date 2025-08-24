@@ -43,11 +43,12 @@ export default function Navigation() {
   const navLinks = isAuthenticated ? [
     { href: "/", label: "Dashboard", icon: BarChart3 },
     { href: "/upload", label: "Upload", icon: Upload },
+    { href: "/docs", label: "API Docs", icon: undefined },
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
   ] : [
     { href: "#features", label: "Features", icon: undefined },
     { href: "#pricing", label: "Pricing", icon: undefined },
-    { href: "#docs", label: "API Docs", icon: undefined },
+    { href: "/docs", label: "API Docs", icon: undefined },
     { href: "#support", label: "Support", icon: undefined },
   ];
 

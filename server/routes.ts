@@ -482,7 +482,7 @@ export function registerRoutes(app: Express): Server {
         size: processedBuffer.length,
         width: metadata.width || 0,
         height: metadata.height || 0,
-        isPublic: req.body.isPublic === 'true',
+        isPublic: true, // Make all images public by default
         tags: req.body.tags ? JSON.parse(req.body.tags) : [],
         backblazeFileId: uploadResult.fileId,
         backblazeFileName: uploadResult.fileName,

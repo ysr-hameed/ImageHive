@@ -63,7 +63,7 @@ async function startServer() {
     console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
     console.log(`📧 Email service: ${process.env.GMAIL_USER ? 'Configured' : 'Not configured'}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
-    console.log(`☁️  Backblaze: ${process.env.BACKBLAZE_KEY_ID ? 'Configured' : 'Not configured'}`);
+    console.log(`☁️  Backblaze: ${process.env.BACKBLAZE_KEY_ID && process.env.BACKBLAZE_APPLICATION_KEY && process.env.BACKBLAZE_BUCKET_ID ? 'Configured' : 'Not configured'}`);
   });
 }
 

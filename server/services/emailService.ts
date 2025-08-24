@@ -30,8 +30,11 @@ class EmailService {
           pass: process.env.GMAIL_APP_PASSWORD,
         },
         pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
+        maxConnections: 1,
+        maxMessages: 10,
+        connectionTimeout: 60000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
       });
 
       this.isConfigured = true;

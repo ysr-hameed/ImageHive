@@ -35,7 +35,7 @@ export class BackblazeB2Service {
 
   constructor() {
     this.config = {
-      applicationKeyId: process.env.BACKBLAZE_APPLICATION_KEY_ID || '',
+      applicationKeyId: process.env.BACKBLAZE_KEY_ID || '',
       applicationKey: process.env.BACKBLAZE_APPLICATION_KEY || '',
       bucketId: process.env.BACKBLAZE_BUCKET_ID || '',
       bucketName: process.env.BACKBLAZE_BUCKET_NAME || '',

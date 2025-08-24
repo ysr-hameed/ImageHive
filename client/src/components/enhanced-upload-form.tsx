@@ -38,12 +38,12 @@ interface UploadFormProps {
 export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  
+
   const [uploadSettings, setUploadSettings] = useState({
     privacy: 'public',
     description: '',
@@ -67,12 +67,12 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
         body: formData,
         credentials: 'include',
       });
-      
+
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Upload failed');
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -99,7 +99,7 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
     const validFiles = acceptedFiles.filter(file => {
       const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif'];
       const maxSize = 50 * 1024 * 1024; // 50MB
-      
+
       if (!validTypes.includes(file.type)) {
         toast({
           title: 'Invalid file type',
@@ -108,7 +108,7 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
         });
         return false;
       }
-      
+
       if (file.size > maxSize) {
         toast({
           title: 'File too large',
@@ -117,10 +117,10 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
         });
         return false;
       }
-      
+
       return true;
     });
-    
+
     setFiles(prev => [...prev, ...validFiles]);
   }, [toast]);
 
@@ -153,7 +153,7 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const formData = new FormData();
-        
+
         formData.append('image', file);
         formData.append('privacy', uploadSettings.privacy);
         formData.append('description', uploadSettings.description);
@@ -161,10 +161,10 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
         formData.append('tags', uploadSettings.tags);
         formData.append('quality', uploadSettings.quality.toString());
         formData.append('format', uploadSettings.format);
-        
+
         if (uploadSettings.width) formData.append('width', uploadSettings.width);
         if (uploadSettings.height) formData.append('height', uploadSettings.height);
-        
+
         formData.append('watermark', uploadSettings.watermark.toString());
         formData.append('generateThumbnails', uploadSettings.generateThumbnails.toString());
         formData.append('optimizeForWeb', uploadSettings.optimizeForWeb.toString());
@@ -370,7 +370,7 @@ export default function EnhancedUploadForm({ onUploadComplete }: UploadFormProps
           {showAdvanced && (
             <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <h4 className="font-medium text-gray-900 dark:text-white">Advanced Options</h4>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="format">Output Format</Label>

@@ -411,6 +411,248 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Google OAuth endpoints
+  app.get('/api/auth/google', (req, res) => {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? process.env.BASE_URL || `https://${req.get('host')}`
+      : `http://localhost:5000`;
+    
+    if (!googleClientId) {
+      return res.redirect('/login?error=oauth_not_configured');
+    }
+
+    const redirectUri = `${baseUrl}/api/auth/google/callback`;
+    const scope = 'openid profile email';
+    const googleAuthUrl = `https://accounts.google.com/oauth/authorize?` +
+      `client_id=${googleClientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}&` +
+      `response_type=code&` +
+      `access_type=offline`;
+
+    res.redirect(googleAuthUrl);
+  });
+
+  app.get('/api/auth/google/callback', async (req, res) => {
+    try {
+      const { code, error } = req.query;
+
+      if (error) {
+        console.error('Google OAuth error:', error);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      if (!code) {
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      const googleClientId = process.env.GOOGLE_CLIENT_ID;
+      const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      const baseUrl = process.env.NODE_ENV === 'production' 
+        ? process.env.BASE_URL || `https://${req.get('host')}`
+        : `http://localhost:5000`;
+
+      if (!googleClientId || !googleClientSecret) {
+        return res.redirect('/login?error=oauth_not_configured');
+      }
+
+      // Exchange code for access token
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: googleClientId,
+          client_secret: googleClientSecret,
+          code: code as string,
+          grant_type: 'authorization_code',
+          redirect_uri: `${baseUrl}/api/auth/google/callback`,
+        }),
+      });
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok) {
+        console.error('Google token exchange failed:', tokenData);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      // Get user info from Google
+      const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+        },
+      });
+
+      const googleUser = await userResponse.json();
+
+      if (!userResponse.ok) {
+        console.error('Google user info failed:', googleUser);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      // Check if user exists
+      let user = await storage.getUserByEmail(googleUser.email);
+
+      if (!user) {
+        // Create new user
+        const userData = {
+          email: googleUser.email,
+          firstName: googleUser.given_name || googleUser.name.split(' ')[0] || '',
+          lastName: googleUser.family_name || googleUser.name.split(' ').slice(1).join(' ') || '',
+          passwordHash: null, // OAuth users don't have passwords
+          emailVerified: true, // Google emails are pre-verified
+          profileImageUrl: googleUser.picture || null,
+          plan: 'free',
+          storageUsed: 0,
+          storageLimit: 1024 * 1024 * 1024, // 1GB
+        };
+
+        user = await storage.createUser(userData);
+      } else if (!user.emailVerified) {
+        // Mark email as verified for existing users
+        await storage.markEmailAsVerified(user.id);
+      }
+
+      // Create session
+      req.session.userId = user.id;
+
+      res.redirect('/dashboard');
+    } catch (error) {
+      console.error('Google OAuth callback error:', error);
+      res.redirect('/login?error=oauth_failed');
+    }
+  });
+
+  // GitHub OAuth endpoints
+  app.get('/api/auth/github', (req, res) => {
+    const githubClientId = process.env.GITHUB_CLIENT_ID;
+    
+    if (!githubClientId) {
+      return res.redirect('/login?error=oauth_not_configured');
+    }
+
+    const baseUrl = process.env.NODE_ENV === 'production' 
+      ? process.env.BASE_URL || `https://${req.get('host')}`
+      : `http://localhost:5000`;
+    
+    const redirectUri = `${baseUrl}/api/auth/github/callback`;
+    const scope = 'user:email';
+    const githubAuthUrl = `https://github.com/login/oauth/authorize?` +
+      `client_id=${githubClientId}&` +
+      `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+      `scope=${encodeURIComponent(scope)}`;
+
+    res.redirect(githubAuthUrl);
+  });
+
+  app.get('/api/auth/github/callback', async (req, res) => {
+    try {
+      const { code, error } = req.query;
+
+      if (error) {
+        console.error('GitHub OAuth error:', error);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      if (!code) {
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      const githubClientId = process.env.GITHUB_CLIENT_ID;
+      const githubClientSecret = process.env.GITHUB_CLIENT_SECRET;
+
+      if (!githubClientId || !githubClientSecret) {
+        return res.redirect('/login?error=oauth_not_configured');
+      }
+
+      // Exchange code for access token
+      const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          client_id: githubClientId,
+          client_secret: githubClientSecret,
+          code: code as string,
+        }),
+      });
+
+      const tokenData = await tokenResponse.json();
+
+      if (!tokenResponse.ok || tokenData.error) {
+        console.error('GitHub token exchange failed:', tokenData);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      // Get user info from GitHub
+      const userResponse = await fetch('https://api.github.com/user', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          'User-Agent': 'Your-App-Name',
+        },
+      });
+
+      const githubUser = await userResponse.json();
+
+      if (!userResponse.ok) {
+        console.error('GitHub user info failed:', githubUser);
+        return res.redirect('/login?error=oauth_failed');
+      }
+
+      // Get user emails from GitHub (primary email might be private)
+      const emailResponse = await fetch('https://api.github.com/user/emails', {
+        headers: {
+          Authorization: `Bearer ${tokenData.access_token}`,
+          'User-Agent': 'Your-App-Name',
+        },
+      });
+
+      const emails = await emailResponse.json();
+      const primaryEmail = emails.find((email: any) => email.primary)?.email || githubUser.email;
+
+      if (!primaryEmail) {
+        console.error('No email found for GitHub user');
+        return res.redirect('/login?error=oauth_no_email');
+      }
+
+      // Check if user exists
+      let user = await storage.getUserByEmail(primaryEmail);
+
+      if (!user) {
+        // Create new user
+        const userData = {
+          email: primaryEmail,
+          firstName: githubUser.name?.split(' ')[0] || githubUser.login || '',
+          lastName: githubUser.name?.split(' ').slice(1).join(' ') || '',
+          passwordHash: null, // OAuth users don't have passwords
+          emailVerified: true, // GitHub emails are pre-verified
+          profileImageUrl: githubUser.avatar_url || null,
+          plan: 'free',
+          storageUsed: 0,
+          storageLimit: 1024 * 1024 * 1024, // 1GB
+        };
+
+        user = await storage.createUser(userData);
+      } else if (!user.emailVerified) {
+        // Mark email as verified for existing users
+        await storage.markEmailAsVerified(user.id);
+      }
+
+      // Create session
+      req.session.userId = user.id;
+
+      res.redirect('/dashboard');
+    } catch (error) {
+      console.error('GitHub OAuth callback error:', error);
+      res.redirect('/login?error=oauth_failed');
+    }
+  });
+
   // Upload endpoint - requires authentication with folder path support
   app.post('/api/v1/images/upload', isAuthenticated, uploadRateLimit, upload.single('image'), async (req, res) => {
     try {

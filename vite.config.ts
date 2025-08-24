@@ -27,6 +27,24 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Optimize for lightweight builds
+    minify: 'esbuild',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-switch'],
+          utils: ['lucide-react', 'wouter', '@tanstack/react-query']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', '@tanstack/react-query']
   },
   server: {
     fs: {

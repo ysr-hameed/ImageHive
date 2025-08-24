@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { initializeDatabase } from "./db";
 import dotenv from 'dotenv';
+import adminRoutes from './admin'; // Import admin routes
 
 // Load environment variables
 dotenv.config();
@@ -18,7 +19,7 @@ console.log(`🔧 Running in ${STATUS} mode`);
 
 // Middleware
 app.use(cors({
-  origin: isProduction 
+  origin: isProduction
     ? (process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : true)
     : ['http://localhost:5000', 'http://localhost:3000', 'http://0.0.0.0:5000'],
   credentials: true
@@ -37,6 +38,9 @@ app.get('/health', (req, res) => {
 // Setup routes
 registerRoutes(app);
 
+// Admin routes
+app.use("/api/v1/admin", adminRoutes);
+
 // Setup Vite or static serving
 if (!isProduction) {
   const httpServer = createServer(app);
@@ -48,7 +52,7 @@ if (!isProduction) {
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.error('Server error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     error: 'Internal server error',
     message: !isProduction ? err.message : 'Something went wrong'
   });

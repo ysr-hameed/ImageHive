@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import UploadForm from "@/components/upload-form";
+import EnhancedUploadForm from "@/components/enhanced-upload-form";
 import { Upload as UploadIcon, Image as ImageIcon, Zap, Shield } from "lucide-react";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -176,7 +176,7 @@ export default function Upload() {
             <CardTitle>Upload New Images</CardTitle>
           </CardHeader>
           <CardContent>
-            <UploadForm />
+            <EnhancedUploadForm />
           </CardContent>
         </Card>
 

@@ -1357,6 +1357,139 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Admin endpoints
+  app.get('/api/v1/admin/stats', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+      
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Mock stats for now - replace with real data
+      const stats = {
+        totalUsers: 150,
+        userGrowth: 12,
+        totalStorage: 524288000, // 500MB
+        apiRequests: 2500,
+        totalImages: 450,
+        totalViews: 15000,
+        imagesToday: 25,
+        avgFileSize: 2048000, // 2MB
+        popularFormat: 'JPEG',
+        responseTime: 145,
+        successRate: 99.2,
+        errorRate: 0.8
+      };
+
+      res.json(stats);
+    } catch (error) {
+      console.error('Admin stats error:', error);
+      res.status(500).json({ error: 'Failed to fetch admin stats' });
+    }
+  });
+
+  app.get('/api/v1/admin/users', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+      
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Mock users data - replace with real data
+      const users = [
+        {
+          id: '1',
+          email: 'user1@example.com',
+          status: 'active',
+          isAdmin: false,
+          createdAt: new Date().toISOString(),
+          imageCount: 25,
+          storageUsed: 104857600 // 100MB
+        },
+        {
+          id: '2',
+          email: 'user2@example.com',
+          status: 'active',
+          isAdmin: false,
+          createdAt: new Date().toISOString(),
+          imageCount: 12,
+          storageUsed: 52428800 // 50MB
+        }
+      ];
+
+      res.json(users);
+    } catch (error) {
+      console.error('Admin users error:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
+  app.get('/api/v1/admin/logs', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+      
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Mock logs data - replace with real data
+      const logs = [
+        {
+          id: '1',
+          level: 'info',
+          message: 'User uploaded image successfully',
+          timestamp: new Date().toISOString(),
+          userId: 'user123'
+        },
+        {
+          id: '2',
+          level: 'warn',
+          message: 'Rate limit approaching for user',
+          timestamp: new Date().toISOString(),
+          userId: 'user456'
+        }
+      ];
+
+      res.json(logs);
+    } catch (error) {
+      console.error('Admin logs error:', error);
+      res.status(500).json({ error: 'Failed to fetch logs' });
+    }
+  });
+
+  app.get('/api/v1/admin/system-health', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+      
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Mock system health data
+      const systemHealth = {
+        status: 'healthy',
+        uptime: '99.98%',
+        cpu: 35,
+        memory: 68,
+        disk: 45,
+        networkIO: 1048576, // 1MB
+        networkIn: 524288, // 512KB
+        networkOut: 524288 // 512KB
+      };
+
+      res.json(systemHealth);
+    } catch (error) {
+      console.error('System health error:', error);
+      res.status(500).json({ error: 'Failed to fetch system health' });
+    }
+  });
+
   // Debug route to test server connectivity
   app.get('/api/debug', (req, res) => {
     res.json({ 

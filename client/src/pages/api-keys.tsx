@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { CreateApiKeyDialog } from '@/components/api-key-dialog';
 import { SidebarContentLoader } from '@/components/sidebar-content-loader';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import Navigation from '@/components/navigation';
+import { useLocation } from 'wouter';
 import { 
   Key,
   Copy,
@@ -29,15 +32,53 @@ import {
 import { apiRequest } from '@/lib/queryClient';
 
 export default function ApiKeys() {
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleKeys, setVisibleKeys] = useState<string[]>([]);
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to access this page",
+        variant: "destructive",
+      });
+      setLocation("/auth/login");
+    }
+  }, [isAuthenticated, authLoading, toast, setLocation]);
 
   const { data: apiKeys = [], isLoading } = useQuery({
     queryKey: ['/api/v1/api-keys'],
     retry: false,
+    enabled: isAuthenticated,
   });
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state if not authenticated while redirecting
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   const deleteKeyMutation = useMutation({
     mutationFn: async (keyId: string) => {
@@ -111,15 +152,17 @@ export default function ApiKeys() {
     return num.toString();
   };
 
-  const filteredKeys = (apiKeys as any[]).filter(key =>
-    key.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    key.key.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredKeys = Array.isArray(apiKeys) ? apiKeys.filter((key: any) =>
+    key.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    key.keyPreview?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) : [];
 
   return (
-    <SidebarContentLoader isLoading={isLoading}>
-      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-        <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <Navigation />
+      <SidebarContentLoader isLoading={isLoading}>
+        <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+          <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -322,7 +365,8 @@ export default function ApiKeys() {
           </CardContent>
         </Card>
         </div>
-      </div>
-    </SidebarContentLoader>
+        </div>
+      </SidebarContentLoader>
+    </div>
   );
 }

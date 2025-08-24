@@ -1,124 +1,107 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { apiRequest } from '@/lib/queryClient';
-import {
-  Upload,
-  X,
-  Image as ImageIcon,
-  FileImage,
-  AlertCircle,
-  Check,
-  Settings,
-  Palette,
-  Zap
-} from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface UploadFile extends File {
   id: string;
   preview?: string;
-  progress?: number;
   status?: 'pending' | 'uploading' | 'completed' | 'error';
   error?: string;
 }
 
-interface UploadOptions {
-  title: string;
-  description: string;
-  isPublic: boolean;
-  tags: string;
-  folder: string;
-  quality: number;
-  width: string;
-  height: string;
-  format: string;
-  fit: string;
-  blur: string;
-  brightness: string;
-  contrast: string;
-  saturation: string;
-  hue: string;
-  rotate: string;
-  grayscale: boolean;
-  sharpen: boolean;
-  watermark: boolean;
-}
-
 export function EnhancedUploadForm() {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadOptions, setUploadOptions] = useState<UploadOptions>({
+
+  // Form state
+  const [metadata, setMetadata] = useState({
     title: '',
     description: '',
-    isPublic: true,
     tags: '',
     folder: '',
-    quality: 85,
-    width: '',
-    height: '',
-    format: '',
-    fit: 'cover',
-    blur: '',
-    brightness: '',
-    contrast: '',
-    saturation: '',
-    hue: '',
-    rotate: '',
-    grayscale: false,
-    sharpen: false,
-    watermark: false,
+    isPublic: true,
   });
 
+  // Transform state
+  const [transforms, setTransforms] = useState({
+    width: '',
+    height: '',
+    quality: 80,
+    format: '',
+    fit: 'cover',
+    blur: 0,
+    brightness: 1,
+    contrast: 1,
+    saturation: 1,
+    hue: 0,
+    rotate: 0,
+    grayscale: false,
+    sharpen: false,
+  });
+
+  if (!isAuthenticated) {
+    return (
+      <Card>
+        <CardContent className="text-center py-12">
+          <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            Authentication Required
+          </h3>
+          <p className="text-gray-600 dark:text-gray-400">
+            Please log in to upload images.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const uploadMutation = useMutation({
-    mutationFn: async ({ file, options }: { file: UploadFile; options: UploadOptions }) => {
+    mutationFn: async (file: UploadFile) => {
       const formData = new FormData();
       formData.append('image', file);
-      
-      // Add all the options to formData
-      if (options.title) formData.append('title', options.title);
-      if (options.description) formData.append('description', options.description);
-      formData.append('isPublic', options.isPublic.toString());
-      if (options.tags) formData.append('tags', JSON.stringify(options.tags.split(',').map(tag => tag.trim()).filter(Boolean)));
-      if (options.folder) formData.append('folder', options.folder);
-      
-      // Quality and format
-      formData.append('quality', options.quality.toString());
-      if (options.format) formData.append('format', options.format);
-      
-      // Resize options
-      if (options.width) formData.append('width', options.width);
-      if (options.height) formData.append('height', options.height);
-      if (options.fit) formData.append('fit', options.fit);
-      
-      // Effects
-      if (options.blur) formData.append('blur', options.blur);
-      if (options.brightness) formData.append('brightness', options.brightness);
-      if (options.contrast) formData.append('contrast', options.contrast);
-      if (options.saturation) formData.append('saturation', options.saturation);
-      if (options.hue) formData.append('hue', options.hue);
-      if (options.rotate) formData.append('rotate', options.rotate);
-      if (options.grayscale) formData.append('grayscale', options.grayscale.toString());
-      if (options.sharpen) formData.append('sharpen', options.sharpen.toString());
-      if (options.watermark) formData.append('watermark', options.watermark.toString());
 
-      console.log('Uploading file:', file.name, 'with options:', options);
+      // Add metadata
+      if (metadata.title) formData.append('title', metadata.title);
+      if (metadata.description) formData.append('description', metadata.description);
+      if (metadata.tags) formData.append('tags', metadata.tags);
+      if (metadata.folder) formData.append('folder', metadata.folder);
+      formData.append('isPublic', metadata.isPublic.toString());
 
-      // Use the correct endpoint
+      // Add transforms
+      if (transforms.width) formData.append('width', transforms.width);
+      if (transforms.height) formData.append('height', transforms.height);
+      if (transforms.quality !== 80) formData.append('quality', transforms.quality.toString());
+      if (transforms.format) formData.append('format', transforms.format);
+      if (transforms.fit !== 'cover') formData.append('fit', transforms.fit);
+      if (transforms.blur > 0) formData.append('blur', transforms.blur.toString());
+      if (transforms.brightness !== 1) formData.append('brightness', transforms.brightness.toString());
+      if (transforms.contrast !== 1) formData.append('contrast', transforms.contrast.toString());
+      if (transforms.saturation !== 1) formData.append('saturation', transforms.saturation.toString());
+      if (transforms.hue !== 0) formData.append('hue', transforms.hue.toString());
+      if (transforms.rotate !== 0) formData.append('rotate', transforms.rotate.toString());
+      if (transforms.grayscale) formData.append('grayscale', 'true');
+      if (transforms.sharpen) formData.append('sharpen', 'true');
+
+      console.log('Uploading file:', file.name, 'with options:', { ...metadata, ...transforms });
+
       const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -132,24 +115,28 @@ export function EnhancedUploadForm() {
 
       return response.json();
     },
-    onSuccess: (data, variables) => {
-      setFiles(prev => prev.map(f => 
-        f.id === variables.file.id 
-          ? { ...f, status: 'completed', progress: 100 }
+    onSuccess: (data, file) => {
+      setFiles(prev => prev.map(f =>
+        f.id === file.id
+          ? { ...f, status: 'completed' }
           : f
       ));
       queryClient.invalidateQueries({ queryKey: ['images'] });
       queryClient.invalidateQueries({ queryKey: ['user'] });
+      toast({
+        title: "Upload successful",
+        description: "Your image has been uploaded successfully.",
+      });
     },
-    onError: (error: any, variables) => {
-      setFiles(prev => prev.map(f => 
-        f.id === variables.file.id 
+    onError: (error: any, file) => {
+      setFiles(prev => prev.map(f =>
+        f.id === file.id
           ? { ...f, status: 'error', error: error.message }
           : f
       ));
       toast({
         title: "Upload failed",
-        description: error.message || "Failed to upload image",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -161,7 +148,6 @@ export function EnhancedUploadForm() {
       id: Math.random().toString(36).substr(2, 9),
       preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
       status: 'pending',
-      progress: 0,
     }));
 
     setFiles(prev => [...prev, ...newFiles]);
@@ -197,38 +183,21 @@ export function EnhancedUploadForm() {
     });
   };
 
-  const uploadFiles = async () => {
+  const handleUpload = async () => {
     if (files.length === 0) return;
 
     setIsUploading(true);
 
     try {
       for (const file of files) {
-        if (file.status === 'pending') {
-          setFiles(prev => prev.map(f => 
-            f.id === file.id ? { ...f, status: 'uploading', progress: 0 } : f
-          ));
-
-          await uploadMutation.mutateAsync({ 
-            file, 
-            options: {
-              ...uploadOptions,
-              title: uploadOptions.title || file.name
-            }
-          });
+        if (file.status === 'pending' || file.status === 'error') {
+          await uploadMutation.mutateAsync(file as UploadFile);
         }
       }
-
-      toast({
-        title: "Upload completed",
-        description: `Successfully uploaded ${files.filter(f => f.status === 'completed').length} images`,
-      });
-
-      // Clear completed files after a delay
-      setTimeout(() => {
-        setFiles(prev => prev.filter(f => f.status !== 'completed'));
-      }, 2000);
-
+      // Optionally clear files after all uploads are attempted
+      // setTimeout(() => {
+      //   setFiles([]);
+      // }, 2000);
     } catch (error) {
       console.error('Upload error:', error);
     } finally {
@@ -236,8 +205,8 @@ export function EnhancedUploadForm() {
     }
   };
 
-  const totalProgress = files.length > 0 
-    ? Math.round(files.reduce((acc, file) => acc + (file.progress || 0), 0) / files.length)
+  const totalProgress = files.length > 0
+    ? Math.round(files.reduce((acc, file) => acc + (file.status === 'completed' ? 100 : 0), 0) / files.length)
     : 0;
 
   return (
@@ -262,286 +231,279 @@ export function EnhancedUploadForm() {
               or click to browse files
             </p>
             <p className="text-sm text-gray-400">
-              Supports: JPEG, PNG, GIF, WebP, SVG, BMP, AVIF (max 50MB each)
+              Supports: JPEG, PNG, GIF, WebP, SVG, BMP, AVIF (max 10MB each)
             </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Upload Options */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Basic Options */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="w-5 h-5" />
-              Basic Options
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="title">Title</Label>
-              <Input
-                id="title"
-                value={uploadOptions.title}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, title: e.target.value }))}
-                placeholder="Image title (optional)"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="description">Description</Label>
-              <Textarea
-                id="description"
-                value={uploadOptions.description}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Image description (optional)"
-                rows={3}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="tags">Tags</Label>
-              <Input
-                id="tags"
-                value={uploadOptions.tags}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, tags: e.target.value }))}
-                placeholder="nature, landscape, outdoor"
-              />
-              <p className="text-xs text-gray-500 mt-1">Separate tags with commas (max 10 tags, 50 chars each)</p>
-            </div>
-
-            <div>
-              <Label htmlFor="folder">Folder</Label>
-              <Input
-                id="folder"
-                value={uploadOptions.folder}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, folder: e.target.value }))}
-                placeholder="Enter folder name (optional)"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isPublic"
-                checked={uploadOptions.isPublic}
-                onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, isPublic: checked }))}
-              />
-              <Label htmlFor="isPublic">Make images publicly accessible</Label>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Transform Options */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5" />
-              Transform Options
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+      {/* Upload Options and Transforms */}
+      <Tabs defaultValue="metadata" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="metadata">Metadata</TabsTrigger>
+          <TabsTrigger value="transforms">Transforms</TabsTrigger>
+        </TabsList>
+        <TabsContent value="metadata">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderPlus className="w-5 h-5" />
+                Image Metadata
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="width">Width (px)</Label>
+                <Label htmlFor="title">Title</Label>
                 <Input
-                  id="width"
-                  type="number"
-                  value={uploadOptions.width}
-                  onChange={(e) => setUploadOptions(prev => ({ ...prev, width: e.target.value }))}
-                  placeholder="Auto"
-                  min="1"
-                  max="4000"
+                  id="title"
+                  value={metadata.title}
+                  onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Image title (optional)"
                 />
               </div>
+
               <div>
-                <Label htmlFor="height">Height (px)</Label>
-                <Input
-                  id="height"
-                  type="number"
-                  value={uploadOptions.height}
-                  onChange={(e) => setUploadOptions(prev => ({ ...prev, height: e.target.value }))}
-                  placeholder="Auto"
-                  min="1"
-                  max="4000"
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={metadata.description}
+                  onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Image description (optional)"
+                  rows={3}
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="format">Output Format</Label>
-                <Select 
-                  value={uploadOptions.format} 
-                  onValueChange={(value) => setUploadOptions(prev => ({ ...prev, format: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Auto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Auto</SelectItem>
-                    <SelectItem value="jpeg">JPEG</SelectItem>
-                    <SelectItem value="png">PNG</SelectItem>
-                    <SelectItem value="webp">WebP</SelectItem>
-                    <SelectItem value="avif">AVIF</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="fit">Resize Mode</Label>
-                <Select 
-                  value={uploadOptions.fit} 
-                  onValueChange={(value) => setUploadOptions(prev => ({ ...prev, fit: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cover">Cover</SelectItem>
-                    <SelectItem value="contain">Contain</SelectItem>
-                    <SelectItem value="fill">Fill</SelectItem>
-                    <SelectItem value="inside">Inside</SelectItem>
-                    <SelectItem value="outside">Outside</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="quality">Quality ({uploadOptions.quality}%)</Label>
-              <Input
-                id="quality"
-                type="range"
-                min="1"
-                max="100"
-                step="1"
-                value={uploadOptions.quality}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, quality: parseInt(e.target.value) }))}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="rotate">Rotation (degrees)</Label>
-              <Input
-                id="rotate"
-                type="number"
-                value={uploadOptions.rotate}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, rotate: e.target.value }))}
-                placeholder="0"
-                min="0"
-                max="360"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Effects Options */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Palette className="w-5 h-5" />
-              Effects & Adjustments
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="blur">Blur (0.3-1000)</Label>
+                <Label htmlFor="tags">Tags</Label>
                 <Input
-                  id="blur"
+                  id="tags"
+                  value={metadata.tags}
+                  onChange={(e) => setMetadata(prev => ({ ...prev, tags: e.target.value }))}
+                  placeholder="nature, landscape, outdoor"
+                />
+                <p className="text-xs text-gray-500 mt-1">Separate tags with commas (max 10 tags, 50 chars each)</p>
+              </div>
+
+              <div>
+                <Label htmlFor="folder">Folder</Label>
+                <Input
+                  id="folder"
+                  value={metadata.folder}
+                  onChange={(e) => setMetadata(prev => ({ ...prev, folder: e.target.value }))}
+                  placeholder="Enter folder name (optional)"
+                />
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isPublic"
+                  checked={metadata.isPublic}
+                  onCheckedChange={(checked) => setMetadata(prev => ({ ...prev, isPublic: checked }))}
+                />
+                <Label htmlFor="isPublic">Make images publicly accessible</Label>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        <TabsContent value="transforms">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Image Transforms & Effects
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="width">Width (px)</Label>
+                  <Input
+                    id="width"
+                    type="number"
+                    value={transforms.width}
+                    onChange={(e) => setTransforms(prev => ({ ...prev, width: e.target.value }))}
+                    placeholder="Auto"
+                    min="1"
+                    max="4000"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="height">Height (px)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    value={transforms.height}
+                    onChange={(e) => setTransforms(prev => ({ ...prev, height: e.target.value }))}
+                    placeholder="Auto"
+                    min="1"
+                    max="4000"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="format">Output Format</Label>
+                  <Select
+                    value={transforms.format}
+                    onValueChange={(value) => setTransforms(prev => ({ ...prev, format: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Auto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Auto</SelectItem>
+                      <SelectItem value="jpeg">JPEG</SelectItem>
+                      <SelectItem value="png">PNG</SelectItem>
+                      <SelectItem value="webp">WebP</SelectItem>
+                      <SelectItem value="avif">AVIF</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="fit">Resize Mode</Label>
+                  <Select
+                    value={transforms.fit}
+                    onValueChange={(value) => setTransforms(prev => ({ ...prev, fit: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cover">Cover</SelectItem>
+                      <SelectItem value="contain">Contain</SelectItem>
+                      <SelectItem value="fill">Fill</SelectItem>
+                      <SelectItem value="inside">Inside</SelectItem>
+                      <SelectItem value="outside">Outside</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="quality">Quality ({transforms.quality}%)</Label>
+                <Slider
+                  id="quality"
+                  min={1}
+                  max={100}
+                  step={1}
+                  value={[transforms.quality]}
+                  onValueChange={(value) => setTransforms(prev => ({ ...prev, quality: value[0] }))}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="rotate">Rotation (degrees)</Label>
+                <Input
+                  id="rotate"
                   type="number"
-                  value={uploadOptions.blur}
-                  onChange={(e) => setUploadOptions(prev => ({ ...prev, blur: e.target.value }))}
+                  value={transforms.rotate}
+                  onChange={(e) => setTransforms(prev => ({ ...prev, rotate: parseInt(e.target.value) }))}
                   placeholder="0"
-                  min="0.3"
-                  max="1000"
-                  step="0.1"
+                  min="0"
+                  max="360"
                 />
-              </div>
-              <div>
-                <Label htmlFor="brightness">Brightness (0.1-3.0)</Label>
-                <Input
-                  id="brightness"
-                  type="number"
-                  value={uploadOptions.brightness}
-                  onChange={(e) => setUploadOptions(prev => ({ ...prev, brightness: e.target.value }))}
-                  placeholder="1.0"
-                  min="0.1"
-                  max="3.0"
-                  step="0.1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="contrast">Contrast (0.1-3.0)</Label>
-                <Input
-                  id="contrast"
-                  type="number"
-                  value={uploadOptions.contrast}
-                  onChange={(e) => setUploadOptions(prev => ({ ...prev, contrast: e.target.value }))}
-                  placeholder="1.0"
-                  min="0.1"
-                  max="3.0"
-                  step="0.1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="saturation">Saturation (0.0-3.0)</Label>
-                <Input
-                  id="saturation"
-                  type="number"
-                  value={uploadOptions.saturation}
-                  onChange={(e) => setUploadOptions(prev => ({ ...prev, saturation: e.target.value }))}
-                  placeholder="1.0"
-                  min="0.0"
-                  max="3.0"
-                  step="0.1"
-                />
-              </div>
-            </div>
-
-            <Separator className="my-4" />
-
-            <div className="flex flex-wrap gap-6">
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="grayscale"
-                  checked={uploadOptions.grayscale}
-                  onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, grayscale: checked }))}
-                />
-                <Label htmlFor="grayscale">Grayscale</Label>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="sharpen"
-                  checked={uploadOptions.sharpen}
-                  onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, sharpen: checked }))}
-                />
-                <Label htmlFor="sharpen">Sharpen</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="blur">Blur (0.3-1000)</Label>
+                  <Input
+                    id="blur"
+                    type="number"
+                    value={transforms.blur}
+                    onChange={(e) => setTransforms(prev => ({ ...prev, blur: parseInt(e.target.value) }))}
+                    placeholder="0"
+                    min="0.3"
+                    max="1000"
+                    step="0.1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="brightness">Brightness (0.1-3.0)</Label>
+                  <Input
+                    id="brightness"
+                    type="number"
+                    value={transforms.brightness}
+                    onChange={(e) => setTransforms(prev => ({ ...prev, brightness: parseFloat(e.target.value) }))}
+                    placeholder="1.0"
+                    min="0.1"
+                    max="3.0"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="contrast">Contrast (0.1-3.0)</Label>
+                  <Input
+                    id="contrast"
+                    type="number"
+                    value={transforms.contrast}
+                    onChange={(e) => setTransforms(prev => ({ ...prev, contrast: parseFloat(e.target.value) }))}
+                    placeholder="1.0"
+                    min="0.1"
+                    max="3.0"
+                    step="0.1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="saturation">Saturation (0.0-3.0)</Label>
+                  <Input
+                    id="saturation"
+                    type="number"
+                    value={transforms.saturation}
+                    onChange={(e) => setTransforms(prev => ({ ...prev, saturation: parseFloat(e.target.value) }))}
+                    placeholder="1.0"
+                    min="0.0"
+                    max="3.0"
+                    step="0.1"
+                  />
+                </div>
               </div>
 
-              {user?.plan === 'pro' || user?.plan === 'enterprise' ? (
+              <div className="flex flex-wrap gap-6">
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="watermark"
-                    checked={uploadOptions.watermark}
-                    onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, watermark: checked }))}
+                    id="grayscale"
+                    checked={transforms.grayscale}
+                    onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, grayscale: checked }))}
                   />
-                  <Label htmlFor="watermark">Apply Watermark</Label>
-                  <Badge variant="secondary">Pro</Badge>
+                  <Label htmlFor="grayscale">Grayscale</Label>
                 </div>
-              ) : (
-                <div className="flex items-center space-x-2 opacity-50">
-                  <Switch id="watermark-disabled" disabled />
-                  <Label htmlFor="watermark-disabled">Apply Watermark</Label>
-                  <Badge variant="outline">Pro Only</Badge>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="sharpen"
+                    checked={transforms.sharpen}
+                    onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, sharpen: checked }))}
+                  />
+                  <Label htmlFor="sharpen">Sharpen</Label>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+
+                {user?.plan === 'pro' || user?.plan === 'enterprise' ? (
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="watermark"
+                      checked={transforms.watermark}
+                      onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, watermark: checked }))}
+                    />
+                    <Label htmlFor="watermark">Apply Watermark</Label>
+                    <Badge variant="secondary">Pro</Badge>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2 opacity-50">
+                    <Switch id="watermark-disabled" disabled />
+                    <Label htmlFor="watermark-disabled">Apply Watermark</Label>
+                    <Badge variant="outline">Pro Only</Badge>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Upload Button and Progress */}
       {files.length > 0 && (
@@ -552,11 +514,11 @@ export function EnhancedUploadForm() {
                 {files.length} file{files.length !== 1 ? 's' : ''} ready to upload
               </div>
               <Button
-                onClick={uploadFiles}
+                onClick={handleUpload}
                 disabled={isUploading || files.every(f => f.status === 'completed')}
                 size="lg"
               >
-                {isUploading ? 'Uploading...' : 'Upload All Images'}
+                {isUploading ? 'Uploading...' : 'Upload All'}
                 <Upload className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -591,7 +553,7 @@ export function EnhancedUploadForm() {
                       />
                     ) : (
                       <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center">
-                        <FileImage className="w-6 h-6 text-gray-400" />
+                        <ImageIcon className="w-6 h-6 text-gray-400" />
                       </div>
                     )}
                   </div>
@@ -621,7 +583,7 @@ export function EnhancedUploadForm() {
                     }>
                       {file.status === 'completed' && <Check className="w-3 h-3 mr-1" />}
                       {file.status === 'error' && <AlertCircle className="w-3 h-3 mr-1" />}
-                      {file.status || 'pending'}
+                      {file.status === 'completed' ? 'Done' : file.status === 'error' ? 'Failed' : file.status === 'uploading' ? 'Uploading' : 'Pending'}
                     </Badge>
 
                     <Button

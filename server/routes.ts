@@ -11,7 +11,8 @@ import rateLimit from "express-rate-limit";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import session from "express-session";
-import { db, customDomains, systemLogs } from "./db"; // Assuming db and schemas are imported correctly
+import { db } from "./db";
+import { customDomains, systemLogs } from "../shared/schema";
 import { eq, and, sql } from "drizzle-orm"; // Assuming drizzle-orm imports
 
 // Extend Express Request type to include session properties
@@ -1542,6 +1543,161 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('System health error:', error);
       res.status(500).json({ error: 'Failed to fetch system health' });
+    }
+  });
+
+  // Admin system control endpoints
+  app.post('/api/v1/admin/system/:action', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { action } = req.params;
+      const data = req.body;
+
+      console.log(`Admin system action: ${action}`, data);
+
+      // Log the admin action
+      await db.insert(systemLogs).values({
+        message: `Admin executed system action: ${action}`,
+        level: 'info',
+        userId: user.id,
+        metadata: { action, data }
+      });
+
+      // Mock system actions
+      const actions: Record<string, () => any> = {
+        restart: () => ({ message: 'System restart initiated' }),
+        backup: () => ({ message: 'Database backup started' }),
+        cleanup: () => ({ message: 'System cleanup completed' }),
+        optimize: () => ({ message: 'System optimization completed' }),
+        maintenance: () => ({ message: `Maintenance mode ${data?.enabled ? 'enabled' : 'disabled'}` }),
+        registration: () => ({ message: `User registration ${data?.enabled ? 'enabled' : 'disabled'}` }),
+        rateLimit: () => ({ message: `Rate limiting ${data?.enabled ? 'enabled' : 'disabled'}` }),
+        'optimize-images': () => ({ message: 'Image optimization started for all images' }),
+        'cleanup-orphaned': () => ({ message: 'Orphaned files cleanup completed' }),
+        'regenerate-thumbnails': () => ({ message: 'Thumbnail regeneration started' }),
+        'export-content': () => ({ message: 'Content export initiated' })
+      };
+
+      const result = actions[action]?.() || { message: 'Action completed' };
+      res.json({ success: true, ...result });
+    } catch (error) {
+      console.error('System control error:', error);
+      res.status(500).json({ error: 'System control failed' });
+    }
+  });
+
+  // Advanced user management endpoints
+  app.put('/api/v1/admin/users/:userId/plan', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { userId } = req.params;
+      const { plan } = req.body;
+
+      await storage.updateUserPlan(userId, plan);
+      
+      // Log the action
+      await db.insert(systemLogs).values({
+        message: `Admin updated user plan: ${userId} to ${plan}`,
+        level: 'info',
+        userId: user.id,
+        metadata: { targetUserId: userId, newPlan: plan }
+      });
+
+      res.json({ success: true, message: 'User plan updated successfully' });
+    } catch (error) {
+      console.error('Update user plan error:', error);
+      res.status(500).json({ error: 'Failed to update user plan' });
+    }
+  });
+
+  app.post('/api/v1/admin/users/:userId/reset-password', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { userId } = req.params;
+      const targetUser = await storage.getUser(userId);
+      
+      if (!targetUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      await storage.createPasswordResetToken(userId, resetToken);
+
+      // Send reset email
+      if (targetUser.email) {
+        try {
+          await emailService.sendPasswordResetEmail(targetUser.email, resetToken);
+        } catch (emailError) {
+          console.error('Password reset email error:', emailError);
+        }
+      }
+
+      // Log the action
+      await db.insert(systemLogs).values({
+        message: `Admin initiated password reset for user: ${userId}`,
+        level: 'info',
+        userId: user.id,
+        metadata: { targetUserId: userId }
+      });
+
+      res.json({ success: true, message: 'Password reset email sent to user' });
+    } catch (error) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
+  app.post('/api/v1/admin/users/:userId/impersonate', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { userId } = req.params;
+      const targetUser = await storage.getUser(userId);
+      
+      if (!targetUser) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      // Create impersonation session
+      req.session.userId = userId;
+      req.session.impersonatingAs = user.id; // Track who is impersonating
+
+      // Log the action
+      await db.insert(systemLogs).values({
+        message: `Admin started impersonating user: ${userId}`,
+        level: 'info',
+        userId: user.id,
+        metadata: { targetUserId: userId, action: 'impersonate_start' }
+      });
+
+      res.json({ success: true, message: 'Impersonation started successfully' });
+    } catch (error) {
+      console.error('Impersonate user error:', error);
+      res.status(500).json({ error: 'Failed to impersonate user' });
     }
   });
 

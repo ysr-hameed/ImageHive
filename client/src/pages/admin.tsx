@@ -115,6 +115,41 @@ export default function Admin() {
     }
   });
 
+  const impersonateUser = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/v1/admin/users/${userId}/impersonate`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to impersonate user');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Success", description: "Impersonation successful. Redirecting..." });
+      window.location.href = '/'; // Redirect to homepage or dashboard
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const resetUserPassword = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/v1/admin/users/${userId}/reset-password`, {
+        method: 'POST',
+      });
+      if (!response.ok) throw new Error('Failed to reset password');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/admin/users"] });
+      toast({ title: "Success", description: "User password reset successfully." });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  });
+
+
   // System control mutations
   const systemControl = useMutation({
     mutationFn: async ({ action, data }: { action: string; data?: any }) => {
@@ -356,6 +391,22 @@ export default function Admin() {
                               })}
                             >
                               {user.status === 'banned' ? <Unlock className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => impersonateUser.mutate(user.id)}
+                              title="Impersonate User"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => resetUserPassword.mutate(user.id)}
+                              title="Reset Password"
+                            >
+                              <Key className="w-4 h-4" />
                             </Button>
                             <Button
                               size="sm"

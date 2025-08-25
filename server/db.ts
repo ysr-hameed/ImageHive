@@ -14,6 +14,17 @@ console.log('Database URL configured:', DATABASE_URL ? 'Yes' : 'No');
 export const pool = new Pool({ connectionString: DATABASE_URL });
 export const db = drizzle({ client: pool, schema });
 
+// Re-export schema tables for convenience
+export const { 
+  users, 
+  images, 
+  apiKeys, 
+  customDomains, 
+  systemLogs, 
+  notifications, 
+  imageAnalytics 
+} = schema;
+
 // Initialize database tables
 export async function initializeDatabase() {
   try {

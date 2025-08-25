@@ -1,120 +1,113 @@
+` tags.
 
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+<replit_final_file>
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-} from 'recharts';
-import { 
-  Activity, 
-  TrendingUp, 
-  AlertCircle, 
-  Clock, 
-  Zap,
-  BarChart3,
-  Users,
+  Activity,
+  CreditCard,
+  TrendingUp,
+  Calendar,
   Download,
-  Eye,
   Upload,
-  Calendar
-} from 'lucide-react';
-import { useAuth } from '@/hooks/useAuth';
-import Navigation from '@/components/navigation';
+  Eye,
+  Zap,
+  AlertTriangle,
+  CheckCircle
+} from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { Link } from "wouter";
+
+interface UsageStats {
+  currentPeriod: {
+    uploads: number;
+    storage: number;
+    bandwidth: number;
+    apiCalls: number;
+  };
+  limits: {
+    uploads: number;
+    storage: number;
+    bandwidth: number;
+    apiCalls: number;
+  };
+  billing: {
+    plan: string;
+    nextBillingDate: string;
+    amount: number;
+    currency: string;
+  };
+  recentActivity: Array<{
+    id: string;
+    type: 'upload' | 'download' | 'delete' | 'api_call';
+    description: string;
+    timestamp: string;
+    metadata?: any;
+  }>;
+}
 
 export default function ApiUsage() {
-  const { user, isAuthenticated } = useAuth();
+  const { data: usage, isLoading, error } = useQuery({
+    queryKey: ["/api/v1/analytics/usage"],
+    queryFn: () => apiRequest('GET', '/api/v1/analytics/usage'),
+  });
 
-  // Mock analytics data since /api/v1/analytics doesn't exist yet
-  const analytics = {
-    totalRequests: 12543,
-    totalUploads: 1234,
-    totalViews: 45678,
-    totalErrors: 12,
-    storageUsed: 2.4 * 1024 * 1024 * 1024, // 2.4GB
-    bandwidthUsed: 12.5 * 1024 * 1024 * 1024, // 12.5GB
-    dailyUsage: [
-      { date: '2024-01-01', requests: 450, uploads: 23, errors: 2 },
-      { date: '2024-01-02', requests: 523, uploads: 34, errors: 1 },
-      { date: '2024-01-03', requests: 612, uploads: 45, errors: 0 },
-      { date: '2024-01-04', requests: 445, uploads: 28, errors: 3 },
-      { date: '2024-01-05', requests: 678, uploads: 56, errors: 1 },
-    ],
-    popularEndpoints: [
-      { name: '/api/v1/images/upload', requests: 1234, percentage: 45 },
-      { name: '/api/v1/images', requests: 987, percentage: 36 },
-      { name: '/api/v1/images/:id', requests: 456, percentage: 17 },
-      { name: '/api/v1/analytics', requests: 123, percentage: 4 },
-    ],
-    responseTimeData: [
-      { hour: '00:00', requests: 45 },
-      { hour: '06:00', requests: 123 },
-      { hour: '12:00', requests: 234 },
-      { hour: '18:00', requests: 189 },
-    ]
-  };
-  const isLoading = false;
-  const error = null;
-
-  // Mock API keys data since /api/v1/api-keys doesn't exist yet
-  const apiKeysData = {
-    apiKeys: [
-      {
-        id: '1',
-        name: 'Production API Key',
-        keyPreview: 'sk_live_********************abc123',
-        isActive: true,
-        lastUsed: new Date().toISOString(),
-        requests: 8543
-      },
-      {
-        id: '2', 
-        name: 'Development API Key',
-        keyPreview: 'sk_test_********************def456',
-        isActive: true,
-        lastUsed: new Date(Date.now() - 86400000).toISOString(),
-        requests: 2341
-      }
-    ]
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <Navigation />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold mb-2">Authentication Required</h2>
-            <p className="text-gray-600">Please log in to view your API usage.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const formatNumber = (num: number) => {
+    return new Intl.NumberFormat().format(num);
+  };
+
+  const getUsagePercentage = (current: number, limit: number) => {
+    return limit > 0 ? Math.min((current / limit) * 100, 100) : 0;
+  };
+
+  const getUsageColor = (percentage: number) => {
+    if (percentage >= 90) return 'text-red-600';
+    if (percentage >= 75) return 'text-yellow-600';
+    return 'text-green-600';
+  };
+
+  const getActivityIcon = (type: string) => {
+    switch (type) {
+      case 'upload':
+        return <Upload className="w-4 h-4 text-blue-500" />;
+      case 'download':
+        return <Download className="w-4 h-4 text-green-500" />;
+      case 'delete':
+        return <AlertTriangle className="w-4 h-4 text-red-500" />;
+      case 'api_call':
+        return <Activity className="w-4 h-4 text-purple-500" />;
+      default:
+        return <Activity className="w-4 h-4 text-gray-500" />;
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <Navigation />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading analytics...</p>
+      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                </CardHeader>
+                <CardContent>
+                  <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </div>
       </div>
@@ -123,387 +116,231 @@ export default function ApiUsage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <Navigation />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold mb-2">Error Loading Data</h2>
-            <p className="text-gray-600">Failed to fetch analytics data. Please try again later.</p>
+      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center py-12">
+            <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              Error Loading Usage Data
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Failed to load API usage statistics. Please try again.
+            </p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
           </div>
         </div>
       </div>
     );
   }
 
-  // Default data if analytics is not available
-  const defaultAnalytics = {
-    totalRequests: user?.apiRequestsUsed || 0,
-    requestLimit: user?.apiRequestsLimit || 1000,
-    successRate: 98.5,
-    averageResponseTime: 125,
-    totalImages: 0,
-    totalViews: 0,
-    totalDownloads: 0,
-    storageUsed: user?.storageUsed || 0,
-    storageLimit: user?.storageLimit || 1024 * 1024 * 1024,
-    requestsToday: 45,
-    requestsThisMonth: user?.apiRequestsUsed || 0,
-    popularEndpoints: [
-      { name: '/api/upload', requests: 250, percentage: 45 },
-      { name: '/api/images', requests: 180, percentage: 32 },
-      { name: '/api/transform', requests: 120, percentage: 23 },
-    ],
-    dailyUsage: Array.from({ length: 30 }, (_, i) => ({
-      date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      requests: Math.floor(Math.random() * 50) + 10,
-      uploads: Math.floor(Math.random() * 20) + 5,
-      errors: Math.floor(Math.random() * 5),
-    })),
-    responseTimeData: Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i}:00`,
-      responseTime: Math.floor(Math.random() * 100) + 80,
-      requests: Math.floor(Math.random() * 50) + 10,
-    })),
+  // Default data structure if no usage data
+  const usageData: UsageStats = usage || {
+    currentPeriod: {
+      uploads: 0,
+      storage: 0,
+      bandwidth: 0,
+      apiCalls: 0,
+    },
+    limits: {
+      uploads: 1000,
+      storage: 5 * 1024 * 1024 * 1024, // 5GB
+      bandwidth: 10 * 1024 * 1024 * 1024, // 10GB
+      apiCalls: 10000,
+    },
+    billing: {
+      plan: 'Free',
+      nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      amount: 0,
+      currency: 'USD',
+    },
+    recentActivity: [],
   };
 
-  const data = analytics || defaultAnalytics;
-  const usagePercentage = (data.totalRequests / data.requestLimit) * 100;
-  const storagePercentage = (data.storageUsed / data.storageLimit) * 100;
-
-  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <Navigation />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">API Usage & Analytics</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Monitor your API usage, performance metrics, and analytics data.
-          </p>
+    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              API Usage & Billing
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Monitor your API usage and manage your billing
+            </p>
+          </div>
+          <Badge variant="outline" className="text-lg px-4 py-2">
+            {usageData.billing.plan} Plan
+          </Badge>
         </div>
 
-        {/* Key Metrics */}
+        {/* Usage Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">API Requests</CardTitle>
+              <CardTitle className="text-sm font-medium">Uploads</CardTitle>
+              <Upload className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatNumber(usageData.currentPeriod.uploads)}
+              </div>
+              <div className="text-xs text-muted-foreground mb-2">
+                of {formatNumber(usageData.limits.uploads)} limit
+              </div>
+              <Progress
+                value={getUsagePercentage(usageData.currentPeriod.uploads, usageData.limits.uploads)}
+                className="h-2"
+              />
+              <div className={`text-xs mt-1 ${getUsageColor(getUsagePercentage(usageData.currentPeriod.uploads, usageData.limits.uploads))}`}>
+                {getUsagePercentage(usageData.currentPeriod.uploads, usageData.limits.uploads).toFixed(1)}% used
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Storage</CardTitle>
               <Activity className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.totalRequests.toLocaleString()}</div>
-              <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                <span>of {data.requestLimit.toLocaleString()} limit</span>
-                <Badge variant={usagePercentage > 90 ? "destructive" : usagePercentage > 70 ? "secondary" : "outline"}>
-                  {usagePercentage.toFixed(1)}%
-                </Badge>
+              <div className="text-2xl font-bold">
+                {formatBytes(usageData.currentPeriod.storage)}
               </div>
-              <Progress value={usagePercentage} className="mt-2" />
+              <div className="text-xs text-muted-foreground mb-2">
+                of {formatBytes(usageData.limits.storage)} limit
+              </div>
+              <Progress
+                value={getUsagePercentage(usageData.currentPeriod.storage, usageData.limits.storage)}
+                className="h-2"
+              />
+              <div className={`text-xs mt-1 ${getUsageColor(getUsagePercentage(usageData.currentPeriod.storage, usageData.limits.storage))}`}>
+                {getUsagePercentage(usageData.currentPeriod.storage, usageData.limits.storage).toFixed(1)}% used
+              </div>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+              <CardTitle className="text-sm font-medium">Bandwidth</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{data.successRate}%</div>
-              <p className="text-xs text-green-600 mt-1">
-                ↗ +0.2% from last month
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{data.averageResponseTime}ms</div>
-              <p className="text-xs text-green-600 mt-1">
-                ↗ 5ms faster than last week
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Storage Used</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{(data.storageUsed / (1024 * 1024)).toFixed(1)}MB</div>
-              <div className="flex items-center space-x-2 text-xs text-muted-foreground mt-1">
-                <span>of {(data.storageLimit / (1024 * 1024 * 1024)).toFixed(0)}GB limit</span>
-                <Badge variant={storagePercentage > 90 ? "destructive" : storagePercentage > 70 ? "secondary" : "outline"}>
-                  {storagePercentage.toFixed(1)}%
-                </Badge>
+              <div className="text-2xl font-bold">
+                {formatBytes(usageData.currentPeriod.bandwidth)}
               </div>
-              <Progress value={storagePercentage} className="mt-2" />
+              <div className="text-xs text-muted-foreground mb-2">
+                of {formatBytes(usageData.limits.bandwidth)} limit
+              </div>
+              <Progress
+                value={getUsagePercentage(usageData.currentPeriod.bandwidth, usageData.limits.bandwidth)}
+                className="h-2"
+              />
+              <div className={`text-xs mt-1 ${getUsageColor(getUsagePercentage(usageData.currentPeriod.bandwidth, usageData.limits.bandwidth))}`}>
+                {getUsagePercentage(usageData.currentPeriod.bandwidth, usageData.limits.bandwidth).toFixed(1)}% used
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">API Calls</CardTitle>
+              <Zap className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {formatNumber(usageData.currentPeriod.apiCalls)}
+              </div>
+              <div className="text-xs text-muted-foreground mb-2">
+                of {formatNumber(usageData.limits.apiCalls)} limit
+              </div>
+              <Progress
+                value={getUsagePercentage(usageData.currentPeriod.apiCalls, usageData.limits.apiCalls)}
+                className="h-2"
+              />
+              <div className={`text-xs mt-1 ${getUsageColor(getUsagePercentage(usageData.currentPeriod.apiCalls, usageData.limits.apiCalls))}`}>
+                {getUsagePercentage(usageData.currentPeriod.apiCalls, usageData.limits.apiCalls).toFixed(1)}% used
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="requests">Request Analytics</TabsTrigger>
-            <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="errors">Error Analysis</TabsTrigger>
-          </TabsList>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Billing Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Billing Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Current Plan</span>
+                <Badge>{usageData.billing.plan}</Badge>
+              </div>
 
-          <TabsContent value="overview" className="space-y-6">
-            {/* Daily Usage Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Daily Usage (Last 30 Days)</CardTitle>
-                <CardDescription>
-                  API requests, uploads, and errors over time.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.dailyUsage}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="requests" stroke="#3B82F6" strokeWidth={2} name="Requests" />
-                    <Line type="monotone" dataKey="uploads" stroke="#10B981" strokeWidth={2} name="Uploads" />
-                    <Line type="monotone" dataKey="errors" stroke="#EF4444" strokeWidth={2} name="Errors" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Next Billing Date</span>
+                <span className="text-sm font-medium">
+                  {new Date(usageData.billing.nextBillingDate).toLocaleDateString()}
+                </span>
+              </div>
 
-            {/* Popular Endpoints */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Popular Endpoints</CardTitle>
-                <CardDescription>
-                  Most frequently used API endpoints this month.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600 dark:text-gray-400">Amount</span>
+                <span className="text-sm font-medium">
+                  ${usageData.billing.amount.toFixed(2)} {usageData.billing.currency}
+                </span>
+              </div>
+
+              <div className="pt-4 border-t">
+                <Button asChild className="w-full">
+                  <Link href="/plans">
+                    <Zap className="w-4 h-4 mr-2" />
+                    Upgrade Plan
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Recent Activity */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="w-5 h-5" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {usageData.recentActivity.length === 0 ? (
+                <div className="text-center py-8">
+                  <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 dark:text-gray-400">No recent activity</p>
+                </div>
+              ) : (
                 <div className="space-y-4">
-                  {data.popularEndpoints.map((endpoint: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            {index + 1}
-                          </span>
-                        </div>
-                        <div>
-                          <code className="text-sm font-mono">{endpoint.name}</code>
-                          <p className="text-xs text-muted-foreground">
-                            {endpoint.requests} requests ({endpoint.percentage}%)
-                          </p>
-                        </div>
+                  {usageData.recentActivity.slice(0, 10).map((activity) => (
+                    <div key={activity.id} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-slate-800">
+                      {getActivityIcon(activity.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {activity.description}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">
+                          {new Date(activity.timestamp).toLocaleString()}
+                        </p>
                       </div>
-                      <Progress value={endpoint.percentage} className="w-24" />
                     </div>
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="requests" className="space-y-6">
-            {/* Request Volume Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Request Volume by Hour</CardTitle>
-                <CardDescription>
-                  API request patterns throughout the day.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={data.responseTimeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="requests" fill="#3B82F6" name="Requests" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* API Key Usage */}
-            <Card>
-              <CardHeader>
-                <CardTitle>API Key Usage</CardTitle>
-                <CardDescription>
-                  Usage statistics for your active API keys.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {apiKeysData?.apiKeys?.map((key: any) => (
-                    <div key={key.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{key.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Key: {key.keyPreview}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Last used: {key.lastUsed ? new Date(key.lastUsed).toLocaleDateString() : 'Never'}
-                        </p>
-                      </div>
-                      <Badge variant={key.isActive ? "default" : "secondary"}>
-                        {key.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                  )) || (
-                    <p className="text-muted-foreground">No API keys found. Create one to get started.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="performance" className="space-y-6">
-            {/* Response Time Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Response Time Trends</CardTitle>
-                <CardDescription>
-                  Average response times throughout the day.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.responseTimeData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="hour" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="responseTime" 
-                      stroke="#10B981" 
-                      strokeWidth={2} 
-                      name="Response Time (ms)" 
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Performance Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Fastest Response</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-green-600">45ms</div>
-                  <p className="text-sm text-muted-foreground">GET /api/images</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Slowest Response</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-orange-600">2.3s</div>
-                  <p className="text-sm text-muted-foreground">POST /api/upload (large file)</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">95th Percentile</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-blue-600">180ms</div>
-                  <p className="text-sm text-muted-foreground">Response time</p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="errors" className="space-y-6">
-            {/* Error Analysis */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Error Analysis</CardTitle>
-                <CardDescription>
-                  Recent errors and their frequency over the past 30 days.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Authentication Errors (401)</p>
-                      <p className="text-xs text-muted-foreground">Invalid or missing API key</p>
-                    </div>
-                    <Badge variant="outline">3 occurrences</Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Rate Limit Exceeded (429)</p>
-                      <p className="text-xs text-muted-foreground">Too many requests in time window</p>
-                    </div>
-                    <Badge variant="outline">1 occurrence</Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">File Too Large (413)</p>
-                      <p className="text-xs text-muted-foreground">Upload exceeded size limit</p>
-                    </div>
-                    <Badge variant="outline">2 occurrences</Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">Server Errors (5xx)</p>
-                      <p className="text-xs text-muted-foreground">Internal server issues</p>
-                    </div>
-                    <Badge variant="outline">0 occurrences</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Error Rate Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Error Rate Over Time</CardTitle>
-                <CardDescription>
-                  Error percentage by day for the past 30 days.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={data.dailyUsage}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line 
-                      type="monotone" 
-                      dataKey="errors" 
-                      stroke="#EF4444" 
-                      strokeWidth={2} 
-                      name="Errors" 
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -54,31 +55,6 @@ function NotificationBell() {
   );
 }
 
-// Quick Stats Component
-function QuickStats() {
-  const { data: stats } = useQuery({
-    queryKey: ['/api/v1/analytics/quick'],
-    retry: false,
-  });
-
-  return (
-    <div className="grid grid-cols-2 gap-3 text-xs">
-      <div className="text-center">
-        <div className="font-semibold text-gray-900 dark:text-white">
-          {stats?.totalImages || 0}
-        </div>
-        <div className="text-gray-500 dark:text-gray-400">Images</div>
-      </div>
-      <div className="text-center">
-        <div className="font-semibold text-gray-900 dark:text-white">
-          {formatBytes(stats?.storageUsed || 0)}
-        </div>
-        <div className="text-gray-500 dark:text-gray-400">Storage</div>
-      </div>
-    </div>
-  );
-}
-
 function formatBytes(bytes: number) {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -122,7 +98,10 @@ export default function Navigation() {
   const navLinks = isAuthenticated ? [
     { href: "/", label: "Dashboard", icon: BarChart3 },
     { href: "/upload", label: "Upload", icon: Upload },
-    { href: "/docs", label: "API Docs", icon: undefined },
+    { href: "/images", label: "Images", icon: ImageIcon },
+    { href: "/analytics", label: "Analytics", icon: Activity },
+    { href: "/api-keys", label: "API Keys", icon: Key },
+    { href: "/docs", label: "API Docs", icon: FileText },
     ...(user?.isAdmin ? [{ href: "/admin", label: "Admin", icon: Shield }] : []),
   ] : [
     { href: "#features", label: "Features", icon: undefined },
@@ -132,7 +111,7 @@ export default function Navigation() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-gray-200 dark:border-slate-700">
+    <header className="sticky top-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-slate-700">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -192,18 +171,19 @@ export default function Navigation() {
                 {/* Notifications */}
                 <NotificationBell />
                 
-                {/* Quick Actions */}
-                <div className="hidden md:flex items-center space-x-2">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/upload">
-                      <Upload className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/api-keys">
-                      <Key className="w-4 h-4" />
-                    </Link>
-                  </Button>
+                {/* User Info */}
+                <div className="flex items-center gap-3">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {user?.firstName || user?.email?.split('@')[0]}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-white text-sm font-medium">
+                    {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </div>
                 </div>
 
                 {/* User dropdown */}
@@ -213,59 +193,18 @@ export default function Navigation() {
                     onClick={() => setUserMenuOpen(!userMenuOpen)}
                     data-testid="user-menu-button"
                   >
-                    {user?.profileImageUrl ? (
-                      <img
-                        src={user.profileImageUrl}
-                        alt="Profile"
-                        className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm"
-                        data-testid="user-avatar"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium shadow-sm" data-testid="user-avatar-fallback">
-                        {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                      </div>
-                    )}
+                    <Settings className="w-4 h-4" />
                   </button>
-
-                  {/* Mobile Menu */}
-            {mobileMenuOpen && (
-              <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 z-50">
-                <div className="p-4 space-y-3">
-                  <a href="/docs" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">API Docs</a>
-                  <a href="/plans" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Pricing</a>
-                  <a href="/features" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Features</a>
-                  <a href="mailto:support@imagevault.com" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Support</a>
-                  {!isAuthenticated && (
-                    <div className="pt-3 border-t border-gray-200 dark:border-slate-700 space-y-2">
-                      <Button variant="ghost" className="w-full justify-start" asChild>
-                        <a href="/auth/login">Login</a>
-                      </Button>
-                      <Button className="w-full" asChild>
-                        <a href="/auth/register">Get Started</a>
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
             
-            {/* Enhanced Dropdown menu */}
+                  {/* Enhanced Dropdown menu */}
                   {userMenuOpen && (
                     <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
                       {/* User Info Section */}
                       <div className="p-4 border-b border-gray-200 dark:border-slate-700">
                         <div className="flex items-center space-x-3">
-                          {user?.profileImageUrl ? (
-                            <img
-                              src={user.profileImageUrl}
-                              alt="Profile"
-                              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-sm"
-                            />
-                          ) : (
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg font-medium shadow-sm">
-                              {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                            </div>
-                          )}
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg font-medium shadow-sm">
+                            {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                          </div>
                           <div className="flex-1">
                             <div className="font-medium text-gray-900 dark:text-white">
                               {user?.firstName || user?.email?.split('@')[0] || 'User'}
@@ -281,11 +220,6 @@ export default function Navigation() {
                             )}
                           </div>
                         </div>
-                      </div>
-                      
-                      {/* Quick Stats */}
-                      <div className="p-3 border-b border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
-                        <QuickStats />
                       </div>
                       
                       {/* Navigation Links */}
@@ -326,20 +260,6 @@ export default function Navigation() {
                           <span>Upgrade Plan</span>
                         </Link>
                         <div className="border-t border-gray-200 dark:border-slate-700 mt-2 pt-2">
-                          <Link
-                            href="/docs"
-                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center space-x-2"
-                          >
-                            <FileText className="w-4 h-4" />
-                            <span>API Documentation</span>
-                          </Link>
-                          <a
-                            href="mailto:support@imagevault.com"
-                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-slate-700 flex items-center space-x-2"
-                          >
-                            <HelpCircle className="w-4 h-4" />
-                            <span>Help & Support</span>
-                          </a>
                           <button
                             onClick={logout}
                             className="w-full text-left block px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center space-x-2"
@@ -414,10 +334,7 @@ export default function Navigation() {
                   size="sm"
                   className="w-full justify-start"
                   data-testid="mobile-button-logout"
-                  onClick={async () => { 
-                    await fetch('/api/auth/logout', { method: 'POST' }); 
-                    window.location.href = '/'; 
-                  }}
+                  onClick={logout}
                 >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout

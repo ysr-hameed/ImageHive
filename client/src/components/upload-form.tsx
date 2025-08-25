@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Upload, 
   X, 
@@ -16,11 +18,12 @@ import {
   File,
   CheckCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Settings,
+  Sliders
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 
 interface UploadFile extends File {
   id: string;
@@ -42,6 +45,9 @@ export default function UploadForm() {
     format: '',
     width: '',
     height: '',
+    autoOptimize: true,
+    generateThumbnails: true,
+    preserveExif: false,
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -50,14 +56,13 @@ export default function UploadForm() {
     mutationFn: async ({ file, options }: { file: UploadFile; options: any }) => {
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('privacy', options.privacy);
-      if (options.description) formData.append('description', options.description);
-      if (options.altText) formData.append('altText', options.altText);
-      if (options.tags) formData.append('tags', options.tags);
-      if (options.quality !== 80) formData.append('quality', options.quality.toString());
-      if (options.format) formData.append('format', options.format);
-      if (options.width) formData.append('width', options.width);
-      if (options.height) formData.append('height', options.height);
+      
+      // Add all options to formData
+      Object.entries(options).forEach(([key, value]) => {
+        if (value !== '' && value !== undefined && value !== null) {
+          formData.append(key, value.toString());
+        }
+      });
 
       const response = await fetch('/api/v1/images/upload', {
         method: 'POST',
@@ -66,8 +71,8 @@ export default function UploadForm() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Upload failed');
+        const errorData = await response.json().catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || `HTTP ${response.status}: Upload failed`);
       }
 
       return await response.json();
@@ -86,7 +91,7 @@ export default function UploadForm() {
         description: "Your image has been uploaded successfully.",
       });
     },
-    onError: (error, variables) => {
+    onError: (error: any, variables) => {
       setFiles(prev => 
         prev.map(f => 
           f.id === variables.file.id 
@@ -96,7 +101,7 @@ export default function UploadForm() {
       );
       toast({
         title: "Upload Failed",
-        description: error.message,
+        description: error.message || "Failed to upload image",
         variant: "destructive",
       });
     },
@@ -120,6 +125,16 @@ export default function UploadForm() {
     multiple: true,
     maxFiles: 10,
     maxSize: 50 * 1024 * 1024, // 50MB
+    onDropRejected: (rejectedFiles) => {
+      rejectedFiles.forEach((rejection) => {
+        const errors = rejection.errors.map(e => e.message).join(', ');
+        toast({
+          title: "File Rejected",
+          description: `${rejection.file.name}: ${errors}`,
+          variant: "destructive",
+        });
+      });
+    },
   });
 
   const removeFile = (fileId: string) => {
@@ -132,7 +147,7 @@ export default function UploadForm() {
     for (const file of pendingFiles) {
       setFiles(prev => 
         prev.map(f => 
-          f.id === file.id ? { ...f, status: 'uploading', progress: 0 } : f
+          f.id === file.id ? { ...f, status: 'uploading', progress: 10 } : f
         )
       );
 
@@ -141,12 +156,12 @@ export default function UploadForm() {
         setFiles(prev => 
           prev.map(f => {
             if (f.id === file.id && f.status === 'uploading' && f.progress < 90) {
-              return { ...f, progress: f.progress + 10 };
+              return { ...f, progress: Math.min(f.progress + 15, 90) };
             }
             return f;
           })
         );
-      }, 200);
+      }, 300);
 
       try {
         await uploadMutation.mutateAsync({ file, options: uploadOptions });
@@ -190,122 +205,205 @@ export default function UploadForm() {
 
   return (
     <div className="space-y-8">
-      {/* Upload Options */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="privacy">Privacy Setting</Label>
-            <Select 
-              value={uploadOptions.privacy} 
-              onValueChange={(value) => setUploadOptions(prev => ({ ...prev, privacy: value }))}
-            >
-              <SelectTrigger data-testid="select-privacy">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      <Tabs defaultValue="basic" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="basic">Basic Settings</TabsTrigger>
+          <TabsTrigger value="transform">Transform</TabsTrigger>
+          <TabsTrigger value="advanced">Advanced</TabsTrigger>
+        </TabsList>
 
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              placeholder="Describe your image..."
-              value={uploadOptions.description}
-              onChange={(e) => setUploadOptions(prev => ({ ...prev, description: e.target.value }))}
-              data-testid="input-description"
-            />
-          </div>
+        <TabsContent value="basic" className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="privacy">Privacy Setting</Label>
+                <Select 
+                  value={uploadOptions.privacy} 
+                  onValueChange={(value) => setUploadOptions(prev => ({ ...prev, privacy: value }))}
+                >
+                  <SelectTrigger data-testid="select-privacy">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="public">Public</SelectItem>
+                    <SelectItem value="private">Private</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          <div>
-            <Label htmlFor="altText">Alt Text</Label>
-            <Input
-              id="altText"
-              placeholder="Alternative text for accessibility"
-              value={uploadOptions.altText}
-              onChange={(e) => setUploadOptions(prev => ({ ...prev, altText: e.target.value }))}
-              data-testid="input-alt-text"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div>
-            <Label htmlFor="tags">Tags (comma-separated)</Label>
-            <Input
-              id="tags"
-              placeholder="nature, landscape, outdoor"
-              value={uploadOptions.tags}
-              onChange={(e) => setUploadOptions(prev => ({ ...prev, tags: e.target.value }))}
-              data-testid="input-tags"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="format">Format</Label>
-              <Select 
-                value={uploadOptions.format} 
-                onValueChange={(value) => setUploadOptions(prev => ({ ...prev, format: value }))}
-              >
-                <SelectTrigger data-testid="select-format">
-                  <SelectValue placeholder="Original" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Original</SelectItem>
-                  <SelectItem value="jpeg">JPEG</SelectItem>
-                  <SelectItem value="png">PNG</SelectItem>
-                  <SelectItem value="webp">WebP</SelectItem>
-                  <SelectItem value="avif">AVIF</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe your image..."
+                  value={uploadOptions.description}
+                  onChange={(e) => setUploadOptions(prev => ({ ...prev, description: e.target.value }))}
+                  data-testid="input-description"
+                />
+              </div>
             </div>
 
-            <div>
-              <Label htmlFor="quality">Quality ({uploadOptions.quality}%)</Label>
-              <Input
-                id="quality"
-                type="range"
-                min="10"
-                max="100"
-                step="10"
-                value={uploadOptions.quality}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, quality: parseInt(e.target.value) }))}
-                data-testid="input-quality"
-              />
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="altText">Alt Text</Label>
+                <Input
+                  id="altText"
+                  placeholder="Alternative text for accessibility"
+                  value={uploadOptions.altText}
+                  onChange={(e) => setUploadOptions(prev => ({ ...prev, altText: e.target.value }))}
+                  data-testid="input-alt-text"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="tags">Tags (comma-separated)</Label>
+                <Input
+                  id="tags"
+                  placeholder="nature, landscape, outdoor"
+                  value={uploadOptions.tags}
+                  onChange={(e) => setUploadOptions(prev => ({ ...prev, tags: e.target.value }))}
+                  data-testid="input-tags"
+                />
+              </div>
             </div>
           </div>
+        </TabsContent>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="width">Width (px)</Label>
-              <Input
-                id="width"
-                type="number"
-                placeholder="Auto"
-                value={uploadOptions.width}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, width: e.target.value }))}
-                data-testid="input-width"
-              />
-            </div>
+        <TabsContent value="transform" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Sliders className="w-5 h-5" />
+                Image Transformation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="format">Output Format</Label>
+                    <Select 
+                      value={uploadOptions.format} 
+                      onValueChange={(value) => setUploadOptions(prev => ({ ...prev, format: value }))}
+                    >
+                      <SelectTrigger data-testid="select-format">
+                        <SelectValue placeholder="Original" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Original</SelectItem>
+                        <SelectItem value="jpeg">JPEG</SelectItem>
+                        <SelectItem value="png">PNG</SelectItem>
+                        <SelectItem value="webp">WebP</SelectItem>
+                        <SelectItem value="avif">AVIF</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            <div>
-              <Label htmlFor="height">Height (px)</Label>
-              <Input
-                id="height"
-                type="number"
-                placeholder="Auto"
-                value={uploadOptions.height}
-                onChange={(e) => setUploadOptions(prev => ({ ...prev, height: e.target.value }))}
-                data-testid="input-height"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+                  <div>
+                    <Label htmlFor="quality">Quality ({uploadOptions.quality}%)</Label>
+                    <Input
+                      id="quality"
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="10"
+                      value={uploadOptions.quality}
+                      onChange={(e) => setUploadOptions(prev => ({ ...prev, quality: parseInt(e.target.value) }))}
+                      data-testid="input-quality"
+                    />
+                    <div className="text-xs text-gray-500 mt-1">
+                      Higher quality = larger file size
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="width">Width (px)</Label>
+                      <Input
+                        id="width"
+                        type="number"
+                        placeholder="Auto"
+                        value={uploadOptions.width}
+                        onChange={(e) => setUploadOptions(prev => ({ ...prev, width: e.target.value }))}
+                        data-testid="input-width"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="height">Height (px)</Label>
+                      <Input
+                        id="height"
+                        type="number"
+                        placeholder="Auto"
+                        value={uploadOptions.height}
+                        onChange={(e) => setUploadOptions(prev => ({ ...prev, height: e.target.value }))}
+                        data-testid="input-height"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-gray-500">
+                    Leave empty to maintain aspect ratio
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="advanced" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Advanced Options
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Auto Optimization</Label>
+                  <div className="text-sm text-gray-500">
+                    Automatically optimize images for web delivery
+                  </div>
+                </div>
+                <Switch
+                  checked={uploadOptions.autoOptimize}
+                  onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, autoOptimize: checked }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Generate Thumbnails</Label>
+                  <div className="text-sm text-gray-500">
+                    Create multiple sizes for responsive images
+                  </div>
+                </div>
+                <Switch
+                  checked={uploadOptions.generateThumbnails}
+                  onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, generateThumbnails: checked }))}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Preserve EXIF Data</Label>
+                  <div className="text-sm text-gray-500">
+                    Keep original metadata (location, camera settings, etc.)
+                  </div>
+                </div>
+                <Switch
+                  checked={uploadOptions.preserveExif}
+                  onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, preserveExif: checked }))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* File Drop Zone */}
       <Card>

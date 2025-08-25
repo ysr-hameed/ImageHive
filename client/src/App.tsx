@@ -1,3 +1,4 @@
+
 import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -7,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { SidebarContentLoader } from "@/components/sidebar-content-loader";
+import Navigation from "@/components/navigation";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Admin from "@/pages/admin";
@@ -30,35 +33,23 @@ import Plans from "./pages/plans";
 import Notifications from "./pages/notifications";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-
   return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center justify-between border-b px-4">
-          <SidebarTrigger className="-ml-1" />
-
-          {/* Profile Section */}
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-gray-900 dark:text-white">
-                {user?.firstName || user?.email?.split('@')[0]}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">
-                {user?.email}
-              </p>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-white text-sm font-medium">
-              {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-            </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <Navigation />
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center border-b px-4 bg-white dark:bg-slate-800">
+            <SidebarTrigger className="-ml-1" />
+          </header>
+          <div className="flex-1 overflow-auto">
+            <SidebarContentLoader isLoading={false}>
+              {children}
+            </SidebarContentLoader>
           </div>
-        </header>
-        <div className="flex-1 overflow-auto">
-          {children}
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </div>
   );
 }
 

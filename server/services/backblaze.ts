@@ -137,7 +137,9 @@ export class BackblazeB2Service {
         await this.getUploadUrl();
       }
 
-      const sha1Hash = require('crypto').createHash('sha1').update(buffer).digest('hex');
+      // Get SHA1 hash of the file
+      const crypto = await import('crypto');
+      const sha1Hash = crypto.createHash('sha1').update(buffer).digest('hex');
 
       const response = await fetch(this.uploadUrl!, {
         method: 'POST',

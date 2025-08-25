@@ -11,95 +11,102 @@ import Navigation from '@/components/navigation';
 
 const plans = [
   {
-    id: 'free',
     name: 'Free',
-    price: { monthly: 0, yearly: 0 },
-    description: 'Perfect for getting started',
+    price: 0,
+    period: 'forever',
+    description: 'Perfect for personal projects and getting started',
     features: [
-      '1,000 images/month',
-      '5GB storage',
-      '10GB bandwidth',
-      'Basic transformations',
-      'Public API access',
-      'Community support'
+      '500 images per month',
+      '2GB storage',
+      'Basic image optimization',
+      'Public images only',
+      'Community support',
+      'Basic analytics',
+      '5 API calls per minute'
     ],
     limitations: [
       'No custom domains',
-      'No watermarks',
-      'Limited analytics'
+      'No advanced transformations',
+      'No bulk operations'
     ],
-    popular: false,
-    buttonText: 'Current Plan',
-    buttonVariant: 'secondary' as const
+    recommended: false,
+    current: false,
+    buttonText: 'Get Started',
+    popular: false
   },
   {
-    id: 'starter',
     name: 'Starter',
     price: { monthly: 9, yearly: 7 },
-    description: 'Great for personal projects',
+    period: 'month/year',
+    description: 'Great for personal projects and small businesses',
     features: [
-      '10,000 images/month',
+      '10,000 images per month',
       '50GB storage',
-      '100GB bandwidth',
-      'Advanced transformations',
+      'Advanced image optimization',
       'Custom domains (1)',
       'Email support',
       'Basic analytics',
-      'Webhook support'
+      '20 API calls per minute'
     ],
     limitations: [
-      'No priority support',
-      'Limited API rate limits'
+      'No custom watermarks',
+      'Limited team access'
     ],
-    popular: false,
+    recommended: false,
+    current: false,
     buttonText: 'Upgrade to Starter',
-    buttonVariant: 'outline' as const
+    popular: false
   },
   {
-    id: 'pro',
     name: 'Pro',
     price: { monthly: 29, yearly: 24 },
-    description: 'Best for growing businesses',
+    period: 'month/year',
+    description: 'Best for growing businesses and agencies',
     features: [
-      '100,000 images/month',
+      '100,000 images per month',
       '500GB storage',
-      '1TB bandwidth',
-      'All transformations',
+      'All image optimizations',
       'Custom domains (5)',
-      'Custom watermarks',
-      'Priority support',
+      'Priority email support',
       'Advanced analytics',
-      'API webhooks',
+      '50 API calls per minute',
+      'Custom watermarks',
       'Team collaboration (5 users)'
     ],
-    limitations: [],
-    popular: true,
+    limitations: [
+      'No dedicated support line',
+      'Limited SLA'
+    ],
+    recommended: true,
+    current: false,
     buttonText: 'Upgrade to Pro',
-    buttonVariant: 'default' as const
+    popular: true
   },
   {
-    id: 'enterprise',
     name: 'Enterprise',
     price: 'Custom',
-    description: 'For large-scale applications',
+    period: 'contact us',
+    description: 'For large organizations with custom requirements',
     features: [
-      'Unlimited images',
-      'Unlimited storage',
-      'Unlimited bandwidth',
-      'All transformations',
-      'Unlimited custom domains',
-      'White-label solution',
-      'Dedicated support',
-      'SLA guarantee',
-      'Advanced analytics',
-      'Unlimited team members',
+      'Unlimited images & storage',
+      'Dedicated infrastructure',
+      'Custom CDN endpoints',
+      'Advanced security features',
+      'White-label solutions',
       'Custom integrations',
-      'On-premise deployment option'
+      '24/7 priority support',
+      'SLA guarantees',
+      'On-premise deployment',
+      'Custom transformations',
+      'Advanced analytics & reporting',
+      'Multi-region hosting'
     ],
     limitations: [],
-    popular: false,
+    recommended: false,
+    current: false,
     buttonText: 'Contact Sales',
-    buttonVariant: 'outline' as const
+    popular: false,
+    enterprise: true
   }
 ];
 
@@ -153,7 +160,7 @@ export default function Plans() {
     }
 
     setLoadingPlan(planId);
-    
+
     try {
       // Initialize PayU payment
       const response = await fetch('/api/v1/payments/create-session', {
@@ -197,7 +204,7 @@ export default function Plans() {
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
               Scale your image management with plans designed for every need. Start free and upgrade as you grow.
             </p>
-            
+
             {/* Billing Toggle */}
             <div className="flex items-center justify-center mb-8">
               <span className={`text-sm mr-3 transition-colors ${!isYearly ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
@@ -211,22 +218,24 @@ export default function Plans() {
               <span className={`text-sm ml-3 transition-colors ${isYearly ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
                 Yearly
               </span>
-              <Badge variant="secondary" className="ml-2">
-                Save 20%
-              </Badge>
+              {isYearly && (
+                <Badge variant="secondary" className="ml-2">
+                  Save 20%
+                </Badge>
+              )}
             </div>
           </div>
 
           {/* Plans Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
             {plans.map((plan) => {
-              const isCurrentPlan = user?.plan === plan.id;
-              const price = typeof plan.price === 'object' 
+              const isCurrentPlan = user?.plan === plan.name.toLowerCase();
+              const price = typeof plan.price === 'object'
                 ? (isYearly ? plan.price.yearly : plan.price.monthly)
                 : plan.price;
 
               return (
-                <Card key={plan.id} className={`relative ${plan.popular ? 'ring-2 ring-blue-500 scale-105' : ''}`}>
+                <Card key={plan.name} className={`relative ${plan.popular ? 'ring-2 ring-blue-500 scale-105' : ''}`}>
                   {plan.popular && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <Badge className="bg-blue-500 text-white">
@@ -235,11 +244,12 @@ export default function Plans() {
                       </Badge>
                     </div>
                   )}
-                  
+
                   <CardHeader className="text-center pb-2">
                     <CardTitle className="flex items-center justify-center gap-2">
-                      {plan.id === 'pro' && <Crown className="w-5 h-5 text-yellow-500" />}
+                      {plan.name === 'Pro' && <Crown className="w-5 h-5 text-yellow-500" />}
                       {plan.name}
+                      {plan.name === 'Enterprise' && <Badge variant="outline" className="border-gray-400 text-gray-400">Custom</Badge>}
                     </CardTitle>
                     <div className="text-3xl font-bold">
                       {typeof price === 'number' ? (
@@ -257,7 +267,7 @@ export default function Plans() {
                       {plan.description}
                     </p>
                   </CardHeader>
-                  
+
                   <CardContent>
                     <div className="space-y-3 mb-6">
                       {plan.features.map((feature, index) => (
@@ -273,21 +283,21 @@ export default function Plans() {
                         </div>
                       ))}
                     </div>
-                    
+
                     <Button
                       className="w-full"
-                      variant={isCurrentPlan ? 'secondary' : plan.buttonVariant}
-                      disabled={isCurrentPlan || loadingPlan === plan.id}
-                      onClick={() => handlePlanSelect(plan.id)}
+                      variant={isCurrentPlan ? 'secondary' : (plan.popular ? 'default' : plan.buttonVariant)}
+                      disabled={isCurrentPlan || loadingPlan === plan.name.toLowerCase()}
+                      onClick={() => handlePlanSelect(plan.name.toLowerCase())}
                     >
-                      {loadingPlan === plan.id ? (
+                      {loadingPlan === plan.name.toLowerCase() ? (
                         'Processing...'
                       ) : isCurrentPlan ? (
                         'Current Plan'
                       ) : (
                         <>
                           {plan.buttonText}
-                          <ArrowRight className="w-4 h-4 ml-2" />
+                          {!plan.enterprise && <ArrowRight className="w-4 h-4 ml-2" />}
                         </>
                       )}
                     </Button>
@@ -327,7 +337,7 @@ export default function Plans() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">Can I change plans anytime?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.
+                    Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately. For yearly plans, downgrades will be reflected at the end of the current billing cycle.
                   </p>
                 </CardContent>
               </Card>
@@ -335,23 +345,23 @@ export default function Plans() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    We accept all major credit cards, PayPal, and UPI through our secure payment processor.
+                    We accept all major credit cards (Visa, Mastercard, American Express) via Stripe, our secure payment processor.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">Is there a free trial?</h3>
+                  <h3 className="font-semibold mb-2">Is there a free trial for paid plans?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Our Free plan gives you full access to core features. No credit card required to start.
+                    We offer a 14-day free trial for our Starter and Pro plans. You can cancel anytime before the trial ends to avoid charges. Our Free plan is always available.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">What about data security?</h3>
+                  <h3 className="font-semibold mb-2">How does the custom domain feature work?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Your data is encrypted at rest and in transit. We comply with GDPR and SOC 2 standards.
+                    With a custom domain, you can serve your images through your own domain name (e.g., images.yourdomain.com). You'll need to configure DNS records to point to our CDN. Full instructions are in our documentation.
                   </p>
                 </CardContent>
               </Card>
@@ -362,9 +372,9 @@ export default function Plans() {
           <div className="text-center">
             <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
               <CardContent className="p-8">
-                <h2 className="text-2xl font-bold mb-4">Ready to Get Started?</h2>
+                <h2 className="text-2xl font-bold mb-4">Ready to Scale Your Image Management?</h2>
                 <p className="mb-6 opacity-90">
-                  Join thousands of developers and businesses who trust ImageVault for their image management needs.
+                  Join thousands of developers and businesses who trust ImageVault for their image management needs. Get started with our Free plan today!
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button size="lg" variant="secondary" asChild>

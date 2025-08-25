@@ -9,18 +9,23 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Settings as SettingsIcon, 
-  Globe, 
-  Key, 
-  User, 
-  Check, 
-  X, 
+import {
+  Settings as SettingsIcon,
+  Globe,
+  Key,
+  User,
+  Check,
+  X,
   Plus,
   Copy,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Bell,
+  CreditCard
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import { Switch } from "@/components/ui/switch";
+import Link from "next/link";
 
 export default function Settings() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -118,10 +123,12 @@ export default function Settings() {
           </div>
 
           <Tabs defaultValue="domains" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="domains">Custom Domains</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-5">
+              <TabsTrigger value="domains">Domains</TabsTrigger>
               <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="account">Account</TabsTrigger>
+              <TabsTrigger value="security">Security</TabsTrigger>
+              <TabsTrigger value="notifications">Notifications</TabsTrigger>
+              <TabsTrigger value="billing">Billing</TabsTrigger>
             </TabsList>
 
             {/* Custom Domains */}
@@ -134,25 +141,35 @@ export default function Settings() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  {/* Add new domain */}
-                  <form onSubmit={handleAddDomain} className="flex space-x-2">
-                    <Input
-                      placeholder="your-domain.com"
-                      value={newDomain}
-                      onChange={(e) => setNewDomain(e.target.value)}
-                      className="flex-1"
-                    />
-                    <Button 
-                      type="submit" 
-                      disabled={createDomainMutation.isPending}
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Domain
-                    </Button>
-                  </form>
+                  <div>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      Connect your own domain to serve images from your branded URL. Available for Pro and Enterprise plans.
+                    </p>
 
-                  {/* Existing domains */}
+                    {/* Domain Input Form */}
+                    <form onSubmit={handleAddDomain} className="flex gap-4 mb-6">
+                      <Input
+                        placeholder="images.yourdomain.com"
+                        value={newDomain}
+                        onChange={(e) => setNewDomain(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="submit"
+                        disabled={createDomainMutation.isPending}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Domain
+                      </Button>
+                    </form>
+                  </div>
+
+                  {/* Existing Domains */}
                   <div className="space-y-4">
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+                      Connected Domains
+                    </h4>
+
                     {domainsLoading ? (
                       <div className="text-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600 mx-auto"></div>
@@ -161,108 +178,60 @@ export default function Settings() {
                       <div className="text-center py-8">
                         <Globe className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                          No custom domains
+                          No custom domains yet
                         </h3>
                         <p className="text-gray-600 dark:text-gray-400">
-                          Add a custom domain to brand your image URLs
+                          Add a custom domain to brand your image URLs.
                         </p>
                       </div>
                     ) : (
                       (domainsData as any).domains.map((domain: any) => (
-                        <Card key={domain.id} className="border">
-                          <CardContent className="pt-6">
-                            <div className="flex items-center justify-between mb-4">
-                              <div className="flex items-center space-x-3">
-                                <h3 className="font-medium text-lg">{domain.domain}</h3>
-                                <Badge variant={domain.isVerified ? "default" : "secondary"}>
-                                  {domain.isVerified ? (
-                                    <>
-                                      <Check className="w-3 h-3 mr-1" />
-                                      Verified
-                                    </>
-                                  ) : (
-                                    <>
-                                      <AlertCircle className="w-3 h-3 mr-1" />
-                                      Pending
-                                    </>
-                                  )}
-                                </Badge>
-                              </div>
-                              {!domain.isVerified && (
-                                <Button
-                                  onClick={() => verifyDomainMutation.mutate(domain.id)}
-                                  disabled={verifyDomainMutation.isPending}
-                                  size="sm"
-                                >
-                                  Verify
-                                </Button>
-                              )}
+                        <div key={domain.id} className="border border-gray-200 dark:border-slate-600 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-3">
+                              <span className="font-medium text-gray-900 dark:text-white">
+                                {domain.domain}
+                              </span>
+                              <Badge variant={domain.isVerified ? "outline" : "secondary"} className={domain.isVerified ? "text-green-600 border-green-200" : "text-yellow-600"}>
+                                {domain.isVerified ? "Verified" : "Pending Verification"}
+                              </Badge>
                             </div>
+                            <Button variant="ghost" size="sm">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
 
-                            {!domain.isVerified && (
-                              <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4 space-y-4">
-                                <h4 className="font-medium">DNS Setup Instructions</h4>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  Add these DNS records to your domain registrar:
-                                </p>
-
-                                <div className="space-y-3">
-                                  <div className="bg-white dark:bg-slate-700 rounded border p-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <Label className="font-medium">CNAME Record</Label>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => copyToClipboard("cdn.imagevault.com")}
-                                      >
-                                        <Copy className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div>
-                                        <span className="text-gray-500">Name:</span>
-                                        <div className="font-mono">{domain.domain}</div>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">Value:</span>
-                                        <div className="font-mono">cdn.imagevault.com</div>
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  <div className="bg-white dark:bg-slate-700 rounded border p-3">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <Label className="font-medium">TXT Record (Verification)</Label>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => copyToClipboard(`_verification.${domain.domain}`)}
-                                      >
-                                        <Copy className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div>
-                                        <span className="text-gray-500">Name:</span>
-                                        <div className="font-mono">_verification.{domain.domain}</div>
-                                      </div>
-                                      <div>
-                                        <span className="text-gray-500">Value:</span>
-                                        <div className="font-mono">verification-token-here</div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                <div className="text-sm text-gray-600 dark:text-gray-400">
-                                  <p><strong>Important:</strong> DNS propagation can take 5-60 minutes. After adding the records, click "Verify" to complete the setup.</p>
-                                </div>
+                          {!domain.isVerified && (
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="mb-2">Please add this DNS record to verify domain ownership:</p>
+                              <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded font-mono text-xs">
+                                <div>Type: CNAME</div>
+                                <div>Name: {domain.domain}</div>
+                                <div>Value: cdn.imagevault.io</div>
                               </div>
-                            )}
-                          </CardContent>
-                        </Card>
+                              <Button onClick={() => verifyDomainMutation.mutate(domain.id)} disabled={verifyDomainMutation.isPending} className="mt-3">Verify</Button>
+                            </div>
+                          )}
+
+                          {domain.isVerified && (
+                            <div className="text-sm text-gray-600 dark:text-gray-400">
+                              <p className="mb-2">DNS Configuration:</p>
+                              <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded font-mono text-xs">
+                                <div>Type: CNAME</div>
+                                <div>Name: {domain.domain}</div>
+                                <div>Value: cdn.imagevault.io</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ))
                     )}
+                  </div>
+
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <p>• Custom domains require Pro or Enterprise plan</p>
+                    <p>• SSL certificates are automatically provisioned</p>
+                    <p>• DNS changes can take up to 48 hours to propagate</p>
                   </div>
                 </CardContent>
               </Card>
@@ -281,16 +250,16 @@ export default function Settings() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" defaultValue={user.firstName} />
+                      <Input id="firstName" defaultValue={user?.firstName} />
                     </div>
                     <div>
                       <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" defaultValue={user.lastName} />
+                      <Input id="lastName" defaultValue={user?.lastName} />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue={user.email} disabled />
+                    <Input id="email" type="email" defaultValue={user?.email} disabled />
                   </div>
                   <Button>Save Changes</Button>
                 </CardContent>
@@ -298,58 +267,158 @@ export default function Settings() {
             </TabsContent>
 
             {/* Account Settings */}
-            <TabsContent value="account">
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Account Information</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">Plan</h3>
-                        <p className="text-sm text-gray-600">{user.plan || 'Free'}</p>
-                      </div>
-                      <Badge>{user.plan || 'Free'}</Badge>
+            <TabsContent value="security">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Key className="w-5 h-5" />
+                    <span>Security Settings</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium">Change Password</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        Update your account password
+                      </p>
+                      <Button variant="outline">Change Password</Button>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h3 className="font-medium">Email Verified</h3>
-                        <p className="text-sm text-gray-600">
-                          {user.emailVerified ? 'Verified' : 'Not verified'}
-                        </p>
-                      </div>
-                      <Badge variant={user.emailVerified ? "default" : "destructive"}>
-                        {user.emailVerified ? 'Verified' : 'Unverified'}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
+                    {/* Add more security features here like 2FA */}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <Card className="border-red-200">
-                  <CardHeader>
-                    <CardTitle className="text-red-600">Danger Zone</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="font-medium">Change Password</h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          Update your account password
-                        </p>
-                        <Button variant="outline">Change Password</Button>
-                      </div>
-                      <div>
-                        <h3 className="font-medium">Delete Account</h3>
-                        <p className="text-sm text-gray-600 mb-2">
-                          Permanently delete your account and all data
-                        </p>
-                        <Button variant="destructive">Delete Account</Button>
+            {/* Notification Settings */}
+            <TabsContent value="notifications">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Bell className="w-5 h-5" />
+                    <span>Notification Preferences</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Email Notifications</Label>
+                      <div className="text-sm text-gray-500">
+                        Receive updates about your account and usage
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </div>
+                    <Switch />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Usage Alerts</Label>
+                      <div className="text-sm text-gray-500">
+                        Get notified when approaching plan limits
+                      </div>
+                    </div>
+                    <Switch />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Security Alerts</Label>
+                      <div className="text-sm text-gray-500">
+                        Important security and login notifications
+                      </div>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <Button>Save Preferences</Button>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Billing Settings */}
+            <TabsContent value="billing">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <CreditCard className="w-5 h-5" />
+                    <span>Billing & Subscription</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Current Plan */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-white">Current Plan</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {user?.plan || 'Free'} Plan
+                      </p>
+                    </div>
+                    <Button asChild>
+                      <Link href="/plans">Upgrade Plan</Link>
+                    </Button>
+                  </div>
+
+                  {/* Usage Summary */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
+                      <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        Storage Used
+                      </h5>
+                      <p className="text-2xl font-bold text-blue-600">2.1 GB</p>
+                      <p className="text-xs text-gray-500">of 5 GB limit</p>
+                    </div>
+                    <div className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
+                      <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
+                        API Calls
+                      </h5>
+                      <p className="text-2xl font-bold text-green-600">1.2K</p>
+                      <p className="text-xs text-gray-500">of 10K limit</p>
+                    </div>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Payment Method
+                    </h4>
+                    <div className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-6 bg-gray-200 dark:bg-slate-600 rounded flex items-center justify-center text-xs">
+                            CARD
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium">**** **** **** 4242</p>
+                            <p className="text-xs text-gray-500">Expires 12/2025</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" size="sm">
+                          Update
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Billing History */}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
+                      Recent Invoices
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium">Pro Plan - January 2024</p>
+                          <p className="text-xs text-gray-500">Paid on Jan 1, 2024</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-medium">$29.00</p>
+                          <Button variant="ghost" size="sm">Download</Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

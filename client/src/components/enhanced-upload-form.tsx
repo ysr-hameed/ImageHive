@@ -70,6 +70,21 @@ export function EnhancedUploadForm() {
     watermark: false, // Added watermark state
   });
 
+  // Added state for new upload options
+  const [privacy, setPrivacy] = useState('public');
+  const [quality, setQuality] = useState(80);
+  const [width, setWidth] = useState('');
+  const [height, setHeight] = useState('');
+  const [cropMode, setCropMode] = useState('fit');
+  const [description, setDescription] = useState('');
+  const [tags, setTags] = useState('');
+  const [folder, setFolder] = useState('');
+  const [autoEnhance, setAutoEnhance] = useState(false);
+  const [generateThumbs, setGenerateThumbs] = useState(false);
+  const [stripExif, setStripExif] = useState(false);
+  const [progressive, setProgressive] = useState(false);
+
+
   if (!isAuthenticated) {
     return (
       <Card>
@@ -113,6 +128,21 @@ export function EnhancedUploadForm() {
       if (transforms.grayscale) formData.append('grayscale', 'true');
       if (transforms.sharpen) formData.append('sharpen', 'true');
       if (transforms.watermark) formData.append('watermark', 'true'); // Append watermark if selected
+
+      // Append new upload options
+      formData.append('privacy', privacy);
+      formData.append('quality', quality.toString());
+      if (width) formData.append('width', width);
+      if (height) formData.append('height', height);
+      formData.append('cropMode', cropMode);
+      if (description) formData.append('description', description);
+      if (tags) formData.append('tags', tags);
+      if (folder) formData.append('folder', folder);
+      formData.append('autoEnhance', autoEnhance.toString());
+      formData.append('generateThumbs', generateThumbs.toString());
+      formData.append('stripExif', stripExif.toString());
+      formData.append('progressive', progressive.toString());
+
 
       console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
       console.log('FormData contents:');

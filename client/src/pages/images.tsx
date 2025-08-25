@@ -26,10 +26,11 @@ import {
   Star,
   Clock,
   Settings,
-  MoreVertical
+  MoreVertical,
+  AlertCircle,
+  RefreshCw
 } from "lucide-react";
 import { Link } from "wouter";
-import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 
 interface ImageData {
   id: string;
@@ -58,18 +59,27 @@ export default function Images() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: images, isLoading, error } = useQuery({
+  const { data: imagesResponse, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/v1/images", { search: searchQuery, tags: selectedTags, privacy: privacyFilter, sort: sortBy }],
     queryFn: async () => {
-      const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
-      if (selectedTags.length > 0) params.append('tags', selectedTags.join(','));
-      if (privacyFilter !== 'all') params.append('privacy', privacyFilter);
-      params.append('sort', sortBy);
-      
-      return apiRequest('GET', `/api/v1/images?${params.toString()}`);
+      try {
+        const params = new URLSearchParams();
+        if (searchQuery) params.append('search', searchQuery);
+        if (selectedTags.length > 0) params.append('tags', selectedTags.join(','));
+        if (privacyFilter !== 'all') params.append('privacy', privacyFilter);
+        params.append('sort', sortBy);
+        
+        return await apiRequest('GET', `/api/v1/images?${params.toString()}`);
+      } catch (error) {
+        console.error('Images query error:', error);
+        throw error;
+      }
     },
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
+
+  const images = Array.isArray(imagesResponse) ? imagesResponse : (imagesResponse?.images || []);
 
   const deleteMutation = useMutation({
     mutationFn: async (imageIds: string[]) => {
@@ -266,16 +276,22 @@ export default function Images() {
           </div>
         ) : error ? (
           <div className="text-center py-12">
-            <FileImage className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
               Error Loading Images
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {error.message || 'Failed to load images'}
+              {error.message || 'Failed to load images. Please check your connection.'}
             </p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
+            <div className="flex gap-2 justify-center">
+              <Button onClick={() => refetch()} variant="outline">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry
+              </Button>
+              <Button onClick={() => window.location.reload()}>
+                Reload Page
+              </Button>
+            </div>
           </div>
         ) : !images?.length ? (
           <div className="text-center py-12">

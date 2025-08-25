@@ -20,6 +20,20 @@ export default function Dashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
 
+  // Handle OAuth redirect with token
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    if (token) {
+      localStorage.setItem('token', token);
+      // Remove token from URL
+      window.history.replaceState({}, document.title, '/dashboard');
+      // Reload to refresh auth state
+      window.location.reload();
+    }
+  }, []);
+
   // Don't render dashboard if not authenticated
   if (!isAuthenticated && !authLoading) {
     window.location.href = "/auth/login";

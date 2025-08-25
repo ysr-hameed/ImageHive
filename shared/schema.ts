@@ -1,4 +1,3 @@
-
 import { pgTable, text, varchar, uuid, timestamp, boolean, bigint, integer, jsonb } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -19,6 +18,9 @@ export const users = pgTable('users', {
   resetToken: text('reset_token'),
   resetTokenExpiry: timestamp('reset_token_expiry'),
   status: varchar('status', { length: 20 }).default('active'),
+  oauthProvider: varchar('oauth_provider', { length: 50 }), // 'google', 'github', etc.
+  oauthId: varchar('oauth_id', { length: 255 }),
+  subscribeNewsletter: boolean('subscribe_newsletter').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });

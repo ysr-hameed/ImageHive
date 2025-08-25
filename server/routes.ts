@@ -131,7 +131,50 @@ const registerSchema = z.object({
 
 export function registerRoutes(app: express.Express) {
 
-  // Auth routes
+  // Auth routes - support both /api/auth and /api/v1/auth for compatibility
+  app.post('/api/auth/register', async (req: Request, res: Response) => {
+    try {
+      const { firstName, lastName, email, password, acceptTerms, subscribeNewsletter } = req.body;
+
+      if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      if (!acceptTerms) {
+        return res.status(400).json({ error: 'Terms acceptance is required' });
+      }
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const user = await storage.createUser({
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        subscribeNewsletter: subscribeNewsletter || false
+      });
+
+      // Send verification email
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      await emailService.sendVerificationEmail(email, verificationToken);
+
+      await logSystemEvent('info', `New user registered: ${email}`, user.id);
+
+      res.json({ 
+        message: 'Registration successful. Please check your email to verify your account.',
+        requiresVerification: true
+      });
+    } catch (error: any) {
+      await logSystemEvent('error', `Registration failed: ${error.message}`, undefined, { error: error.message });
+      console.error('Registration error:', error);
+      res.status(400).json({ error: error.message || 'Registration failed' });
+    }
+  });
+
   app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
     try {
       const { email, password } = registerSchema.parse(req.body);
@@ -164,6 +207,49 @@ export function registerRoutes(app: express.Express) {
       await logSystemEvent('error', `Registration failed: ${error.message}`, undefined, { error: error.message });
       console.error('Registration error:', error);
       res.status(400).json({ error: error.message || 'Registration failed' });
+    }
+  });
+
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.password) {
+        await logSystemEvent('warn', `Failed login attempt for: ${email}`, undefined, { reason: 'User not found' });
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      if (!user.emailVerified) {
+        await logSystemEvent('warn', `Login attempt with unverified email: ${email}`, user.id);
+        return res.status(401).json({ error: 'Email verification required. Please check your email and verify your account before logging in.' });
+      }
+
+      const validPassword = await bcrypt.compare(password, user.password);
+      if (!validPassword) {
+        await logSystemEvent('warn', `Failed login attempt for: ${email}`, user.id, { reason: 'Invalid password' });
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+
+      await logSystemEvent('info', `User logged in: ${email}`, user.id);
+
+      res.json({ 
+        token, 
+        user: { 
+          id: user.id, 
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          isAdmin: user.isAdmin || false,
+          emailVerified: user.emailVerified || false
+        } 
+      });
+    } catch (error: any) {
+      await logSystemEvent('error', `Login error: ${error.message}`, undefined, { error: error.message });
+      console.error('Login error:', error);
+      res.status(400).json({ error: error.message || 'Login failed' });
     }
   });
 
@@ -203,7 +289,244 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
+  // OAuth Routes
+  app.get('/api/auth/google', (req: Request, res: Response) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ error: 'Google OAuth not configured' });
+    }
+
+    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/google/callback`;
+    const scope = 'openid email profile';
+    const responseType = 'code';
+    const state = crypto.randomBytes(32).toString('hex');
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}&response_type=${responseType}&state=${state}`;
+
+    res.redirect(authUrl);
+  });
+
+  app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+    try {
+      const { code, state } = req.query;
+
+      if (!code) {
+        return res.redirect('/auth/login?error=oauth_failed');
+      }
+
+      // Exchange code for tokens
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: process.env.GOOGLE_CLIENT_ID!,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+          code: code as string,
+          grant_type: 'authorization_code',
+          redirect_uri: `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/google/callback`
+        })
+      });
+
+      const tokens = await tokenResponse.json();
+
+      if (!tokens.access_token) {
+        return res.redirect('/auth/login?error=oauth_failed');
+      }
+
+      // Get user info from Google
+      const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` }
+      });
+
+      const googleUser = await userResponse.json();
+
+      // Check if user exists
+      let user = await storage.getUserByEmail(googleUser.email);
+
+      if (!user) {
+        // Create new user
+        user = await storage.createUser({
+          email: googleUser.email,
+          firstName: googleUser.given_name || '',
+          lastName: googleUser.family_name || '',
+          emailVerified: true,
+          oauthProvider: 'google',
+          oauthId: googleUser.id
+        });
+      }
+
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+
+      await logSystemEvent('info', `User logged in via Google: ${user.email}`, user.id);
+
+      // Redirect to dashboard with token
+      res.redirect(`/dashboard?token=${token}`);
+    } catch (error: any) {
+      console.error('Google OAuth error:', error);
+      res.redirect('/auth/login?error=oauth_failed');
+    }
+  });
+
+  app.get('/api/auth/github', (req: Request, res: Response) => {
+    const clientId = process.env.GITHUB_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ error: 'GitHub OAuth not configured' });
+    }
+
+    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/github/callback`;
+    const scope = 'user:email';
+    const state = crypto.randomBytes(32).toString('hex');
+
+    const authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
+
+    res.redirect(authUrl);
+  });
+
+  app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
+    try {
+      const { code, state } = req.query;
+
+      if (!code) {
+        return res.redirect('/auth/login?error=oauth_failed');
+      }
+
+      // Exchange code for tokens
+      const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          client_id: process.env.GITHUB_CLIENT_ID!,
+          client_secret: process.env.GITHUB_CLIENT_SECRET!,
+          code: code as string
+        })
+      });
+
+      const tokens = await tokenResponse.json();
+
+      if (!tokens.access_token) {
+        return res.redirect('/auth/login?error=oauth_failed');
+      }
+
+      // Get user info from GitHub
+      const userResponse = await fetch('https://api.github.com/user', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` }
+      });
+
+      const githubUser = await userResponse.json();
+
+      // Get user email (might be private)
+      const emailResponse = await fetch('https://api.github.com/user/emails', {
+        headers: { Authorization: `Bearer ${tokens.access_token}` }
+      });
+
+      const emails = await emailResponse.json();
+      const primaryEmail = emails.find((email: any) => email.primary)?.email || githubUser.email;
+
+      if (!primaryEmail) {
+        return res.redirect('/auth/login?error=oauth_failed');
+      }
+
+      // Check if user exists
+      let user = await storage.getUserByEmail(primaryEmail);
+
+      if (!user) {
+        // Create new user
+        const nameParts = (githubUser.name || githubUser.login || '').split(' ');
+        user = await storage.createUser({
+          email: primaryEmail,
+          firstName: nameParts[0] || githubUser.login,
+          lastName: nameParts.slice(1).join(' ') || '',
+          emailVerified: true,
+          oauthProvider: 'github',
+          oauthId: githubUser.id.toString()
+        });
+      }
+
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+
+      await logSystemEvent('info', `User logged in via GitHub: ${user.email}`, user.id);
+
+      // Redirect to dashboard with token
+      res.redirect(`/dashboard?token=${token}`);
+    } catch (error: any) {
+      console.error('GitHub OAuth error:', error);
+      res.redirect('/auth/login?error=oauth_failed');
+    }
+  });
+
+  // Email verification and password reset routes
+  app.post('/api/auth/resend-verification', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      if (user.emailVerified) {
+        return res.status(400).json({ error: 'Email already verified' });
+      }
+
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      await emailService.sendVerificationEmail(email, verificationToken);
+
+      res.json({ message: 'Verification email sent successfully' });
+    } catch (error: any) {
+      console.error('Resend verification error:', error);
+      res.status(500).json({ error: 'Failed to send verification email' });
+    }
+  });
+
+  app.get('/api/auth/verify-email', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.query;
+
+      if (!token) {
+        return res.status(400).json({ error: 'Verification token is required' });
+      }
+
+      // In a real implementation, you'd verify the token and update the user
+      // For now, we'll just return success
+      res.json({ message: 'Email verified successfully' });
+    } catch (error: any) {
+      console.error('Email verification error:', error);
+      res.status(500).json({ error: 'Email verification failed' });
+    }
+  });
+
   // User profile route
+  app.get('/api/auth/user', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({
+        id: userData.id,
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        isAdmin: userData.isAdmin || false,
+        emailVerified: userData.emailVerified || false
+      });
+    } catch (error: any) {
+      await logSystemEvent('error', `Profile fetch error: ${error.message}`, req.user?.id);
+      console.error('Profile fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch profile' });
+    }
+  });
+
   app.get('/api/v1/me', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;

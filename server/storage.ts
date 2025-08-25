@@ -3,6 +3,7 @@ import { neon } from "@neondatabase/serverless";
 import { eq, desc, and, like, sql, count } from "drizzle-orm";
 import { users, images, apiKeys, customDomains, imageAnalytics, systemLogs, notifications } from "@shared/schema"; // Assuming 'notifications' is added to schema
 import crypto from "crypto";
+import { v4 as uuidv4 } from 'uuid';
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -14,14 +15,17 @@ const db = drizzle(client);
 
 export interface CreateUserData {
   email: string;
-  firstName: string;
-  lastName: string;
-  passwordHash: string | null;
-  emailVerified: boolean;
+  firstName?: string;
+  lastName?: string;
+  passwordHash?: string | null;
+  emailVerified?: boolean;
   profileImageUrl?: string | null;
   plan?: string;
   storageUsed?: number;
   storageLimit?: number;
+  oauthProvider?: string;
+  oauthId?: string;
+  subscribeNewsletter?: boolean;
 }
 
 export interface CreateImageData {
@@ -55,15 +59,19 @@ class Storage {
   // User management
   async createUser(userData: CreateUserData) {
     const [user] = await db.insert(users).values({
+      id: uuidv4(),
       email: userData.email,
+      passwordHash: userData.passwordHash,
       firstName: userData.firstName,
       lastName: userData.lastName,
-      passwordHash: userData.passwordHash,
-      emailVerified: userData.emailVerified,
+      emailVerified: userData.emailVerified || false,
       profileImageUrl: userData.profileImageUrl,
       plan: userData.plan || 'free',
       storageUsed: userData.storageUsed || 0,
       storageLimit: userData.storageLimit || 1024 * 1024 * 1024, // 1GB
+      oauthProvider: userData.oauthProvider,
+      oauthId: userData.oauthId,
+      subscribeNewsletter: userData.subscribeNewsletter || false,
     }).returning();
 
     console.log(`User created: ${user.email}`);
@@ -276,7 +284,7 @@ class Storage {
 
   async getCustomDomainByHost(host: string | undefined) {
     if (!host) return null;
-    
+
     const [domain] = await db.select().from(customDomains)
       .where(and(
         eq(customDomains.domain, host),
@@ -289,7 +297,7 @@ class Storage {
     // Clean path should match either:
     // 1. Direct filename (image.jpg)
     // 2. Folder/filename (myfolder/image.jpg)
-    
+
     const [image] = await db.select().from(images)
       .where(and(
         eq(images.userId, userId),
@@ -404,7 +412,7 @@ class Storage {
       // In production, verify DNS records here
       // For now, simulate verification after some delay
       console.log(`Verifying domain: ${domain.domain}`);
-      
+
       await db.update(customDomains)
         .set({
           isVerified: true,
@@ -431,7 +439,7 @@ class Storage {
 
     // Delete domain
     await db.delete(customDomains).where(eq(customDomains.id, domainId));
-    
+
     console.log(`Custom domain deleted: ${domainId}`);
   }
 
@@ -528,10 +536,10 @@ class Storage {
   async deleteImage(imageId: string) {
     // Delete analytics first
     await db.delete(imageAnalytics).where(eq(imageAnalytics.imageId, imageId));
-    
+
     // Delete image
     await db.delete(images).where(eq(images.id, imageId));
-    
+
     console.log(`Image deleted: ${imageId}`);
   }
 

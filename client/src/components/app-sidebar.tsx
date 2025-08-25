@@ -1,8 +1,7 @@
-import { useLocation, Link } from 'wouter';
-import { useAuth } from '@/hooks/useAuth';
-import { useTheme } from '@/components/theme-provider';
-import { useMutation } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
+
+import * as React from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { Link, useLocation } from "wouter";
 import {
   Sidebar,
   SidebarContent,
@@ -15,275 +14,361 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
-  SidebarMenuSubItem,
   SidebarMenuSubButton,
-  SidebarSeparator,
-} from '@/components/ui/sidebar';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+  SidebarMenuSubItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
-  BarChart3,
+  Home,
   Upload,
-  Image as ImageIcon,
+  Images,
+  FolderOpen,
+  BarChart3,
   Key,
   Settings,
-  LogOut,
-  Moon,
-  Sun,
   Shield,
-  Users,
-  Database,
-  ChevronUp,
-  Zap,
-  FileImage,
-  Folder,
-  Star,
-  Clock,
-  Activity,
-  UserIcon,
+  Bell,
   CreditCard,
-  ChevronDown
-} from 'lucide-react';
+  BookOpen,
+  Activity,
+  User,
+  LogOut,
+  ChevronDown,
+  Mail,
+  HelpCircle,
+  Zap
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-const data = {
+// Menu data
+const mainMenuData = {
   navMain: [
     {
-      title: 'Dashboard',
-      url: '/dashboard',
-      icon: BarChart3,
+      title: "Dashboard",
+      url: "/dashboard",
+      icon: Home,
     },
     {
-      title: 'Images',
-      url: '/images',
-      icon: ImageIcon,
-    },
-    {
-      title: 'Upload',
-      url: '/upload',
+      title: "Upload",
+      url: "/upload", 
       icon: Upload,
     },
     {
-      title: 'Analytics',
-      url: '/analytics',
-      icon: Activity,
+      title: "Images",
+      url: "/images",
+      icon: Images,
     },
     {
-      title: 'API Keys',
-      url: '/api-keys',
+      title: "Collections",
+      url: "/collections",
+      icon: FolderOpen,
+    },
+  ],
+  navSecondary: [
+    {
+      title: "Analytics",
+      url: "/analytics",
+      icon: BarChart3,
+    },
+    {
+      title: "API Keys",
+      url: "/api-keys",
       icon: Key,
     },
     {
-      title: 'API Docs',
-      url: '/docs',
-      icon: FileImage,
+      title: "Activity",
+      url: "/activity", 
+      icon: Activity,
     },
     {
-      title: 'Settings',
-      url: '/settings',
+      title: "Notifications",
+      url: "/notifications",
+      icon: Bell,
+    },
+  ],
+  navSettings: [
+    {
+      title: "Settings",
+      url: "/settings",
       icon: Settings,
+    },
+    {
+      title: "Plans & Billing",
+      url: "/plans",
+      icon: CreditCard,
+    },
+    {
+      title: "Documentation",
+      url: "/docs",
+      icon: BookOpen,
     },
   ],
 };
 
-export function AppSidebar() {
-  const [location, navigate] = useLocation();
-  const { user } = useAuth();
-  const { theme, setTheme } = useTheme();
+export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, logout } = useAuth();
+  const [location] = useLocation();
+  const { toast } = useToast();
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('POST', '/api/auth/logout', {});
-    },
-    onSettled: () => {
-      // Force a full page reload to clear all state
-      window.location.href = '/';
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
     }
-  });
-
-  const toggleTheme = () => {
-    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   const getPlanColor = (plan: string) => {
     switch (plan) {
-      case 'free':
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-      case 'starter':
-        return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
-      case 'pro':
-        return 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200';
-      case 'enterprise':
-        return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      case 'free': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      case 'starter': return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
+      case 'pro': return 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200';
+      case 'enterprise': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200';
+      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
   };
 
-  const logout = () => {
-    logoutMutation.mutate();
+  const getUserInitials = (email: string) => {
+    return email.substring(0, 2).toUpperCase();
   };
 
-  const handleLogout = logout;
-
   return (
-    <Sidebar collapsible="icon" className="bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700">
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-3 px-1 py-2 text-left text-sm">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gradient-to-r from-brand-500 to-emerald-500 text-white">
-            <FileImage className="h-5 w-5" />
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-semibold text-lg">ImageVault</span>
-            <span className="truncate text-xs text-sidebar-foreground/70 mt-1">
-              {user?.plan || 'Free'} Plan
-            </span>
-          </div>
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        <div className="flex items-center justify-between px-4 py-2">
+          <Link href="/dashboard">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">IV</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-lg leading-none">ImageVault</span>
+                <span className="text-xs text-gray-500">Professional</span>
+              </div>
+            </div>
+          </Link>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Navigation
-          </SidebarGroupLabel>
-          <SidebarGroupContent className="space-y-1">
-            <SidebarMenu className="space-y-1">
-              {data.navMain.map((item) => {
-                const isActive = location === item.url || (item.url !== '/' && location.startsWith(item.url));
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive} className="h-10 px-3 py-2">
-                      <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="ml-3">{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                );
-              })}
+          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainMenuData.navMain.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={location === item.url}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Analytics & Tools</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainMenuData.navSecondary.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={location === item.url}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {mainMenuData.navSettings.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={location === item.url}
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {user?.isAdmin && (
-          <>
-            <SidebarSeparator className="my-4" />
-            <SidebarGroup>
-              <SidebarGroupLabel className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Admin
-              </SidebarGroupLabel>
-              <SidebarGroupContent className="space-y-1">
-                <SidebarMenu className="space-y-1">
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={location === '/admin'} className="h-10 px-3 py-2">
-                      <Link href="/admin">
-                        <Shield className="h-4 w-4" />
-                        <span className="ml-3">Admin Panel</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          </>
+          <SidebarGroup>
+            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    asChild
+                    isActive={location === "/admin"}
+                  >
+                    <Link href="/admin">
+                      <Shield className="w-4 h-4" />
+                      <span>Admin Panel</span>
+                      <Badge className="ml-auto bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                        Admin
+                      </Badge>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter>
         <SidebarMenu>
-          {/* Current Plan Display */}
-          {user?.plan && (
-            <SidebarMenuItem>
-              <div className="px-3 py-2 mb-2">
-                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Current Plan</div>
-                <Badge className={`${getPlanColor(user.plan)} text-xs w-full justify-center`}>
-                  {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)} Plan
-                </Badge>
-              </div>
-            </SidebarMenuItem>
-          )}
-
-          {/* Plan Upgrade Button */}
-          {user?.plan !== 'enterprise' && (
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild className="h-10 px-3 py-2">
-                <Link href="/plans">
-                  <Zap className="h-4 w-4" />
-                  <span className="ml-3">Upgrade Plan</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          )}
-
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="p-0 h-auto hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full"
+                <SidebarMenuButton
+                  size="lg"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
-                      {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                      {user?.email ? getUserInitials(user.email) : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                </Button>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">
+                      {user?.email || 'User'}
+                    </span>
+                    <Badge className={`w-fit text-xs ${getPlanColor(user?.plan || 'free')}`}>
+                      {(user?.plan || 'free').charAt(0).toUpperCase() + (user?.plan || 'free').slice(1)}
+                    </Badge>
+                  </div>
+                  <ChevronDown className="ml-auto size-4" />
+                </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
+                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+                side="bottom"
                 align="end"
-                className="w-64"
+                sideOffset={4}
               >
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {user.name || 'User'}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {user.email}
-                    </p>
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <Avatar className="h-8 w-8 rounded-lg">
+                      <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                        {user?.email ? getUserInitials(user.email) : 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">
+                        {user?.email || 'User Account'}
+                      </span>
+                      <span className="truncate text-xs text-muted-foreground">
+                        {user?.email}
+                      </span>
+                    </div>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <a href="/settings" className="cursor-pointer">
-                    <Settings className="size-4 mr-2" />
-                    Settings
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href="/profile" className="cursor-pointer">
-                    <UserIcon className="size-4 mr-2" />
-                    Profile
-                  </a>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href="/plans" className="cursor-pointer">
-                    <CreditCard className="size-4 mr-2" />
-                    Billing
-                  </a>
-                </DropdownMenuItem>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard" className="cursor-pointer">
+                      <Home className="mr-2 h-4 w-4" />
+                      Dashboard
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/settings" className="cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      Profile Settings
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/plans" className="cursor-pointer">
+                      <Zap className="mr-2 h-4 w-4" />
+                      Upgrade Plan
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/api-keys" className="cursor-pointer">
+                      <Key className="mr-2 h-4 w-4" />
+                      API Keys
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="cursor-pointer text-red-600 focus:text-red-600"
-                  onClick={handleLogout}
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link href="/notifications" className="cursor-pointer">
+                      <Bell className="mr-2 h-4 w-4" />
+                      Notifications
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/activity" className="cursor-pointer">
+                      <Activity className="mr-2 h-4 w-4" />
+                      Recent Activity
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/docs" className="cursor-pointer">
+                      <HelpCircle className="mr-2 h-4 w-4" />
+                      Help & Docs
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onSelect={handleLogout}
+                  className="text-red-600 dark:text-red-400 cursor-pointer"
                 >
-                  <LogOut className="size-4 mr-2" />
-                  Log out
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 }

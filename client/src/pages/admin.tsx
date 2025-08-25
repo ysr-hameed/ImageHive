@@ -353,11 +353,13 @@ export default function Admin() {
 
       {/* Main Admin Tabs */}
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
+          <TabsTrigger value="seo">SEO</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
           <TabsTrigger value="logs">Logs</TabsTrigger>
         </TabsList>
@@ -836,6 +838,174 @@ export default function Admin() {
                         <span className="text-gray-500">+{stats?.userGrowth || 0}%</span>
                       </div>
                     </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Email Management */}
+        <TabsContent value="email">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">Email Campaign Management</h3>
+              <Button onClick={() => setSelectedUser({ createCampaign: true })}>
+                <Mail className="w-4 h-4 mr-2" />
+                Create Campaign
+              </Button>
+            </div>
+
+            {/* Email campaigns would be loaded here */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Email Campaigns</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center py-8 text-gray-500">
+                    <Mail className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No email campaigns yet. Create your first campaign to get started.</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Quick notification sender */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Send Quick Notification</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="notifTitle">Title</Label>
+                    <Input id="notifTitle" placeholder="Important announcement..." />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="notifMessage">Message</Label>
+                    <Textarea id="notifMessage" placeholder="Your message here..." rows={3} />
+                  </div>
+
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="sendEmail" />
+                      <Label htmlFor="sendEmail">Send Email</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch id="isGlobal" />
+                      <Label htmlFor="isGlobal">Send to All Users</Label>
+                    </div>
+                  </div>
+
+                  <Button className="w-full">
+                    <Bell className="w-4 h-4 mr-2" />
+                    Send Notification
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* SEO Management */}
+        <TabsContent value="seo">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium">SEO Settings Management</h3>
+              <Button onClick={() => setSelectedUser({ createSeo: true })}>
+                <Globe className="w-4 h-4 mr-2" />
+                Add SEO Settings
+              </Button>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Page SEO Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="pageType">Page Type</Label>
+                      <Select>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select page type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="home">Home Page</SelectItem>
+                          <SelectItem value="dashboard">Dashboard</SelectItem>
+                          <SelectItem value="upload">Upload Page</SelectItem>
+                          <SelectItem value="images">Images Gallery</SelectItem>
+                          <SelectItem value="docs">Documentation</SelectItem>
+                          <SelectItem value="global">Global Settings</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="seoTitle">Page Title</Label>
+                      <Input id="seoTitle" placeholder="ImageVault - Professional Image Hosting" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="seoDescription">Meta Description</Label>
+                      <Textarea id="seoDescription" placeholder="Professional image hosting and API platform..." rows={3} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="seoKeywords">Keywords</Label>
+                      <Input id="seoKeywords" placeholder="image hosting, cdn, api, storage" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Social Media & Open Graph</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ogTitle">OG Title</Label>
+                      <Input id="ogTitle" placeholder="ImageVault - Professional Image Hosting" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="ogDescription">OG Description</Label>
+                      <Textarea id="ogDescription" placeholder="Professional image hosting..." rows={2} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="ogImage">OG Image URL</Label>
+                      <Input id="ogImage" placeholder="https://example.com/og-image.jpg" />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="canonicalUrl">Canonical URL</Label>
+                      <Input id="canonicalUrl" placeholder="https://imagevault.com/" />
+                    </div>
+
+                    <Button className="w-full">
+                      <Globe className="w-4 h-4 mr-2" />
+                      Update SEO Settings
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Existing SEO Settings</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center py-8 text-gray-500">
+                    <Globe className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>SEO settings will be displayed here once configured.</p>
                   </div>
                 </div>
               </CardContent>

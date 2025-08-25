@@ -15,6 +15,7 @@ import { storage } from "./storage";
 import { emailService } from './services/emailService';
 import { processImage, getImageInfo } from './services/imageProcessor';
 import { uploadToBackblaze, deleteFromBackblaze } from './services/backblaze';
+import { seoSettings, emailCampaigns, emailLogs } from '../shared/schema';
 import os from 'os';
 import fs from 'fs';
 import { promisify } from 'util';
@@ -837,6 +838,316 @@ export function registerRoutes(app: express.Express) {
       await logSystemEvent('error', `Admin delete notification error: ${error.message}`, req.user?.id);
       console.error('Admin delete notification error:', error);
       res.status(500).json({ error: 'Failed to delete notification' });
+    }
+  });
+
+  // SEO Management Routes
+  app.get('/api/v1/admin/seo', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const adminUser = await storage.getUser(user.id);
+
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const seoList = await db.select().from(seoSettings).orderBy(desc(seoSettings.updatedAt));
+      res.json(seoList);
+    } catch (error: any) {
+      await logSystemEvent('error', `SEO fetch error: ${error.message}`, req.user?.id);
+      console.error('SEO fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch SEO settings' });
+    }
+  });
+
+  app.post('/api/v1/admin/seo', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const adminUser = await storage.getUser(user.id);
+
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const {
+        pageType, title, description, keywords, ogTitle, ogDescription, ogImage,
+        twitterTitle, twitterDescription, twitterImage, canonicalUrl, robots,
+        structuredData, isActive
+      } = req.body;
+
+      if (!pageType) {
+        return res.status(400).json({ error: 'Page type is required' });
+      }
+
+      // Check if SEO setting for this page type already exists
+      const existingSeo = await db.select()
+        .from(seoSettings)
+        .where(eq(seoSettings.pageType, pageType))
+        .limit(1);
+
+      let seoSetting;
+      if (existingSeo.length > 0) {
+        // Update existing
+        [seoSetting] = await db.update(seoSettings)
+          .set({
+            title, description, keywords, ogTitle, ogDescription, ogImage,
+            twitterTitle, twitterDescription, twitterImage, canonicalUrl, robots,
+            structuredData: structuredData ? JSON.stringify(structuredData) : null,
+            isActive: isActive !== undefined ? isActive : true,
+            updatedAt: new Date()
+          })
+          .where(eq(seoSettings.pageType, pageType))
+          .returning();
+      } else {
+        // Create new
+        [seoSetting] = await db.insert(seoSettings).values({
+          id: uuidv4(),
+          pageType, title, description, keywords, ogTitle, ogDescription, ogImage,
+          twitterTitle, twitterDescription, twitterImage, canonicalUrl, robots,
+          structuredData: structuredData ? JSON.stringify(structuredData) : null,
+          isActive: isActive !== undefined ? isActive : true
+        }).returning();
+      }
+
+      await logSystemEvent('info', `SEO settings updated for page: ${pageType}`, user.id);
+      res.json({ success: true, seoSetting });
+    } catch (error: any) {
+      await logSystemEvent('error', `SEO update error: ${error.message}`, req.user?.id);
+      console.error('SEO update error:', error);
+      res.status(500).json({ error: 'Failed to update SEO settings' });
+    }
+  });
+
+  app.get('/api/v1/seo/:pageType', async (req: Request, res: Response) => {
+    try {
+      const { pageType } = req.params;
+      const [seo] = await db.select()
+        .from(seoSettings)
+        .where(and(eq(seoSettings.pageType, pageType), eq(seoSettings.isActive, true)))
+        .limit(1);
+
+      res.json(seo || null);
+    } catch (error: any) {
+      console.error('SEO fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch SEO settings' });
+    }
+  });
+
+  // Email Campaign Management Routes
+  app.get('/api/v1/admin/email-campaigns', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const adminUser = await storage.getUser(user.id);
+
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const campaigns = await db.select().from(emailCampaigns).orderBy(desc(emailCampaigns.createdAt));
+      res.json(campaigns);
+    } catch (error: any) {
+      await logSystemEvent('error', `Email campaigns fetch error: ${error.message}`, req.user?.id);
+      console.error('Email campaigns fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch email campaigns' });
+    }
+  });
+
+  app.post('/api/v1/admin/email-campaigns', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const adminUser = await storage.getUser(user.id);
+
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { name, subject, htmlContent, textContent, templateType, targetAudience, targetUserIds, scheduledAt } = req.body;
+
+      if (!name || !subject || !htmlContent) {
+        return res.status(400).json({ error: 'Name, subject, and HTML content are required' });
+      }
+
+      const campaignId = await emailService.createEmailCampaign({
+        name,
+        subject,
+        htmlContent,
+        textContent,
+        templateType,
+        targetAudience,
+        targetUserIds,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+        createdBy: user.id
+      });
+
+      await logSystemEvent('info', `Email campaign created: ${name}`, user.id);
+      res.json({ success: true, campaignId, message: 'Email campaign created successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Email campaign creation error: ${error.message}`, req.user?.id);
+      console.error('Email campaign creation error:', error);
+      res.status(500).json({ error: 'Failed to create email campaign' });
+    }
+  });
+
+  app.post('/api/v1/admin/email-campaigns/:id/send', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const adminUser = await storage.getUser(user.id);
+
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { id } = req.params;
+      const success = await emailService.sendCampaign(id);
+
+      if (success) {
+        await logSystemEvent('info', `Email campaign sent: ${id}`, user.id);
+        res.json({ success: true, message: 'Email campaign sent successfully' });
+      } else {
+        res.status(500).json({ error: 'Failed to send email campaign' });
+      }
+    } catch (error: any) {
+      await logSystemEvent('error', `Email campaign send error: ${error.message}`, req.user?.id);
+      console.error('Email campaign send error:', error);
+      res.status(500).json({ error: 'Failed to send email campaign' });
+    }
+  });
+
+  app.get('/api/v1/admin/email-logs/:campaignId?', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const adminUser = await storage.getUser(user.id);
+
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { campaignId } = req.params;
+      
+      let query = db.select().from(emailLogs).orderBy(desc(emailLogs.createdAt)).limit(100);
+      
+      if (campaignId) {
+        query = query.where(eq(emailLogs.campaignId, campaignId));
+      }
+
+      const logs = await query;
+      res.json(logs);
+    } catch (error: any) {
+      await logSystemEvent('error', `Email logs fetch error: ${error.message}`, req.user?.id);
+      console.error('Email logs fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch email logs' });
+    }
+  });
+
+  // Email tracking routes (for opens, clicks, etc.)
+  app.get('/api/v1/email/track/open/:trackingId', async (req: Request, res: Response) => {
+    try {
+      const { trackingId } = req.params;
+      
+      // Update email log with opened status
+      await db.update(emailLogs)
+        .set({ status: 'opened', openedAt: new Date() })
+        .where(eq(emailLogs.id, trackingId));
+
+      // Return 1x1 transparent pixel
+      const pixel = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
+        'base64'
+      );
+      
+      res.set({
+        'Content-Type': 'image/png',
+        'Content-Length': pixel.length,
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      });
+      
+      res.send(pixel);
+    } catch (error) {
+      console.error('Email tracking error:', error);
+      res.status(500).send('Tracking error');
+    }
+  });
+
+  // Enhanced notification system with email support
+  app.post('/api/v1/admin/send-notification', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const adminUser = await storage.getUser(user.id);
+
+      if (!adminUser?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { 
+        userIds, title, message, type, category, sendEmail, actionUrl, actionLabel, expiresAt, isGlobal 
+      } = req.body;
+
+      if (!title || !message) {
+        return res.status(400).json({ error: 'Title and message are required' });
+      }
+
+      let targetUsers: string[] = [];
+
+      if (isGlobal) {
+        // Send to all users
+        const allUsers = await db.select({ id: users.id }).from(users);
+        targetUsers = allUsers.map(u => u.id);
+      } else if (userIds && userIds.length > 0) {
+        targetUsers = userIds;
+      } else {
+        return res.status(400).json({ error: 'Either specify user IDs or set as global notification' });
+      }
+
+      let sentCount = 0;
+      
+      // Create notifications for each user
+      for (const userId of targetUsers) {
+        try {
+          const notification = {
+            id: uuidv4(),
+            userId,
+            title,
+            message,
+            type: type || 'info',
+            category: category || 'general',
+            sendEmail: !!sendEmail,
+            actionUrl,
+            actionLabel,
+            expiresAt: expiresAt ? new Date(expiresAt) : null,
+            isGlobal: !!isGlobal
+          };
+
+          await db.insert(notifications).values(notification);
+
+          // Send email if requested
+          if (sendEmail) {
+            const emailSent = await emailService.sendNotificationEmail(userId, title, message, actionUrl);
+            
+            if (emailSent) {
+              await db.update(notifications)
+                .set({ emailSent: true })
+                .where(eq(notifications.id, notification.id));
+            }
+          }
+
+          sentCount++;
+        } catch (error) {
+          console.error(`Failed to create notification for user ${userId}:`, error);
+        }
+      }
+
+      await logSystemEvent('info', `Notifications sent to ${sentCount} users`, user.id, { title, sendEmail });
+      res.json({ 
+        success: true, 
+        message: `Notifications sent to ${sentCount} users`,
+        sentCount 
+      });
+    } catch (error: any) {
+      await logSystemEvent('error', `Send notification error: ${error.message}`, req.user?.id);
+      console.error('Send notification error:', error);
+      res.status(500).json({ error: 'Failed to send notifications' });
     }
   });
 

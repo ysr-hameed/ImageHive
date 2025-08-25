@@ -6,51 +6,69 @@ import { useState } from "react";
 const plans = [
   {
     name: "Free",
-    price: { monthly: 0, yearly: 0 },
+    price: "$0",
+    period: "forever",
+    description: "Perfect for personal projects and testing",
     features: [
-      "1GB Storage",
-      "10K API Requests",
-      "Basic Support"
+      "2 GB storage",
+      "5,000 API requests/month",
+      "Basic image optimization",
+      "HTTPS & CDN included",
+      "Community support"
     ],
     cta: "Get Started",
-    popular: false,
+    popular: false
   },
   {
     name: "Starter",
-    price: { monthly: 19, yearly: 15 },
+    price: "$5",
+    period: "/month",
+    description: "Great for small businesses and portfolios",
     features: [
-      "100GB Storage",
-      "1M API Requests",
-      "Custom Domain",
-      "Email Support"
+      "25 GB storage",
+      "25,000 API requests/month",
+      "Advanced image processing",
+      "Custom domains",
+      "Email support",
+      "Image analytics"
     ],
-    cta: "Choose Plan",
-    popular: false,
+    cta: "Start Free Trial",
+    popular: true
   },
   {
     name: "Pro",
-    price: { monthly: 49, yearly: 39 },
+    price: "$15",
+    period: "/month",
+    description: "For growing applications and teams",
     features: [
-      "1TB Storage",
-      "10M API Requests",
-      "Advanced Analytics",
-      "Priority Support"
+      "100 GB storage",
+      "100,000 API requests/month",
+      "Watermarks & branding",
+      "Batch operations",
+      "Priority support",
+      "Advanced analytics",
+      "Team collaboration"
     ],
-    cta: "Choose Plan",
-    popular: true,
+    cta: "Start Free Trial",
+    popular: false
   },
   {
     name: "Enterprise",
-    price: "Custom",
+    price: "$49",
+    period: "/month",
+    description: "Custom solutions for large-scale applications",
     features: [
-      "Unlimited Storage",
-      "Unlimited Requests", 
-      "99.99% SLA",
-      "Dedicated Support"
+      "500 GB storage",
+      "1M API requests/month",
+      "Custom integrations",
+      "SLA guarantees",
+      "Dedicated support",
+      "Advanced security",
+      "White-label solution"
     ],
     cta: "Contact Sales",
-    popular: false,
-  },
+    popular: false
+  }
 ];
 
 export default function PricingSection() {
@@ -66,7 +84,7 @@ export default function PricingSection() {
           <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
             Start free and scale as you grow. No hidden fees, no surprises.
           </p>
-          
+
           {/* Billing Toggle */}
           <div className="flex items-center justify-center mt-8">
             <span className={`text-sm mr-3 transition-colors ${!isYearly ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>
@@ -97,10 +115,10 @@ export default function PricingSection() {
         <div className="grid lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => {
             const isEnterprise = plan.name === "Enterprise";
-            const price = isEnterprise 
-              ? "Custom" 
-              : isYearly 
-                ? (plan.price as { monthly: number; yearly: number }).yearly 
+            const price = isEnterprise
+              ? "Custom"
+              : isYearly
+                ? (plan.price as { monthly: number; yearly: number }).yearly
                 : (plan.price as { monthly: number; yearly: number }).monthly;
 
             return (
@@ -120,14 +138,14 @@ export default function PricingSection() {
                     </Badge>
                   </div>
                 )}
-                
+
                 <div className="text-center">
                   <h3 className={`text-lg font-semibold mb-2 ${
                     plan.popular ? 'text-white' : 'text-gray-900 dark:text-white'
                   }`}>
                     {plan.name}
                   </h3>
-                  
+
                   <div className="mb-6">
                     {isEnterprise ? (
                       <span className={`text-3xl font-bold ${
@@ -145,12 +163,12 @@ export default function PricingSection() {
                         <span className={`${
                           plan.popular ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'
                         }`}>
-                          /month
+                          {plan.period}
                         </span>
                       </>
                     )}
                   </div>
-                  
+
                   <ul className="space-y-3 mb-8 text-left">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center">
@@ -165,7 +183,7 @@ export default function PricingSection() {
                       </li>
                     ))}
                   </ul>
-                  
+
                   <Button
                     className={`w-full ${
                       plan.popular

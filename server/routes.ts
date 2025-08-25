@@ -129,9 +129,9 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
           isAdmin: user.isAdmin || false,
           plan: user.plan || 'free',
           apiRequestsUsed: user.apiRequestsUsed || 0,
-          apiRequestsLimit: user.apiRequestsLimit || 1000,
+          apiRequestsLimit: user.apiRequestsLimit || 5000,
           storageUsed: user.storageUsed || 0,
-          storageLimit: user.storageLimit || 1024 * 1024 * 1024, // 1GB default
+          storageLimit: user.storageLimit || 2 * 1024 * 1024 * 1024, // 2GB
         };
         return next();
       }
@@ -152,7 +152,7 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
             emailVerified: user.emailVerified || false,
             plan: user.plan || 'free',
             storageUsed: user.storageUsed || 0,
-            storageLimit: user.storageLimit || 1024 * 1024 * 1024,
+            storageLimit: user.storageLimit || 2 * 1024 * 1024 * 1024,
           };
           req.apiKey = keyData;
           return next();
@@ -194,7 +194,7 @@ async function authenticateApiKey(req: Request, res: Response, next: Function) {
       emailVerified: user.emailVerified || false,
       plan: user.plan || 'free',
       storageUsed: user.storageUsed || 0,
-      storageLimit: user.storageLimit || 1024 * 1024 * 1024,
+      storageLimit: user.storageLimit || 2 * 1024 * 1024 * 1024,
     };
     req.apiKey = keyData;
     next();
@@ -232,7 +232,7 @@ export function registerRoutes(app: Express): Server {
         profileImageUrl: null,
         plan: 'free',
         storageUsed: 0,
-        storageLimit: 1024 * 1024 * 1024, // 1GB
+        storageLimit: 2 * 1024 * 1024 * 1024, // 2GB
       };
 
       const user = await storage.createUser(userData);
@@ -308,9 +308,9 @@ export function registerRoutes(app: Express): Server {
           isAdmin: user.isAdmin || false,
           plan: user.plan || 'free',
           apiRequestsUsed: user.apiRequestsUsed || 0,
-          apiRequestsLimit: user.apiRequestsLimit || 1000,
+          apiRequestsLimit: user.apiRequestsLimit || 5000,
           storageUsed: user.storageUsed || 0,
-          storageLimit: user.storageLimit || 1024 * 1024 * 1024,
+          storageLimit: user.storageLimit || 2 * 1024 * 1024 * 1024,
         }
       });
     } catch (error) {
@@ -350,9 +350,9 @@ export function registerRoutes(app: Express): Server {
             isAdmin: user.isAdmin || false,
             plan: user.plan || 'free',
             apiRequestsUsed: user.apiRequestsUsed || 0,
-            apiRequestsLimit: user.apiRequestsLimit || 1000,
+            apiRequestsLimit: user.apiRequestsLimit || 5000,
             storageUsed: user.storageUsed || 0,
-            storageLimit: user.storageLimit || 1024 * 1024 * 1024,
+            storageLimit: user.storageLimit || 2 * 1024 * 1024 * 1024,
           });
         } else {
           res.status(401).json({ message: 'User not found' });
@@ -586,7 +586,7 @@ export function registerRoutes(app: Express): Server {
           profileImageUrl: googleUser.picture || null,
           plan: 'free',
           storageUsed: 0,
-          storageLimit: 1024 * 1024 * 1024, // 1GB
+          storageLimit: 2 * 1024 * 1024 * 1024, // 2GB
         };
 
         user = await storage.createUser(userData);
@@ -714,7 +714,7 @@ export function registerRoutes(app: Express): Server {
           profileImageUrl: githubUser.avatar_url || null,
           plan: 'free',
           storageUsed: 0,
-          storageLimit: 1024 * 1024 * 1024, // 1GB
+          storageLimit: 2 * 1024 * 1024 * 1024, // 2GB
         };
 
         user = await storage.createUser(userData);

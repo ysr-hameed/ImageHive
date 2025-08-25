@@ -10,105 +10,65 @@ import { Check, Crown, Zap, Star, CreditCard, ArrowRight, Users, Shield, Headpho
 import Navigation from '@/components/navigation';
 
 const plans = [
-  {
-    name: 'Free',
-    price: 0,
-    period: 'forever',
-    description: 'Perfect for personal projects and getting started',
-    features: [
-      '500 images per month',
-      '2GB storage',
-      'Basic image optimization',
-      'Public images only',
-      'Community support',
-      'Basic analytics',
-      '5 API calls per minute'
-    ],
-    limitations: [
-      'No custom domains',
-      'No advanced transformations',
-      'No bulk operations'
-    ],
-    recommended: false,
-    current: false,
-    buttonText: 'Get Started',
-    popular: false
-  },
-  {
-    name: 'Starter',
-    price: { monthly: 9, yearly: 7 },
-    period: 'month/year',
-    description: 'Great for personal projects and small businesses',
-    features: [
-      '10,000 images per month',
-      '50GB storage',
-      'Advanced image optimization',
-      'Custom domains (1)',
-      'Email support',
-      'Basic analytics',
-      '20 API calls per minute'
-    ],
-    limitations: [
-      'No custom watermarks',
-      'Limited team access'
-    ],
-    recommended: false,
-    current: false,
-    buttonText: 'Upgrade to Starter',
-    popular: false
-  },
-  {
-    name: 'Pro',
-    price: { monthly: 29, yearly: 24 },
-    period: 'month/year',
-    description: 'Best for growing businesses and agencies',
-    features: [
-      '100,000 images per month',
-      '500GB storage',
-      'All image optimizations',
-      'Custom domains (5)',
-      'Priority email support',
-      'Advanced analytics',
-      '50 API calls per minute',
-      'Custom watermarks',
-      'Team collaboration (5 users)'
-    ],
-    limitations: [
-      'No dedicated support line',
-      'Limited SLA'
-    ],
-    recommended: true,
-    current: false,
-    buttonText: 'Upgrade to Pro',
-    popular: true
-  },
-  {
-    name: 'Enterprise',
-    price: 'Custom',
-    period: 'contact us',
-    description: 'For large organizations with custom requirements',
-    features: [
-      'Unlimited images & storage',
-      'Dedicated infrastructure',
-      'Custom CDN endpoints',
-      'Advanced security features',
-      'White-label solutions',
-      'Custom integrations',
-      '24/7 priority support',
-      'SLA guarantees',
-      'On-premise deployment',
-      'Custom transformations',
-      'Advanced analytics & reporting',
-      'Multi-region hosting'
-    ],
-    limitations: [],
-    recommended: false,
-    current: false,
-    buttonText: 'Contact Sales',
-    popular: false,
-    enterprise: true
-  }
-];
+    {
+      name: "Free",
+      price: 0,
+      period: "forever",
+      description: "Perfect for personal projects",
+      features: [
+        "2 GB storage",
+        "5,000 API requests/month",
+        "Basic image optimization",
+        "HTTPS & CDN",
+        "Community support"
+      ],
+      limitations: [
+        "Limited storage",
+        "Basic features only",
+        "Community support"
+      ]
+    },
+    {
+      name: "Starter",
+      price: 5,
+      period: "/month",
+      description: "Great for small businesses",
+      features: [
+        "25 GB storage", 
+        "25,000 API requests/month",
+        "Advanced image processing",
+        "Custom domains",
+        "Email support"
+      ],
+      popular: true
+    },
+    {
+      name: "Pro", 
+      price: 15,
+      period: "/month",
+      description: "For growing applications",
+      features: [
+        "100 GB storage",
+        "100,000 API requests/month", 
+        "Watermarks & branding",
+        "Priority support",
+        "Advanced analytics"
+      ]
+    },
+    {
+      name: "Enterprise",
+      price: 49,
+      period: "/month",
+      description: "Custom enterprise solutions", 
+      features: [
+        "500 GB storage",
+        "1M API requests/month",
+        "Custom integrations", 
+        "SLA guarantees",
+        "Dedicated support"
+      ]
+    }
+  ];
 
 const features = [
   {

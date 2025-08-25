@@ -18,7 +18,7 @@ export const db = drizzle({ client: pool, schema });
 export async function initializeDatabase() {
   try {
     console.log('Initializing database tables...');
-    
+
     // Skip database push in development if DATABASE_URL is not properly configured
     if (process.env.DATABASE_URL) {
       const { execSync } = await import('child_process');

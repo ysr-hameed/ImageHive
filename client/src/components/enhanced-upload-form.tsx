@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, Bell, LayoutDashboard, FileText, Code } from 'lucide-react';
+import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, Bell, LayoutDashboard, FileText, Code, Zap } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Check, AlertCircle } from 'lucide-react';
 import { Link } from "wouter";
@@ -73,29 +73,9 @@ export function EnhancedUploadForm() {
   // Enhanced upload options
   const [uploadOptions, setUploadOptions] = useState({
     privacy: 'public',
-    quality: 80,
-    width: '',
-    height: '',
-    cropMode: 'fit',
-    description: '',
-    tags: '',
-    folder: '',
-    autoEnhance: false,
-    generateThumbs: true,
-    stripExif: false,
-    progressive: false,
+    quality: 85,
+    format: 'original',
     watermark: false,
-    backgroundRemoval: false,
-    aiUpscaling: false,
-    compression: 'balanced',
-    colorSpace: 'srgb',
-    dpi: 72,
-    metadata: {
-      title: '',
-      author: '',
-      copyright: '',
-      keywords: ''
-    }
   });
 
 
@@ -144,19 +124,12 @@ export function EnhancedUploadForm() {
       if (transforms.watermark) formData.append('watermark', 'true'); // Append watermark if selected
 
       // Append new upload options
-      formData.append('privacy', privacy);
-      formData.append('quality', quality.toString());
-      if (width) formData.append('width', width);
-      if (height) formData.append('height', height);
-      formData.append('cropMode', cropMode);
-      if (description) formData.append('description', description);
-      if (tags) formData.append('tags', tags);
-      if (folder) formData.append('folder', folder);
-      formData.append('autoEnhance', autoEnhance.toString());
-      formData.append('generateThumbs', generateThumbs.toString());
-      formData.append('stripExif', stripExif.toString());
-      formData.append('progressive', progressive.toString());
-
+      formData.append('privacy', uploadOptions.privacy);
+      formData.append('quality', uploadOptions.quality.toString());
+      formData.append('format', uploadOptions.format);
+      if (uploadOptions.watermark) {
+        formData.append('watermark', 'true');
+      }
 
       console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
       console.log('FormData contents:');
@@ -289,6 +262,21 @@ export function EnhancedUploadForm() {
             formData.append(`transform_${key}`, value.toString());
           }
         });
+
+        // Add processing options to form data
+        if (uploadOptions.resize) {
+          formData.append('width', uploadOptions.width.toString());
+          formData.append('height', uploadOptions.height.toString());
+        }
+        if (uploadOptions.quality !== 85) {
+          formData.append('quality', uploadOptions.quality.toString());
+        }
+        if (uploadOptions.format !== 'original') {
+          formData.append('format', uploadOptions.format);
+        }
+        if (uploadOptions.watermark) {
+          formData.append('watermark', 'true');
+        }
 
         const response = await fetch('/api/v1/images/upload', {
           method: 'POST',
@@ -649,7 +637,7 @@ export function EnhancedUploadForm() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="optimization">
             <Card>
               <CardHeader>
@@ -812,57 +800,21 @@ export function EnhancedUploadForm() {
 
                 <div className="flex flex-wrap gap-6">
                   {user?.plan === 'pro' || user?.plan === 'enterprise' ? (
-                    <>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="backgroundRemoval"
-                          checked={uploadOptions.backgroundRemoval}
-                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, backgroundRemoval: checked }))}
-                        />
-                        <Label htmlFor="backgroundRemoval">AI Background Removal</Label>
-                        <Badge variant="secondary">Pro</Badge>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="aiUpscaling"
-                          checked={uploadOptions.aiUpscaling}
-                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, aiUpscaling: checked }))}
-                        />
-                        <Label htmlFor="aiUpscaling">AI Upscaling</Label>
-                        <Badge variant="secondary">Pro</Badge>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="watermark"
-                          checked={uploadOptions.watermark}
-                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, watermark: checked }))}
-                        />
-                        <Label htmlFor="watermark">Apply Watermark</Label>
-                        <Badge variant="secondary">Pro</Badge>
-                      </div>
-                    </>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="watermark"
+                        checked={uploadOptions.watermark}
+                        onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, watermark: checked }))}
+                      />
+                      <Label htmlFor="watermark">Apply Watermark</Label>
+                      <Badge variant="secondary">Pro</Badge>
+                    </div>
                   ) : (
-                    <>
-                      <div className="flex items-center space-x-2 opacity-50">
-                        <Switch id="backgroundRemoval-disabled" disabled />
-                        <Label htmlFor="backgroundRemoval-disabled">AI Background Removal</Label>
-                        <Badge variant="outline">Pro Only</Badge>
-                      </div>
-
-                      <div className="flex items-center space-x-2 opacity-50">
-                        <Switch id="aiUpscaling-disabled" disabled />
-                        <Label htmlFor="aiUpscaling-disabled">AI Upscaling</Label>
-                        <Badge variant="outline">Pro Only</Badge>
-                      </div>
-
-                      <div className="flex items-center space-x-2 opacity-50">
-                        <Switch id="watermark-disabled" disabled />
-                        <Label htmlFor="watermark-disabled">Apply Watermark</Label>
-                        <Badge variant="outline">Pro Only</Badge>
-                      </div>
-                    </>
+                    <div className="flex items-center space-x-2 opacity-50">
+                      <Switch id="watermark-disabled" disabled />
+                      <Label htmlFor="watermark-disabled">Apply Watermark</Label>
+                      <Badge variant="outline">Pro Only</Badge>
+                    </div>
                   )}
                 </div>
               </CardContent>

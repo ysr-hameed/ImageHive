@@ -1,13 +1,20 @@
 
 import { pgTable, text, varchar, uuid, timestamp, boolean, bigint, integer, jsonb } from 'drizzle-orm/pg-core';
-import { createId } from '@paralleldrive/cuid2';
+import { sql } from 'drizzle-orm';
 
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   email: varchar('email', { length: 255 }).unique().notNull(),
-  password: text('password'),
+  firstName: varchar('first_name', { length: 100 }),
+  lastName: varchar('last_name', { length: 100 }),
+  passwordHash: text('password_hash'),
   isAdmin: boolean('is_admin').default(false),
   emailVerified: boolean('email_verified').default(false),
+  profileImageUrl: text('profile_image_url'),
+  plan: varchar('plan', { length: 50 }).default('free'),
+  storageUsed: bigint('storage_used', { mode: 'number' }).default(0),
+  storageLimit: bigint('storage_limit', { mode: 'number' }).default(1073741824), // 1GB
+  apiRequestsLimit: integer('api_requests_limit').default(1000),
   verificationToken: text('verification_token'),
   resetToken: text('reset_token'),
   resetTokenExpiry: timestamp('reset_token_expiry'),
@@ -17,27 +24,29 @@ export const users = pgTable('users', {
 });
 
 export const images = pgTable('images', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   filename: varchar('filename', { length: 255 }).notNull(),
-  originalName: varchar('original_name', { length: 255 }).notNull(),
+  originalFilename: varchar('original_filename', { length: 255 }).notNull(),
   title: varchar('title', { length: 255 }),
   description: text('description'),
-  url: text('url').notNull(),
-  thumbnailUrl: text('thumbnail_url'),
-  size: bigint('size', { mode: 'number' }).notNull(),
   mimeType: varchar('mime_type', { length: 100 }).notNull(),
+  size: bigint('size', { mode: 'number' }).notNull(),
   width: integer('width'),
   height: integer('height'),
-  folderId: uuid('folder_id').references(() => folders.id, { onDelete: 'set null' }),
   isPublic: boolean('is_public').default(true),
+  tags: jsonb('tags').default([]),
+  backblazeFileId: varchar('backblaze_file_id', { length: 255 }),
+  backblazeFileName: varchar('backblaze_file_name', { length: 255 }),
+  cdnUrl: text('cdn_url'),
+  folder: varchar('folder', { length: 500 }),
   views: integer('views').default(0),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });
 
 export const folders = pgTable('folders', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   name: varchar('name', { length: 255 }).notNull(),
   description: text('description'),
@@ -46,7 +55,7 @@ export const folders = pgTable('folders', {
 });
 
 export const notifications = pgTable('notifications', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   title: varchar('title', { length: 255 }).notNull(),
   message: text('message').notNull(),
@@ -66,7 +75,7 @@ export const notifications = pgTable('notifications', {
 });
 
 export const systemLogs = pgTable('system_logs', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   level: varchar('level', { length: 10 }).notNull(), // info, warn, error
   message: text('message').notNull(),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
@@ -75,7 +84,7 @@ export const systemLogs = pgTable('system_logs', {
 });
 
 export const seoSettings = pgTable('seo_settings', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   pageType: varchar('page_type', { length: 50 }).notNull(), // 'home', 'dashboard', 'global', etc.
   title: varchar('title', { length: 255 }),
   description: text('description'),
@@ -95,7 +104,7 @@ export const seoSettings = pgTable('seo_settings', {
 });
 
 export const emailCampaigns = pgTable('email_campaigns', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   name: varchar('name', { length: 255 }).notNull(),
   subject: varchar('subject', { length: 255 }).notNull(),
   htmlContent: text('html_content').notNull(),
@@ -115,7 +124,7 @@ export const emailCampaigns = pgTable('email_campaigns', {
 });
 
 export const emailLogs = pgTable('email_logs', {
-  id: uuid('id').primaryKey().default(createId()),
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   campaignId: uuid('campaign_id').references(() => emailCampaigns.id, { onDelete: 'cascade' }),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   email: varchar('email', { length: 255 }).notNull(),
@@ -124,6 +133,38 @@ export const emailLogs = pgTable('email_logs', {
   sentAt: timestamp('sent_at'),
   openedAt: timestamp('opened_at'),
   clickedAt: timestamp('clicked_at'),
+  createdAt: timestamp('created_at').defaultNow()
+});
+
+export const apiKeys = pgTable('api_keys', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  keyHash: varchar('key_hash', { length: 255 }).unique().notNull(),
+  isActive: boolean('is_active').default(true),
+  lastUsed: timestamp('last_used'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+export const customDomains = pgTable('custom_domains', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  domain: varchar('domain', { length: 255 }).unique().notNull(),
+  isVerified: boolean('is_verified').default(false),
+  sslEnabled: boolean('ssl_enabled').default(false),
+  verifiedAt: timestamp('verified_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+export const imageAnalytics = pgTable('image_analytics', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  imageId: uuid('image_id').references(() => images.id, { onDelete: 'cascade' }).notNull(),
+  event: varchar('event', { length: 50 }).notNull(), // 'view', 'download'
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  timestamp: timestamp('timestamp').defaultNow(),
   createdAt: timestamp('created_at').defaultNow()
 });
 
@@ -144,3 +185,9 @@ export type EmailCampaign = typeof emailCampaigns.$inferSelect;
 export type NewEmailCampaign = typeof emailCampaigns.$inferInsert;
 export type EmailLog = typeof emailLogs.$inferSelect;
 export type NewEmailLog = typeof emailLogs.$inferInsert;
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
+export type CustomDomain = typeof customDomains.$inferSelect;
+export type NewCustomDomain = typeof customDomains.$inferInsert;
+export type ImageAnalytic = typeof imageAnalytics.$inferSelect;
+export type NewImageAnalytic = typeof imageAnalytics.$inferInsert;

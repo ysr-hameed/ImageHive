@@ -181,13 +181,11 @@ class Storage {
     createdBy: string;
   }) {
     const [notification] = await db.insert(notifications).values({
-      id: crypto.randomUUID(),
       title: data.title,
       message: data.message,
       type: data.type,
       isActive: data.isActive,
-      createdBy: data.createdBy,
-      createdAt: new Date(),
+      userId: data.createdBy,
     }).returning();
     return notification;
   }

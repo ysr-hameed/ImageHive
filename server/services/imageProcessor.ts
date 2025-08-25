@@ -138,3 +138,7 @@ export class ImageProcessor {
     return extensions[mimeType] || 'jpg';
   }
 }
+
+// Export convenience functions for backward compatibility
+export const processImage = ImageProcessor.processImage;
+export const getImageInfo = ImageProcessor.getImageMetadata;

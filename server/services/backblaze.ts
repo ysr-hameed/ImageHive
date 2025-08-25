@@ -304,3 +304,17 @@ export class BackblazeB2Service {
 }
 
 export const backblazeService = new BackblazeB2Service();
+
+// Export wrapper functions for backward compatibility
+export const uploadToBackblaze = async (
+  buffer: Buffer,
+  fileName: string,
+  contentType: string,
+  metadata: Record<string, string> = {}
+) => {
+  return await backblazeService.uploadFile(buffer, fileName, contentType, metadata);
+};
+
+export const deleteFromBackblaze = async (fileId: string, fileName: string) => {
+  return await backblazeService.deleteFile(fileId, fileName);
+};

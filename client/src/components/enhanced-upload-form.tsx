@@ -76,6 +76,21 @@ export function EnhancedUploadForm() {
     quality: 85,
     format: 'original',
     watermark: false,
+    // Add other options if needed, e.g., resize, compression, colorSpace, dpi, autoEnhance, etc.
+    resize: false, // Example added field
+    compression: 'balanced', // Example added field
+    colorSpace: 'srgb', // Example added field
+    dpi: 72, // Example added field
+    autoEnhance: false, // Example added field
+    generateThumbs: false, // Example added field
+    progressive: false, // Example added field
+    stripExif: false, // Example added field
+    metadata: { // Nested metadata structure
+      title: '',
+      author: '',
+      copyright: '',
+      keywords: '',
+    }
   });
 
 
@@ -254,14 +269,28 @@ export function EnhancedUploadForm() {
         formData.append('description', metadata.description);
         formData.append('tags', metadata.tags);
         formData.append('folder', metadata.folder);
-        formData.append('isPublic', 'true');
+        formData.append('isPublic', 'true'); // Always public
 
         // Add transform options
         Object.entries(transforms).forEach(([key, value]) => {
-          if (value !== '' && value !== 0 && value !== false && value !== 1) {
-            formData.append(`transform_${key}`, value.toString());
+          // Ensure we only append if the value is not the default or empty/zero/false
+          if (value !== '' && value !== 0 && value !== false && value !== 1 && value !== 'auto' && value !== 'cover') {
+            // Specific check for blur to allow 0
+            if (key === 'blur' && value === 0) {
+              // Do not append if blur is 0 unless it's explicitly set to 0.
+              // The initial check handles non-zero values.
+            } else {
+               formData.append(`transform_${key}`, value.toString());
+            }
+          } else if (key === 'grayscale' && value === true) { // Explicitly handle boolean true
+            formData.append(`transform_${key}`, 'true');
+          } else if (key === 'sharpen' && value === true) { // Explicitly handle boolean true
+            formData.append(`transform_${key}`, 'true');
+          } else if (key === 'watermark' && value === true) { // Explicitly handle boolean true
+            formData.append(`transform_${key}`, 'true');
           }
         });
+
 
         // Add processing options to form data
         if (uploadOptions.resize) {
@@ -277,6 +306,35 @@ export function EnhancedUploadForm() {
         if (uploadOptions.watermark) {
           formData.append('watermark', 'true');
         }
+        // Add other uploadOptions to formData if they are relevant and not already covered
+        if (uploadOptions.compression !== 'balanced') {
+          formData.append('compression', uploadOptions.compression);
+        }
+        if (uploadOptions.colorSpace !== 'srgb') {
+          formData.append('colorSpace', uploadOptions.colorSpace);
+        }
+        if (uploadOptions.dpi !== 72) {
+          formData.append('dpi', uploadOptions.dpi.toString());
+        }
+        if (uploadOptions.autoEnhance) {
+          formData.append('autoEnhance', 'true');
+        }
+        if (uploadOptions.generateThumbs) {
+          formData.append('generateThumbs', 'true');
+        }
+        if (uploadOptions.progressive) {
+          formData.append('progressive', 'true');
+        }
+        if (uploadOptions.stripExif) {
+          formData.append('stripExif', 'true');
+        }
+
+        // Append nested metadata
+        if (uploadOptions.metadata.title) formData.append('meta_title', uploadOptions.metadata.title);
+        if (uploadOptions.metadata.author) formData.append('meta_author', uploadOptions.metadata.author);
+        if (uploadOptions.metadata.copyright) formData.append('meta_copyright', uploadOptions.metadata.copyright);
+        if (uploadOptions.metadata.keywords) formData.append('meta_keywords', uploadOptions.metadata.keywords);
+
 
         const response = await fetch('/api/v1/images/upload', {
           method: 'POST',

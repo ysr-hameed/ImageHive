@@ -19,13 +19,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  Search, 
-  Filter, 
-  Download, 
-  Eye, 
-  Copy, 
-  Trash2, 
+import {
+  Search,
+  Filter,
+  Download,
+  Eye,
+  Copy,
+  Trash2,
   MoreVertical,
   Grid3X3,
   List,
@@ -116,7 +116,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
 
     // Filter by privacy
     if (filterBy !== 'all') {
-      filtered = filtered.filter((image) => image.privacy === filterBy);
+      filtered = filtered.filter(image => image.privacy === filterBy);
     }
 
     // Sort images
@@ -157,16 +157,29 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
 
   const copyToClipboard = async (text: string, label: string) => {
     try {
-      await navigator.clipboard.writeText(text);
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        // Fallback for non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'absolute';
+        textArea.style.left = '-999999px';
+        document.body.prepend(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
       toast({
-        title: 'Copied!',
+        title: "Copied!",
         description: `${label} copied to clipboard`,
       });
     } catch (err) {
+      console.error('Copy failed:', err);
       toast({
-        title: 'Error',
-        description: 'Failed to copy to clipboard',
-        variant: 'destructive',
+        title: "Error",
+        description: "Failed to copy to clipboard",
+        variant: "destructive",
       });
     }
   };
@@ -186,8 +199,8 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
   };
 
   const toggleImageSelection = (imageId: string) => {
-    setSelectedImages(prev => 
-      prev.includes(imageId) 
+    setSelectedImages(prev =>
+      prev.includes(imageId)
         ? prev.filter(id => id !== imageId)
         : [...prev, imageId]
     );
@@ -231,7 +244,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
             />
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Select value={filterBy} onValueChange={setFilterBy}>
             <SelectTrigger className="w-32">
@@ -244,7 +257,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
               <SelectItem value="private">Private</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-36">
               <SelectValue />
@@ -257,7 +270,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
               <SelectItem value="downloads">Downloads</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <div className="flex border rounded-md">
             <Button
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -316,7 +329,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                   className="w-full h-full object-cover"
                   loading="lazy"
                 />
-                
+
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <div className="flex items-center gap-2">
@@ -381,14 +394,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
 
                 {/* Privacy badge */}
                 <div className="absolute top-2 right-2">
-                  <Badge variant={image.privacy === 'public' ? 'default' : 'secondary'}>
-                    {image.privacy === 'public' ? (
-                      <Unlock className="w-3 h-3 mr-1" />
-                    ) : (
-                      <Lock className="w-3 h-3 mr-1" />
-                    )}
-                    {image.privacy}
-                  </Badge>
+                  {/* Privacy badge removed as per requirement */}
                 </div>
               </div>
 
@@ -429,7 +435,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                   onChange={() => toggleImageSelection(image.id)}
                   className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                 />
-                
+
                 <div className="w-16 h-16 bg-gray-100 dark:bg-slate-800 rounded overflow-hidden flex-shrink-0">
                   <img
                     src={image.cdnUrl}
@@ -438,15 +444,13 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                     loading="lazy"
                   />
                 </div>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <h4 className="font-medium text-gray-900 dark:text-white truncate">
                       {image.originalName}
                     </h4>
-                    <Badge variant={image.privacy === 'public' ? 'default' : 'secondary'}>
-                      {image.privacy}
-                    </Badge>
+                    {/* Privacy badge removed as per requirement */}
                   </div>
                   <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-gray-400">
                     <span>{formatBytes(image.size)}</span>
@@ -467,7 +471,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"

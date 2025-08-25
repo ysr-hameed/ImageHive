@@ -51,6 +51,7 @@ import {
   Activity,
   UserIcon,
   CreditCard,
+  ChevronDown
 } from 'lucide-react';
 
 const data = {
@@ -130,6 +131,8 @@ export function AppSidebar() {
   const logout = () => {
     logoutMutation.mutate();
   };
+
+  const handleLogout = logout;
 
   return (
     <Sidebar collapsible="icon" className="bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700">
@@ -224,28 +227,29 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg" className="!h-auto !p-3">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white cursor-pointer hover:from-blue-600 hover:to-purple-700 transition-all duration-200">
-                    <UserIcon className="size-4" />
-                  </div>
-                  <ChevronUp className="ml-auto transition-transform duration-200 group-data-[state=open]/menu-button:rotate-180" />
-                </SidebarMenuButton>
+                <Button
+                  variant="ghost"
+                  className="p-0 h-auto hover:bg-gray-100 dark:hover:bg-slate-700 rounded-full"
+                >
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-blue-600 text-white text-sm font-medium">
+                      {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-56 rounded-lg"
-                side="right"
-                align="start"
-                forceMount
+                align="end"
+                className="w-64"
               >
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                      <UserIcon className="size-4" />
-                    </div>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">{user.name}</span>
-                      <span className="truncate text-xs text-gray-500">{user.email}</span>
-                    </div>
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {user.name || 'User'}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {user.email}
+                    </p>
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
@@ -270,7 +274,7 @@ export function AppSidebar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer text-red-600 focus:text-red-600"
-                  onClick={logout}
+                  onClick={handleLogout}
                 >
                   <LogOut className="size-4 mr-2" />
                   Log out

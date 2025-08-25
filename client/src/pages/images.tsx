@@ -174,16 +174,7 @@ export default function Images() {
           </div>
           
           <div className="flex gap-2">
-            <Select value={privacyFilter} onValueChange={(value: any) => setPrivacyFilter(value)}>
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
-              </SelectContent>
-            </Select>
+            
 
             <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
               <SelectTrigger className="w-[120px]">
@@ -348,11 +339,7 @@ export default function Images() {
                       className="rounded border-gray-300"
                     />
                   </div>
-                  <div className="absolute top-2 right-2">
-                    <Badge variant={image.privacy === 'public' ? 'default' : 'secondary'}>
-                      {image.privacy}
-                    </Badge>
-                  </div>
+                  
                 </div>
                 <CardContent className="p-4">
                   <h3 className="font-medium text-gray-900 dark:text-white truncate mb-1">
@@ -404,9 +391,7 @@ export default function Images() {
                       {formatBytes(image.size)} • {image.width}×{image.height} • {formatDate(image.createdAt)}
                     </div>
                   </div>
-                  <Badge variant={image.privacy === 'public' ? 'default' : 'secondary'}>
-                    {image.privacy}
-                  </Badge>
+                  
                   <div className="flex gap-2">
                     <Button
                       size="sm"

@@ -65,14 +65,25 @@ app.use('/api/*', (req, res) => {
 
 // Initialize database and start server
 async function startServer() {
-  await initializeDatabase();
+  try {
+    await initializeDatabase();
+  } catch (error) {
+    console.error('Database initialization failed, but continuing:', error);
+  }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
     console.log(`📧 Email service: ${process.env.GMAIL_USER ? 'Configured' : 'Not configured'}`);
     console.log(`🗄️  Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`);
     console.log(`☁️  Backblaze: ${process.env.BACKBLAZE_KEY_ID && process.env.BACKBLAZE_APPLICATION_KEY && process.env.BACKBLAZE_BUCKET_ID ? 'Configured' : 'Not configured'}`);
+    
+    if (!process.env.DATABASE_URL) {
+      console.log('⚠️  Warning: DATABASE_URL not set. Some features may not work.');
+    }
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  console.error('Failed to start server:', error);
+  process.exit(1);
+});

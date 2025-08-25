@@ -9,13 +9,13 @@ export function useAuth() {
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
     refetchOnWindowFocus: false,
-    refetchOnMount: true, // Enable refetch on mount
+    refetchOnMount: true,
     refetchInterval: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // If there's an error and it's not a 401, consider user as not authenticated
-  const isAuthenticated = !!user && !error;
+  // Consider user authenticated if user data exists, regardless of 401 errors
+  const isAuthenticated = !!user;
 
   return {
     user,

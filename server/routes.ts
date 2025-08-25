@@ -27,7 +27,10 @@ declare global {
         email: string;
         name: string;
         emailVerified: boolean;
+        isAdmin?: boolean;
         plan: string;
+        apiRequestsUsed?: number;
+        apiRequestsLimit?: number;
         storageUsed: number;
         storageLimit: number;
       };
@@ -1536,7 +1539,10 @@ export function registerRoutes(app: Express): Server {
 
         const planLimits = limits[planId as keyof typeof limits];
         if (planLimits) {
-          await storage.updateUserLimits(userId, planLimits.storage, planLimits.apiRequests);
+          await storage.updateUserLimits(userId, {
+            storageLimit: planLimits.storage,
+            apiRequestsLimit: planLimits.apiRequests
+          });
         }
       }
 
@@ -1554,37 +1560,39 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const notifications = [
-        {
-          id: '1',
+      // Get real notifications from database
+      const notifications = await storage.getActiveNotifications();
+      
+      // If no notifications exist, create a welcome notification for new users
+      if (notifications.length === 0) {
+        await storage.createNotification({
           title: 'Welcome to ImageVault!',
           message: 'Your account has been created successfully. Start uploading images to get started.',
           type: 'success',
-          isRead: false,
-          createdAt: new Date().toISOString()
-        },
-        {
-          id: '2',
-          title: 'Storage Update',
-          message: 'Your storage usage is at 50% of your plan limit.',
-          type: 'info',
-          isRead: true,
-          createdAt: new Date(Date.now() - 86400000).toISOString()
-        }
-      ];
-      res.json(notifications);
+          isActive: true,
+          createdBy: req.user.id
+        });
+        
+        // Re-fetch notifications
+        const updatedNotifications = await storage.getActiveNotifications();
+        res.json(updatedNotifications);
+      } else {
+        res.json(notifications);
+      }
     } catch (error) {
       console.error('Notifications error:', error);
       res.status(500).json({ error: 'Failed to fetch notifications' });
     }
   });
 
-  // Mark notification as read
+  // Mark notification as read (toggle active status)
   app.patch('/api/v1/notifications/:id', async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Authentication required' });
     }
     try {
+      const { id } = req.params;
+      await storage.updateNotification(id, { isActive: false });
       res.json({ success: true });
     } catch (error) {
       console.error('Mark notification error:', error);
@@ -1598,6 +1606,8 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).json({ error: 'Authentication required' });
     }
     try {
+      const { id } = req.params;
+      await storage.deleteNotification(id);
       res.json({ success: true });
     } catch (error) {
       console.error('Delete notification error:', error);
@@ -1611,6 +1621,13 @@ export function registerRoutes(app: Express): Server {
       return res.status(401).json({ error: 'Authentication required' });
     }
     try {
+      // Get all active notifications and mark them as inactive
+      const notifications = await storage.getAllNotifications();
+      await Promise.all(
+        notifications.map(notification => 
+          storage.updateNotification(notification.id, { isActive: false })
+        )
+      );
       res.json({ success: true });
     } catch (error) {
       console.error('Mark all read error:', error);

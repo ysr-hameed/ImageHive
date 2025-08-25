@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ErrorBoundary } from "@/components/error-boundary";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -109,15 +110,19 @@ function AppContent() {
 
   return (
     <>
-      <Route path="/" component={LandingPage} />
-      <Route path="/auth/login" component={Login} />
-      <Route path="/auth/register" component={Register} />
-      <Route path="/auth/forgot-password" component={ForgotPassword} />
-      <Route path="/auth/reset-password" component={ResetPassword} />
-      <Route path="/auth/verify-email" component={VerifyEmail} />
-      <Route path="/upgrade" component={Upgrade} />
-
-      {isAuthenticated ? (
+      {!isAuthenticated ? (
+        <>
+          {/* Public routes for unauthenticated users */}
+          <Route path="/auth/login" component={Login} />
+          <Route path="/auth/register" component={Register} />
+          <Route path="/auth/forgot-password" component={ForgotPassword} />
+          <Route path="/auth/reset-password" component={ResetPassword} />
+          <Route path="/auth/verify-email" component={VerifyEmail} />
+          <Route path="/upgrade" component={Upgrade} />
+          <Route path="/" component={() => { window.location.href = '/auth/login'; return null; }} />
+          <Route component={Login} />
+        </>
+      ) : (
         <SidebarProvider>
           <div className="flex min-h-screen">
             <AppSidebar />
@@ -131,7 +136,7 @@ function AppContent() {
                   </div>
                 </div>
               </header>
-              <div className="flex-1 overflow-y-auto p-4"> {/* Added overflow-y-auto and padding */}
+              <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-slate-900"> {/* Added background and padding */}
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/images" component={Images} />
                 <Route path="/upload" component={Upload} />
@@ -145,13 +150,12 @@ function AppContent() {
                 <Route path="/admin" component={Admin} />
                 <Route path="/collections" component={Collections} />
                 <Route path="/activity" component={Activity} />
-                <Redirect to="/dashboard" />
+                <Route path="/" component={() => { window.location.href = '/dashboard'; return null; }} />
+                <Route component={NotFound} />
               </div>
             </main>
           </div>
         </SidebarProvider>
-      ) : (
-        <Redirect to="/auth/login" />
       )}
 
       <Route path="*" component={NotFound} />
@@ -161,16 +165,18 @@ function AppContent() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router>
-            <AppContent />
-          </Router>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Router>
+              <AppContent />
+            </Router>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

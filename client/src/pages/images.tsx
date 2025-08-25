@@ -80,6 +80,9 @@ export default function Images() {
   });
 
   const images = Array.isArray(imagesResponse) ? imagesResponse : (imagesResponse?.images || []);
+  
+  // Extract unique tags from all images
+  const allTags = Array.from(new Set(images.flatMap((image: any) => (image.tags as string[]) || [])));
 
   const deleteMutation = useMutation({
     mutationFn: async (imageIds: string[]) => {
@@ -155,12 +158,6 @@ export default function Images() {
     }
   };
 
-  // Get unique tags from all images
-  const allTags = Array.from(
-    new Set(
-      images?.flatMap((img: ImageData) => img.tags || []) || []
-    )
-  );
 
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">

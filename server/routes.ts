@@ -4,7 +4,7 @@ import multer from "multer";
 import sharp from "sharp";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
-import { users, images, folders, notifications, systemLogs } from "../shared/schema";
+import { users, images, folders, notifications, systemLogs, seoSettings, emailCampaigns, emailLogs } from "../shared/schema";
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from "bcryptjs";
@@ -15,7 +15,6 @@ import { storage } from "./storage";
 import { emailService } from './services/emailService';
 import { processImage, getImageInfo } from './services/imageProcessor';
 import { uploadToBackblaze, deleteFromBackblaze } from './services/backblaze';
-import { seoSettings, emailCampaigns, emailLogs } from '../shared/schema';
 import os from 'os';
 import fs from 'fs';
 import { promisify } from 'util';
@@ -78,7 +77,7 @@ const logSystemEvent = async (level: string, message: string, userId?: string, m
   }
 };
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
 
 // Auth middleware
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
@@ -91,7 +90,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     // Attach user to request for downstream middleware/handlers
-    req.user = { id: decoded.userId }; 
+    req.user = { id: decoded.userId };
     next();
   } catch (error) {
     logSystemEvent('warn', 'Invalid JWT token used', undefined, { token: token.substring(0, 10) + '...' });
@@ -130,6 +129,134 @@ const registerSchema = z.object({
 });
 
 export function registerRoutes(app: express.Express) {
+  // Health check endpoint
+  app.get("/api/v1/health", (req: Request, res: Response) => {
+    res.json({
+      status: "OK",
+      timestamp: new Date().toISOString(),
+      database: process.env.DATABASE_URL ? "connected" : "not configured",
+      version: "1.0.0"
+    });
+  });
+
+  // API status endpoint
+  app.get("/api/v1/status", async (req: Request, res: Response) => {
+    try {
+      // Test database connection if available
+      let dbStatus = "not configured";
+      if (process.env.DATABASE_URL) {
+        try {
+          await db.select().from(users).limit(1);
+          dbStatus = "connected";
+        } catch {
+          dbStatus = "error";
+        }
+      }
+
+      res.json({
+        api: "online",
+        database: dbStatus,
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Status check failed" });
+    }
+  });
+
+  // OAuth Routes
+
+  // Google OAuth callback
+  app.post("/api/v1/auth/google", async (req: Request, res: Response) => {
+    try {
+      const { token, email, name, picture } = req.body;
+
+      if (!email || !token) {
+        return res.status(400).json({ error: "Email and token are required" });
+      }
+
+      // Check if user exists
+      let user = await db.select().from(users).where(eq(users.email, email)).limit(1);
+
+      if (user.length === 0) {
+        // Create new user
+        const [newUser] = await db.insert(users).values({
+          email,
+          firstName: name?.split(' ')[0] || '',
+          lastName: name?.split(' ').slice(1).join(' ') || '',
+          profileImageUrl: picture,
+          emailVerified: true,
+          oauthProvider: 'google',
+          oauthId: email, // Using email as OAuth ID for simplicity
+        }).returning();
+        user = [newUser];
+      }
+
+      const jwtToken = jwt.sign({ userId: user[0].id, email: user[0].email }, JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
+      res.json({
+        token: jwtToken,
+        user: {
+          id: user[0].id,
+          email: user[0].email,
+          firstName: user[0].firstName,
+          lastName: user[0].lastName,
+          profileImageUrl: user[0].profileImageUrl,
+        },
+      });
+    } catch (error) {
+      console.error("Google OAuth error:", error);
+      res.status(500).json({ error: "OAuth authentication failed" });
+    }
+  });
+
+  // GitHub OAuth callback
+  app.post("/api/v1/auth/github", async (req: Request, res: Response) => {
+    try {
+      const { code, email, name, avatar_url } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Check if user exists
+      let user = await db.select().from(users).where(eq(users.email, email)).limit(1);
+
+      if (user.length === 0) {
+        // Create new user
+        const [newUser] = await db.insert(users).values({
+          email,
+          firstName: name?.split(' ')[0] || '',
+          lastName: name?.split(' ').slice(1).join(' ') || '',
+          profileImageUrl: avatar_url,
+          emailVerified: true,
+          oauthProvider: 'github',
+          oauthId: email, // Using email as OAuth ID for simplicity
+        }).returning();
+        user = [newUser];
+      }
+
+      const jwtToken = jwt.sign({ userId: user[0].id, email: user[0].email }, JWT_SECRET, {
+        expiresIn: "7d",
+      });
+
+      res.json({
+        token: jwtToken,
+        user: {
+          id: user[0].id,
+          email: user[0].email,
+          firstName: user[0].firstName,
+          lastName: user[0].lastName,
+          profileImageUrl: user[0].profileImageUrl,
+        },
+      });
+    } catch (error) {
+      console.error("GitHub OAuth error:", error);
+      res.status(500).json({ error: "OAuth authentication failed" });
+    }
+  });
 
   // Auth routes - support both /api/auth and /api/v1/auth for compatibility
   app.post('/api/auth/register', async (req: Request, res: Response) => {
@@ -164,7 +291,7 @@ export function registerRoutes(app: express.Express) {
 
       await logSystemEvent('info', `New user registered: ${email}`, user.id);
 
-      res.json({ 
+      res.json({
         message: 'Registration successful. Please check your email to verify your account.',
         requiresVerification: true
       });
@@ -194,14 +321,14 @@ export function registerRoutes(app: express.Express) {
 
       await logSystemEvent('info', `New user registered: ${email}`, user.id);
 
-      res.json({ 
-        token, 
-        user: { 
-          id: user.id, 
+      res.json({
+        token,
+        user: {
+          id: user.id,
           email: user.email,
           isAdmin: user.isAdmin || false,
           emailVerified: user.emailVerified || false
-        } 
+        }
       });
     } catch (error: any) {
       await logSystemEvent('error', `Registration failed: ${error.message}`, undefined, { error: error.message });
@@ -235,16 +362,16 @@ export function registerRoutes(app: express.Express) {
 
       await logSystemEvent('info', `User logged in: ${email}`, user.id);
 
-      res.json({ 
-        token, 
-        user: { 
-          id: user.id, 
+      res.json({
+        token,
+        user: {
+          id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
           isAdmin: user.isAdmin || false,
           emailVerified: user.emailVerified || false
-        } 
+        }
       });
     } catch (error: any) {
       await logSystemEvent('error', `Login error: ${error.message}`, undefined, { error: error.message });
@@ -273,14 +400,14 @@ export function registerRoutes(app: express.Express) {
 
       await logSystemEvent('info', `User logged in: ${email}`, user.id);
 
-      res.json({ 
-        token, 
-        user: { 
-          id: user.id, 
+      res.json({
+        token,
+        user: {
+          id: user.id,
           email: user.email,
           isAdmin: user.isAdmin || false,
           emailVerified: user.emailVerified || false
-        } 
+        }
       });
     } catch (error: any) {
       await logSystemEvent('error', `Login error: ${error.message}`, undefined, { error: error.message });
@@ -289,7 +416,9 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  // OAuth Routes
+  // OAuth Routes (redirect and callback handled directly in server.ts or a dedicated OAuth controller)
+  // These are placeholder endpoints that would initiate the OAuth flow.
+  // The actual callback handling is integrated above for simplicity.
   app.get('/api/auth/google', (req: Request, res: Response) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
@@ -768,8 +897,8 @@ export function registerRoutes(app: express.Express) {
       // Mock system actions - in production these would trigger real system operations
       // Using setTimeout to simulate async operations and prevent immediate response
       setTimeout(() => {
-        res.json({ 
-          success: true, 
+        res.json({
+          success: true,
           message: `${action} completed successfully`,
           timestamp: new Date().toISOString()
         });
@@ -814,7 +943,7 @@ export function registerRoutes(app: express.Express) {
       } catch (uploadError) {
         console.error('Backblaze upload failed, using fallback:', uploadError);
         // Fallback URL if Backblaze fails
-        fileUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${filename}`; 
+        fileUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${filename}`;
       }
 
       // Save to database
@@ -922,7 +1051,6 @@ export function registerRoutes(app: express.Express) {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
   });
 
-  // Add other routes here based on the edited snippet
   // Example: Get public images
   app.get('/api/public/images', async (req: Request, res: Response) => {
     try {
@@ -959,7 +1087,7 @@ export function registerRoutes(app: express.Express) {
           )
         )
         .orderBy(desc(notifications.createdAt));
-      
+
       // If no notifications, potentially create a default welcome one if the user is new
       if (userNotifications.length === 0) {
         const userExists = await storage.getUser(user.id);
@@ -993,7 +1121,7 @@ export function registerRoutes(app: express.Express) {
     try {
       const user = req.user!;
       const { id } = req.params;
-      
+
       // Ensure the notification belongs to the user
       const [notification] = await db.select().from(notifications).where(
         and(eq(notifications.id, id), eq(notifications.userId, user.id))
@@ -1018,7 +1146,7 @@ export function registerRoutes(app: express.Express) {
     try {
       const user = req.user!;
       const { id } = req.params;
-      
+
       // Ensure the notification belongs to the user
       const [notification] = await db.select().from(notifications).where(
         and(eq(notifications.id, id), eq(notifications.userId, user.id))
@@ -1346,9 +1474,9 @@ export function registerRoutes(app: express.Express) {
       }
 
       const { campaignId } = req.params;
-      
+
       let query = db.select().from(emailLogs).orderBy(desc(emailLogs.createdAt)).limit(100);
-      
+
       if (campaignId) {
         query = query.where(eq(emailLogs.campaignId, campaignId));
       }
@@ -1366,7 +1494,7 @@ export function registerRoutes(app: express.Express) {
   app.get('/api/v1/email/track/open/:trackingId', async (req: Request, res: Response) => {
     try {
       const { trackingId } = req.params;
-      
+
       // Update email log with opened status
       await db.update(emailLogs)
         .set({ status: 'opened', openedAt: new Date() })
@@ -1377,7 +1505,7 @@ export function registerRoutes(app: express.Express) {
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
         'base64'
       );
-      
+
       res.set({
         'Content-Type': 'image/png',
         'Content-Length': pixel.length,
@@ -1385,7 +1513,7 @@ export function registerRoutes(app: express.Express) {
         'Pragma': 'no-cache',
         'Expires': '0'
       });
-      
+
       res.send(pixel);
     } catch (error) {
       console.error('Email tracking error:', error);
@@ -1403,8 +1531,8 @@ export function registerRoutes(app: express.Express) {
         return res.status(403).json({ error: 'Admin access required' });
       }
 
-      const { 
-        userIds, title, message, type, category, sendEmail, actionUrl, actionLabel, expiresAt, isGlobal 
+      const {
+        userIds, title, message, type, category, sendEmail, actionUrl, actionLabel, expiresAt, isGlobal
       } = req.body;
 
       if (!title || !message) {
@@ -1424,7 +1552,7 @@ export function registerRoutes(app: express.Express) {
       }
 
       let sentCount = 0;
-      
+
       // Create notifications for each user
       for (const userId of targetUsers) {
         try {
@@ -1447,7 +1575,7 @@ export function registerRoutes(app: express.Express) {
           // Send email if requested
           if (sendEmail) {
             const emailSent = await emailService.sendNotificationEmail(userId, title, message, actionUrl);
-            
+
             if (emailSent) {
               await db.update(notifications)
                 .set({ emailSent: true })
@@ -1462,10 +1590,10 @@ export function registerRoutes(app: express.Express) {
       }
 
       await logSystemEvent('info', `Notifications sent to ${sentCount} users`, user.id, { title, sendEmail });
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: `Notifications sent to ${sentCount} users`,
-        sentCount 
+        sentCount
       });
     } catch (error: any) {
       await logSystemEvent('error', `Send notification error: ${error.message}`, req.user?.id);

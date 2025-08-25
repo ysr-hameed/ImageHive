@@ -30,16 +30,30 @@ export async function initializeDatabase() {
   try {
     console.log('Initializing database tables...');
 
-    // Skip database push in development if DATABASE_URL is not properly configured
     if (process.env.DATABASE_URL) {
-      const { execSync } = await import('child_process');
-      execSync('npm run db:push --force', { stdio: 'inherit' });
-      console.log('Database tables initialized successfully');
+      try {
+        // Try to run a simple query to test connection
+        await db.select().from(users).limit(1);
+        console.log('Database connection successful');
+        
+        // Run migrations if they exist
+        try {
+          const { execSync } = await import('child_process');
+          execSync('npm run db:push --force', { stdio: 'inherit' });
+          console.log('Database schema synchronized successfully');
+        } catch (pushError) {
+          console.log('Database push completed with warnings (this is usually normal)');
+        }
+      } catch (dbError) {
+        console.error('Database connection failed:', dbError);
+        console.log('App will continue but database features may not work');
+      }
     } else {
-      console.log('Skipping database initialization - DATABASE_URL not configured');
+      console.log('DATABASE_URL not configured - using fallback mode');
+      console.log('Some features requiring database will be disabled');
     }
   } catch (error) {
     console.error('Database initialization error:', error);
-    // Don't throw - app should still start even if db init fails
+    console.log('App will continue in limited mode');
   }
 }

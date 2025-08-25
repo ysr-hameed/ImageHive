@@ -267,7 +267,7 @@ export default function ApiUsage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {data.popularEndpoints.map((endpoint, index) => (
+                  {data.popularEndpoints.map((endpoint: any, index: number) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
@@ -322,7 +322,7 @@ export default function ApiUsage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {apiKeysData?.apiKeys?.map((key) => (
+                  {apiKeysData?.apiKeys?.map((key: any) => (
                     <div key={key.id} className="flex items-center justify-between p-4 border rounded-lg">
                       <div>
                         <p className="font-medium">{key.name}</p>

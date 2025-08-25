@@ -46,7 +46,7 @@ export function EnhancedUploadForm() {
     description: '',
     tags: '',
     folder: '',
-    isPublic: true,
+    isPublic: true, // Always public
   });
 
   // Transform state
@@ -93,7 +93,7 @@ export function EnhancedUploadForm() {
       if (metadata.description) formData.append('description', metadata.description);
       if (metadata.tags) formData.append('tags', metadata.tags);
       if (metadata.folder) formData.append('folder', metadata.folder);
-      formData.append('isPublic', metadata.isPublic.toString());
+      formData.append('isPublic', 'true'); // Always public
 
       // Add transforms
       if (transforms.width) formData.append('width', transforms.width);
@@ -111,7 +111,8 @@ export function EnhancedUploadForm() {
       if (transforms.sharpen) formData.append('sharpen', 'true');
       if (transforms.watermark) formData.append('watermark', 'true'); // Append watermark if selected
 
-      console.log('Uploading file:', file.name, 'with options:', { ...metadata, ...transforms });
+      console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
+      console.log('Upload options:', { ...metadata, ...transforms });
 
       // Mocking upload progress
       let progress = 0;
@@ -123,7 +124,7 @@ export function EnhancedUploadForm() {
         if (progress === 100) clearInterval(interval);
       }, 100);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/v1/images/upload', {
         method: 'POST',
         body: formData,
         credentials: 'include',

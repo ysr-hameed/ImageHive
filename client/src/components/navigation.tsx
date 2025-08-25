@@ -229,7 +229,29 @@ export default function Navigation() {
                     )}
                   </button>
 
-                  {/* Enhanced Dropdown menu */}
+                  {/* Mobile Menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden absolute top-full left-0 w-full bg-white dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 z-50">
+                <div className="p-4 space-y-3">
+                  <a href="/docs" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">API Docs</a>
+                  <a href="/plans" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Pricing</a>
+                  <a href="/features" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Features</a>
+                  <a href="mailto:support@imagevault.com" className="block py-2 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white">Support</a>
+                  {!isAuthenticated && (
+                    <div className="pt-3 border-t border-gray-200 dark:border-slate-700 space-y-2">
+                      <Button variant="ghost" className="w-full justify-start" asChild>
+                        <a href="/auth/login">Login</a>
+                      </Button>
+                      <Button className="w-full" asChild>
+                        <a href="/auth/register">Get Started</a>
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Enhanced Dropdown menu */}
                   {userMenuOpen && (
                     <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 z-50">
                       {/* User Info Section */}
@@ -243,12 +265,12 @@ export default function Navigation() {
                             />
                           ) : (
                             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-lg font-medium shadow-sm">
-                              {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                              {user?.name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                             </div>
                           )}
                           <div className="flex-1">
                             <div className="font-medium text-gray-900 dark:text-white">
-                              {user?.firstName || user?.email?.split('@')[0]}
+                              {user?.name || user?.email?.split('@')[0]}
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
                               {user?.email}

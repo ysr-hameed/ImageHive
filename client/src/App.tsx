@@ -133,7 +133,7 @@ function Router() {
           <Route path="/notifications" component={Notifications} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
           <Route path="/upgrade" component={Upgrade} />
-          <Route component={NotFound} />
+          <Route path="/:rest*" component={NotFound} />
         </AppLayout>
       ) : (
         /* Public Routes - Only for non-authenticated users */

@@ -46,10 +46,10 @@ export default function HeroSection() {
                 size="lg"
                 asChild
                 className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg"
-                data-testid="button-view-docs"
+                data-testid="button-view-plans"
               >
-                <a href="/docs">
-                  View Documentation
+                <a href="/plans">
+                  View Plans
                 </a>
               </Button>
             </div>

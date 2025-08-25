@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,68 +8,83 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
 import { Check, Crown, Zap, Star, CreditCard, ArrowRight, Users, Shield, Headphones, Clock } from 'lucide-react';
-import Navigation from '@/components/navigation';
+import { SidebarContentLoader } from '@/components/sidebar-content-loader';
 
 const plans = [
-    {
-      name: "Free",
-      price: 0,
-      period: "forever",
-      description: "Perfect for personal projects",
-      features: [
-        "2 GB storage",
-        "5,000 API requests/month",
-        "Basic image optimization",
-        "HTTPS & CDN",
-        "Community support"
-      ],
-      limitations: [
-        "Limited storage",
-        "Basic features only",
-        "Community support"
-      ]
-    },
-    {
-      name: "Starter",
-      price: 5,
-      period: "/month",
-      description: "Great for small businesses",
-      features: [
-        "25 GB storage", 
-        "25,000 API requests/month",
-        "Advanced image processing",
-        "Custom domains",
-        "Email support"
-      ],
-      popular: true
-    },
-    {
-      name: "Pro", 
-      price: 15,
-      period: "/month",
-      description: "For growing applications",
-      features: [
-        "100 GB storage",
-        "100,000 API requests/month", 
-        "Watermarks & branding",
-        "Priority support",
-        "Advanced analytics"
-      ]
-    },
-    {
-      name: "Enterprise",
-      price: 49,
-      period: "/month",
-      description: "Custom enterprise solutions", 
-      features: [
-        "500 GB storage",
-        "1M API requests/month",
-        "Custom integrations", 
-        "SLA guarantees",
-        "Dedicated support"
-      ]
-    }
-  ];
+  {
+    name: "Free",
+    price: 0,
+    period: "forever",
+    description: "Perfect for personal projects",
+    features: [
+      "2 GB storage",
+      "5,000 API requests/month",
+      "Basic image optimization",
+      "HTTPS & CDN",
+      "Community support"
+    ],
+    limitations: [
+      "Limited storage",
+      "Basic features only",
+      "Community support"
+    ],
+    buttonText: "Get Started",
+    buttonVariant: "outline" as const,
+    enterprise: false
+  },
+  {
+    name: "Starter",
+    price: 5,
+    period: "/month",
+    description: "Great for small businesses",
+    features: [
+      "25 GB storage", 
+      "25,000 API requests/month",
+      "Advanced image processing",
+      "Custom domains",
+      "Email support"
+    ],
+    limitations: [],
+    popular: true,
+    buttonText: "Subscribe Now",
+    buttonVariant: "default" as const,
+    enterprise: false
+  },
+  {
+    name: "Pro", 
+    price: 15,
+    period: "/month",
+    description: "For growing applications",
+    features: [
+      "100 GB storage",
+      "100,000 API requests/month", 
+      "Watermarks & branding",
+      "Priority support",
+      "Advanced analytics"
+    ],
+    limitations: [],
+    buttonText: "Subscribe Now",
+    buttonVariant: "default" as const,
+    enterprise: false
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    period: "",
+    description: "Custom enterprise solutions", 
+    features: [
+      "500 GB storage",
+      "1M API requests/month",
+      "Custom integrations", 
+      "SLA guarantees",
+      "Dedicated support"
+    ],
+    limitations: [],
+    buttonText: "Contact Sales",
+    buttonVariant: "outline" as const,
+    enterprise: true
+  }
+];
 
 const features = [
   {
@@ -122,7 +138,6 @@ export default function Plans() {
     setLoadingPlan(planId);
 
     try {
-      // Initialize PayU payment
       const response = await fetch('/api/v1/payments/create-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -152,10 +167,9 @@ export default function Plans() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <Navigation />
-      <div className="flex-1 space-y-8 p-4 md:p-8 pt-6">
-        <div className="max-w-7xl mx-auto">
+    <SidebarContentLoader>
+      <div className="flex-1 w-full max-w-none space-y-8 p-4 md:p-8">
+        <div className="w-full max-w-none">
           {/* Header */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -216,11 +230,11 @@ export default function Plans() {
                         <>
                           ${price}
                           <span className="text-base font-normal text-gray-500">
-                            /{isYearly ? 'year' : 'month'}
+                            {plan.period}
                           </span>
                         </>
                       ) : (
-                        <span className="text-2xl">Custom</span>
+                        <span className="text-2xl">{price}</span>
                       )}
                     </div>
                     <p className="text-gray-600 dark:text-gray-400 text-sm">
@@ -236,7 +250,7 @@ export default function Plans() {
                           <span>{feature}</span>
                         </div>
                       ))}
-                      {plan.limitations.map((limitation, index) => (
+                      {plan.limitations && plan.limitations.map((limitation, index) => (
                         <div key={index} className="flex items-center text-sm text-gray-500">
                           <span className="w-4 h-4 mr-2 flex-shrink-0">×</span>
                           <span>{limitation}</span>
@@ -297,7 +311,7 @@ export default function Plans() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">Can I change plans anytime?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately. For yearly plans, downgrades will be reflected at the end of the current billing cycle.
+                    Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.
                   </p>
                 </CardContent>
               </Card>
@@ -305,23 +319,23 @@ export default function Plans() {
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    We accept all major credit cards (Visa, Mastercard, American Express) via Stripe, our secure payment processor.
+                    We accept all major credit cards via our secure payment processor.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">Is there a free trial for paid plans?</h3>
+                  <h3 className="font-semibold mb-2">Is there a free trial?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    We offer a 14-day free trial for our Starter and Pro plans. You can cancel anytime before the trial ends to avoid charges. Our Free plan is always available.
+                    We offer a 14-day free trial for paid plans. Our Free plan is always available.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">How does the custom domain feature work?</h3>
+                  <h3 className="font-semibold mb-2">How does custom domain work?</h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    With a custom domain, you can serve your images through your own domain name (e.g., images.yourdomain.com). You'll need to configure DNS records to point to our CDN. Full instructions are in our documentation.
+                    Configure DNS records to point to our CDN. Full instructions in our documentation.
                   </p>
                 </CardContent>
               </Card>
@@ -334,14 +348,14 @@ export default function Plans() {
               <CardContent className="p-8">
                 <h2 className="text-2xl font-bold mb-4">Ready to Scale Your Image Management?</h2>
                 <p className="mb-6 opacity-90">
-                  Join thousands of developers and businesses who trust ImageVault for their image management needs. Get started with our Free plan today!
+                  Join thousands of developers and businesses who trust ImageVault.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" variant="secondary" asChild>
-                    <a href="/auth/register">Start Free</a>
+                  <Button size="lg" variant="secondary">
+                    Start Free
                   </Button>
-                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600" asChild>
-                    <a href="/docs">View Documentation</a>
+                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
+                    View Documentation
                   </Button>
                 </div>
               </CardContent>
@@ -349,6 +363,6 @@ export default function Plans() {
           </div>
         </div>
       </div>
-    </div>
+    </SidebarContentLoader>
   );
 }

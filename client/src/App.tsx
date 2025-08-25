@@ -1,14 +1,15 @@
+
 import { Switch, Route, Link, Redirect, Router } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
-import LandingPage from "@/pages/landing"; // Assuming LandingPage is the correct component for the root path
+import LandingPage from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
 import Admin from "@/pages/admin";
 import Upload from "@/pages/upload";
@@ -77,21 +78,12 @@ function ProfileMenu() {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="text-right">
-        <p className="text-sm font-medium text-gray-900 dark:text-white">
-          {user?.firstName || user?.email?.split('@')[0]}
-        </p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {user?.email}
-        </p>
-      </div>
       <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-white text-sm font-medium">
         {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
       </div>
     </div>
   );
 }
-
 
 // AppContent component to handle routing and layout
 function AppContent() {
@@ -112,7 +104,6 @@ function AppContent() {
     <>
       {!isAuthenticated ? (
         <>
-          {/* Public routes for unauthenticated users */}
           <Route path="/auth/login" component={Login} />
           <Route path="/auth/register" component={Register} />
           <Route path="/auth/forgot-password" component={ForgotPassword} />
@@ -124,10 +115,10 @@ function AppContent() {
         </>
       ) : (
         <SidebarProvider>
-          <div className="flex min-h-screen">
+          <div className="flex min-h-screen w-full">
             <AppSidebar />
-            <main className="flex-1 flex flex-col">
-              <header className="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <SidebarInset className="flex-1 w-full">
+              <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <SidebarTrigger />
                   <div className="flex items-center gap-4">
@@ -136,29 +127,27 @@ function AppContent() {
                   </div>
                 </div>
               </header>
-              <div className="flex-1 w-full max-w-none overflow-y-auto bg-gray-50 dark:bg-slate-900">
-                <div className="w-full max-w-none min-h-screen">
-                  <Route path="/dashboard" component={Dashboard} />
-                  <Route path="/images" component={Images} />
-                  <Route path="/upload" component={Upload} />
-                  <Route path="/analytics" component={Analytics} />
-                  <Route path="/api-keys" component={ApiKeys} />
-                  <Route path="/docs" component={ApiDocs} /> {/* Corrected to ApiDocs */}
-                  <Route path="/settings" component={Settings} />
-                  <Route path="/api-usage" component={ApiUsage} />
-                  <Route path="/plans" component={Plans} />
-                  <Route path="/notifications" component={Notifications} />
-                  <Route path="/admin" component={Admin} />
-                  <Route path="/collections" component={Collections} />
-                  <Route path="/activity" component={Activity} />
-                  <Route path="/" component={() => { window.location.href = '/dashboard'; return null; }} />
-                </div>
+              
+              <div className="flex-1 w-full bg-gray-50 dark:bg-slate-900">
+                <Route path="/dashboard" component={Dashboard} />
+                <Route path="/images" component={Images} />
+                <Route path="/upload" component={Upload} />
+                <Route path="/analytics" component={Analytics} />
+                <Route path="/api-keys" component={ApiKeys} />
+                <Route path="/docs" component={ApiDocs} />
+                <Route path="/settings" component={Settings} />
+                <Route path="/api-usage" component={ApiUsage} />
+                <Route path="/plans" component={Plans} />
+                <Route path="/notifications" component={Notifications} />
+                <Route path="/admin" component={Admin} />
+                <Route path="/collections" component={Collections} />
+                <Route path="/activity" component={Activity} />
+                <Route path="/" component={() => { window.location.href = '/dashboard'; return null; }} />
               </div>
-            </main>
+            </SidebarInset>
           </div>
         </SidebarProvider>
       )}
-
     </>
   );
 }

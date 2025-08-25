@@ -25,7 +25,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Switch } from "@/components/ui/switch";
-import Link from "next/link";
+import { Link } from "wouter";
 
 export default function Settings() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -354,7 +354,7 @@ export default function Settings() {
                       </p>
                     </div>
                     <Button asChild>
-                      <Link href="/plans">Upgrade Plan</Link>
+                      <Link to="/plans">Upgrade Plan</Link>
                     </Button>
                   </div>
 

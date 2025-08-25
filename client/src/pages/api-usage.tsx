@@ -300,7 +300,7 @@ export default function ApiUsage() {
 
               <div className="pt-4 border-t">
                 <Button asChild className="w-full">
-                  <Link href="/plans">
+                  <Link to="/plans">
                     <Zap className="w-4 h-4 mr-2" />
                     Upgrade Plan
                   </Link>

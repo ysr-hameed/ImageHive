@@ -160,8 +160,7 @@ export default function Images() {
 
 
   return (
-    <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full space-y-6 p-4 md:p-8 pt-6">
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
@@ -436,7 +435,6 @@ export default function Images() {
             ))}
           </div>
         )}
-      </div>
     </div>
   );
 }

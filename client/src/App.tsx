@@ -136,7 +136,7 @@ function AppContent() {
                   </div>
                 </div>
               </header>
-              <div className="flex-1 overflow-y-auto p-4 bg-gray-50 dark:bg-slate-900"> {/* Added background and padding */}
+              <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-900">
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/images" component={Images} />
                 <Route path="/upload" component={Upload} />
@@ -151,14 +151,12 @@ function AppContent() {
                 <Route path="/collections" component={Collections} />
                 <Route path="/activity" component={Activity} />
                 <Route path="/" component={() => { window.location.href = '/dashboard'; return null; }} />
-                <Route component={NotFound} />
               </div>
             </main>
           </div>
         </SidebarProvider>
       )}
 
-      <Route path="*" component={NotFound} />
     </>
   );
 }

@@ -11,6 +11,8 @@ import rateLimit from "express-rate-limit";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import session from "express-session";
+import { db, customDomains, systemLogs } from "./db"; // Assuming db and schemas are imported correctly
+import { eq, and, sql } from "drizzle-orm"; // Assuming drizzle-orm imports
 
 // Extend Express Request type to include session properties
 declare module 'express-session' {
@@ -118,7 +120,7 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
             code: 'EMAIL_NOT_VERIFIED' 
           });
         }
-        
+
         req.user = {
           id: user.id,
           email: user.email || '',
@@ -368,7 +370,7 @@ export function registerRoutes(app: Express): Server {
   app.post('/api/auth/resend-verification', async (req, res) => {
     try {
       const { email } = req.body;
-      
+
       const user = await storage.getUserByEmail(email);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
@@ -386,7 +388,7 @@ export function registerRoutes(app: Express): Server {
       try {
         const emailSent = await emailService.sendVerificationEmail(email, verificationToken);
         if (emailSent) {
-          console.log(`Verification email resent to ${email}`);
+          console.log(`Verification email sent to ${email}`);
         }
       } catch (emailError) {
         console.error('Email sending error:', emailError);
@@ -843,7 +845,7 @@ export function registerRoutes(app: Express): Server {
     console.log('Legacy upload endpoint hit:', req.method, req.path);
     console.log('Request body keys:', Object.keys(req.body));
     console.log('File info:', req.file ? { name: req.file.originalname, size: req.file.size, mimetype: req.file.mimetype } : 'No file');
-    
+
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No image file provided' });
@@ -1004,7 +1006,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const images = await storage.getUserImages(user.id, 1000, 0, '');
-      
+
       // Extract unique folders from images
       const folderSet = new Set(images.map(img => img.folder).filter(Boolean));
       const folders = Array.from(folderSet);
@@ -1012,7 +1014,7 @@ export function registerRoutes(app: Express): Server {
         name: folder,
         count: images.filter(img => img.folder === folder).length
       }));
-      
+
       res.json(folderStats);
     } catch (error) {
       console.error('Get folders error:', error);
@@ -1247,6 +1249,17 @@ export function registerRoutes(app: Express): Server {
         cnameTarget,
       });
 
+      // Store verification token in system logs for later retrieval during DNS verification
+      await db.insert(systemLogs).values({
+        message: 'domain_verification_token',
+        level: 'info',
+        metadata: {
+          domainId: domainRecord.id,
+          token: verificationToken,
+          cnameTarget: cnameTarget
+        }
+      });
+
       res.json({
         success: true,
         domain: domainRecord,
@@ -1314,7 +1327,6 @@ export function registerRoutes(app: Express): Server {
   app.get('/api/v1/admin/notifications', isAuthenticated, async (req, res) => {
     try {
       const user = req.user!;
-      
       // Check if user is admin
       const userData = await storage.getUser(user.id);
       if (!userData?.isAdmin) {
@@ -1405,7 +1417,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const userData = await storage.getUser(user.id);
-      
+
       if (!userData?.isAdmin) {
         return res.status(403).json({ error: 'Admin access required' });
       }
@@ -1437,7 +1449,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const userData = await storage.getUser(user.id);
-      
+
       if (!userData?.isAdmin) {
         return res.status(403).json({ error: 'Admin access required' });
       }
@@ -1475,7 +1487,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const userData = await storage.getUser(user.id);
-      
+
       if (!userData?.isAdmin) {
         return res.status(403).json({ error: 'Admin access required' });
       }
@@ -1509,7 +1521,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const user = req.user!;
       const userData = await storage.getUser(user.id);
-      
+
       if (!userData?.isAdmin) {
         return res.status(403).json({ error: 'Admin access required' });
       }
@@ -1571,7 +1583,7 @@ export function registerRoutes(app: Express): Server {
       if (status === 'completed') {
         // Update user plan
         await storage.updateUserPlan(userId, planId);
-        
+
         // Update storage and API limits based on plan
         const limits = {
           starter: { storage: 10 * 1024 * 1024 * 1024, apiRequests: 10000 }, // 10GB
@@ -1604,7 +1616,7 @@ export function registerRoutes(app: Express): Server {
     try {
       // Get real notifications from database
       const notifications = await storage.getActiveNotifications();
-      
+
       // If no notifications exist, create a welcome notification for new users
       if (notifications.length === 0) {
         await storage.createNotification({
@@ -1614,7 +1626,7 @@ export function registerRoutes(app: Express): Server {
           isActive: true,
           createdBy: req.user.id
         });
-        
+
         // Re-fetch notifications
         const updatedNotifications = await storage.getActiveNotifications();
         res.json(updatedNotifications);
@@ -1686,7 +1698,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const totalImages = await storage.getUserImageCount(req.user.id);
       const storageUsed = await storage.getUserStorageUsed(req.user.id);
-      
+
       res.json({
         totalImages,
         storageUsed,

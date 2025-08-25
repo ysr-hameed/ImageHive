@@ -53,19 +53,6 @@ const images = await response.json();
 console.log('Images:', images);`,
 
     delete: `// Delete an image
-const response = await fetch('/api/v1/images/IMAGE_ID', {
-  method: 'DELETE',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY'
-  }
-});
-
-const result = await response.json();
-if (result.success) {
-  console.log('Image deleted successfully');
-} else {
-  console.error('Delete failed:', result.error);
-}`
 const response = await fetch('/api/v1/images/{imageId}', {
   method: 'DELETE',
   headers: {

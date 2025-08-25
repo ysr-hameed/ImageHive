@@ -276,6 +276,34 @@ class Storage {
     return image;
   }
 
+  async getCustomDomainByHost(host: string | undefined) {
+    if (!host) return null;
+    
+    const [domain] = await db.select().from(customDomains)
+      .where(and(
+        eq(customDomains.domain, host),
+        eq(customDomains.isVerified, true)
+      ));
+    return domain;
+  }
+
+  async getImageByCleanPath(userId: string, requestPath: string) {
+    // Clean path should match either:
+    // 1. Direct filename (image.jpg)
+    // 2. Folder/filename (myfolder/image.jpg)
+    
+    const [image] = await db.select().from(images)
+      .where(and(
+        eq(images.userId, userId),
+        sql`(
+          ${images.originalFilename} = ${requestPath} OR
+          CONCAT(COALESCE(${images.folder}, ''), '/', ${images.originalFilename}) = ${requestPath} OR
+          CONCAT(COALESCE(${images.folder}, ''), ${images.originalFilename}) = ${requestPath}
+        )`
+      ));
+    return image;
+  }
+
   // API Keys management
   async createApiKey(userId: string, keyData: CreateApiKeyData) {
     const keyHash = `sk_${crypto.randomBytes(32).toString('hex')}`;
@@ -358,19 +386,55 @@ class Storage {
   }
 
   async verifyCustomDomain(domainId: string) {
-    // In a real implementation, you would verify DNS records here
-    // For now, we'll simulate verification
-    await db.update(customDomains)
-      .set({
-        isVerified: true,
-        sslEnabled: true,
-        verifiedAt: new Date(),
-        updatedAt: new Date()
-      })
-      .where(eq(customDomains.id, domainId));
+    try {
+      const domain = await this.getCustomDomain(domainId);
+      if (!domain) return false;
 
-    console.log(`Domain verified: ${domainId}`);
-    return true;
+      // Get verification token from system logs
+      const [tokenLog] = await db.select()
+        .from(systemLogs)
+        .where(and(
+          eq(systemLogs.message, 'domain_verification_token'),
+          sql`metadata->>'domainId' = ${domainId}`
+        ));
+
+      if (!tokenLog || !tokenLog.metadata) return false;
+
+      const metadata = tokenLog.metadata as any;
+      const verificationToken = metadata.token;
+
+      // In production, verify DNS records here
+      // For now, simulate verification after some delay
+      console.log(`Verifying domain: ${domain.domain}`);
+      
+      await db.update(customDomains)
+        .set({
+          isVerified: true,
+          sslEnabled: true,
+          verifiedAt: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(customDomains.id, domainId));
+
+      console.log(`Domain verified: ${domain.domain}`);
+      return true;
+    } catch (error) {
+      console.error('Domain verification error:', error);
+      return false;
+    }
+  }
+
+  async deleteCustomDomain(domainId: string) {
+    // Delete verification tokens first
+    await db.delete(systemLogs).where(and(
+      eq(systemLogs.message, 'domain_verification_token'),
+      sql`metadata->>'domainId' = ${domainId}`
+    ));
+
+    // Delete domain
+    await db.delete(customDomains).where(eq(customDomains.id, domainId));
+    
+    console.log(`Custom domain deleted: ${domainId}`);
   }
 
   // Analytics

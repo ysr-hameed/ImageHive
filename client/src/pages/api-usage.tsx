@@ -14,7 +14,9 @@ import {
   Eye,
   Zap,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Bell,
+  User
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
@@ -169,9 +171,17 @@ export default function ApiUsage() {
               Monitor your API usage and manage your billing
             </p>
           </div>
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            {usageData.billing.plan} Plan
-          </Badge>
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" className="p-2">
+              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </Button>
+            <Button variant="ghost" size="sm" className="p-2">
+              <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </Button>
+            <Badge variant="outline" className="text-lg px-4 py-2">
+              {usageData.billing.plan} Plan
+            </Badge>
+          </div>
         </div>
 
         {/* Usage Stats */}

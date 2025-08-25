@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, Bell, LayoutDashboard, FileText, Code } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Check, AlertCircle } from 'lucide-react';
-// Removed syntax highlighter imports for now
+import { Link } from "wouter";
+
 
 // Mocking Upay integration for now, replace with actual integration
 const upayPayment = {
@@ -36,6 +37,8 @@ export function EnhancedUploadForm() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -116,7 +119,7 @@ export function EnhancedUploadForm() {
       for (let pair of formData.entries()) {
         console.log(pair[0] + ': ' + (pair[1] instanceof File ? `${pair[1].name} (${pair[1].size} bytes)` : pair[1]));
       }
-      
+
       // Set uploading status immediately
       setFiles(prev => prev.map(f =>
         f.id === file.id ? { ...f, status: 'uploading', progress: 10 } : f
@@ -129,7 +132,7 @@ export function EnhancedUploadForm() {
       });
 
       console.log('Response status:', response.status);
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Upload error response:', errorText);
@@ -142,7 +145,7 @@ export function EnhancedUploadForm() {
         }
         throw new Error(errorMessage);
       }
-      
+
       const result = await response.json();
       console.log('Upload successful:', result);
       return result;
@@ -175,64 +178,119 @@ export function EnhancedUploadForm() {
   });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles: UploadFile[] = acceptedFiles.map(file => ({
-      ...file,
-      id: Math.random().toString(36).substr(2, 9),
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-      status: 'pending',
-      progress: 0,
-    }));
+    const newFiles = acceptedFiles.map(file => {
+      const uploadFile: UploadFile = Object.assign(file, {
+        id: Math.random().toString(36).substr(2, 9),
+        preview: URL.createObjectURL(file),
+        status: 'pending' as const
+      });
+      return uploadFile;
+    });
 
     setFiles(prev => [...prev, ...newFiles]);
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.svg', '.bmp', '.avif']
-    },
-    maxSize: 10 * 1024 * 1024, // 10MB
-    onDropRejected: (rejectedFiles) => {
-      rejectedFiles.forEach((rejection) => {
-        const { file, errors } = rejection;
-        errors.forEach((error) => {
-          toast({
-            title: "File rejected",
-            description: `${file.name}: ${error.message}`,
-            variant: "destructive",
-          });
-        });
-      });
-    },
-  });
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files || []);
+    onDrop(selectedFiles);
+  };
 
-  const removeFile = (fileId: string) => {
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const droppedFiles = Array.from(e.dataTransfer.files);
+    const imageFiles = droppedFiles.filter(file => file.type.startsWith('image/'));
+    onDrop(imageFiles);
+  };
+
+  const removeFile = useCallback((fileId: string) => {
     setFiles(prev => {
-      const file = prev.find(f => f.id === fileId);
-      if (file?.preview) {
-        URL.revokeObjectURL(file.preview);
+      const fileToRemove = prev.find(f => f.id === fileId);
+      if (fileToRemove?.preview) {
+        URL.revokeObjectURL(fileToRemove.preview);
       }
       return prev.filter(f => f.id !== fileId);
     });
-  };
+  }, []);
 
-  const handleUpload = async () => {
+  const uploadFiles = async () => {
     if (files.length === 0) return;
 
     setIsUploading(true);
 
-    try {
-      for (const file of files) {
-        if (file.status === 'pending' || file.status === 'error') {
-          await uploadMutation.mutateAsync(file as UploadFile);
+    for (const file of files) {
+      if (file.status === 'completed') continue;
+
+      try {
+        setFiles(prev => prev.map(f =>
+          f.id === file.id ? { ...f, status: 'uploading', progress: 0 } : f
+        ));
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('title', metadata.title || file.name);
+        formData.append('description', metadata.description);
+        formData.append('tags', metadata.tags);
+        formData.append('folder', metadata.folder);
+        formData.append('isPublic', 'true');
+
+        // Add transform options
+        Object.entries(transforms).forEach(([key, value]) => {
+          if (value !== '' && value !== 0 && value !== false && value !== 1) {
+            formData.append(`transform_${key}`, value.toString());
+          }
+        });
+
+        const response = await fetch('/api/v1/images/upload', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: response.statusText }));
+          throw new Error(errorData.message || `Upload failed: ${response.statusText}`);
         }
+
+        const result = await response.json();
+
+        setFiles(prev => prev.map(f =>
+          f.id === file.id ? { ...f, status: 'completed', progress: 100 } : f
+        ));
+
+        toast({
+          title: "Upload successful",
+          description: `${file.name} uploaded successfully`,
+        });
+
+      } catch (error) {
+        console.error('Upload error:', error);
+        setFiles(prev => prev.map(f =>
+          f.id === file.id ? {
+            ...f,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Upload failed',
+            progress: 0
+          } : f
+        ));
+
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${file.name}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive",
+        });
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-    } finally {
-      setIsUploading(false);
     }
+
+    setIsUploading(false);
+    queryClient.invalidateQueries({ queryKey: ['/api/v1/images'] });
   };
+
 
   const totalProgress = files.length > 0
     ? Math.round(files.reduce((acc, file) => acc + (file.progress || 0), 0) / files.length)
@@ -248,424 +306,429 @@ export function EnhancedUploadForm() {
 
   return (
     <div className="space-y-6">
-      {/* Upload Area */}
-      <Card>
-        <CardContent className="p-6">
-          <div
-            {...getRootProps()}
-            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-              isDragActive
-                ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/10'
-                : 'border-gray-300 dark:border-gray-600 hover:border-brand-400'
-            }`}
-          >
-            <input {...getInputProps()} />
-            <Upload className="w-12 h-12 mx-auto text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              {isDragActive ? 'Drop files here' : 'Drag & drop images here'}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              or click to browse files
-            </p>
-            <p className="text-sm text-gray-400">
-              Supports: JPEG, PNG, GIF, WebP, SVG, BMP, AVIF (max 10MB each)
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Upload Options and Transforms */}
-      <Tabs defaultValue="metadata" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="metadata">Metadata</TabsTrigger>
-          <TabsTrigger value="transforms">Transforms</TabsTrigger>
-        </TabsList>
-        <TabsContent value="metadata">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FolderPlus className="w-5 h-5" />
-                Image Metadata
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={metadata.title}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
-                  placeholder="Image title (optional)"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  value={metadata.description}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Image description (optional)"
-                  rows={3}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="tags">Tags</Label>
-                <Input
-                  id="tags"
-                  value={metadata.tags}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, tags: e.target.value }))}
-                  placeholder="nature, landscape, outdoor"
-                />
-                <p className="text-xs text-gray-500 mt-1">Separate tags with commas (max 10 tags, 50 chars each)</p>
-              </div>
-
-              <div>
-                <Label htmlFor="folder">Folder</Label>
-                <Input
-                  id="folder"
-                  value={metadata.folder}
-                  onChange={(e) => setMetadata(prev => ({ ...prev, folder: e.target.value }))}
-                  placeholder="Enter folder name (optional)"
-                />
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="isPublic"
-                  checked={metadata.isPublic}
-                  onCheckedChange={(checked) => setMetadata(prev => ({ ...prev, isPublic: checked }))}
-                />
-                <Label htmlFor="isPublic">Make images publicly accessible</Label>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="transforms">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="w-5 h-5" />
-                Image Transforms & Effects
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="width">Width (px)</Label>
-                  <Input
-                    id="width"
-                    type="number"
-                    value={transforms.width}
-                    onChange={(e) => setTransforms(prev => ({ ...prev, width: e.target.value }))}
-                    placeholder="Auto"
-                    min="1"
-                    max="4000"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="height">Height (px)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    value={transforms.height}
-                    onChange={(e) => setTransforms(prev => ({ ...prev, height: e.target.value }))}
-                    placeholder="Auto"
-                    min="1"
-                    max="4000"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="format">Output Format</Label>
-                  <Select
-                    value={transforms.format}
-                    onValueChange={(value) => setTransforms(prev => ({ ...prev, format: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Auto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Auto</SelectItem>
-                      <SelectItem value="jpeg">JPEG</SelectItem>
-                      <SelectItem value="png">PNG</SelectItem>
-                      <SelectItem value="webp">WebP</SelectItem>
-                      <SelectItem value="avif">AVIF</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="fit">Resize Mode</Label>
-                  <Select
-                    value={transforms.fit}
-                    onValueChange={(value) => setTransforms(prev => ({ ...prev, fit: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cover">Cover</SelectItem>
-                      <SelectItem value="contain">Contain</SelectItem>
-                      <SelectItem value="fill">Fill</SelectItem>
-                      <SelectItem value="inside">Inside</SelectItem>
-                      <SelectItem value="outside">Outside</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="quality">Quality ({transforms.quality}%)</Label>
-                <Slider
-                  id="quality"
-                  min={1}
-                  max={100}
-                  step={1}
-                  value={[transforms.quality]}
-                  onValueChange={(value) => setTransforms(prev => ({ ...prev, quality: value[0] }))}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="rotate">Rotation (degrees)</Label>
-                <Input
-                  id="rotate"
-                  type="number"
-                  value={transforms.rotate}
-                  onChange={(e) => setTransforms(prev => ({ ...prev, rotate: parseInt(e.target.value) }))}
-                  placeholder="0"
-                  min="0"
-                  max="360"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="blur">Blur (0.3-1000)</Label>
-                  <Input
-                    id="blur"
-                    type="number"
-                    value={transforms.blur}
-                    onChange={(e) => setTransforms(prev => ({ ...prev, blur: parseInt(e.target.value) }))}
-                    placeholder="0"
-                    min="0.3"
-                    max="1000"
-                    step="0.1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="brightness">Brightness (0.1-3.0)</Label>
-                  <Input
-                    id="brightness"
-                    type="number"
-                    value={transforms.brightness}
-                    onChange={(e) => setTransforms(prev => ({ ...prev, brightness: parseFloat(e.target.value) }))}
-                    placeholder="1.0"
-                    min="0.1"
-                    max="3.0"
-                    step="0.1"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="contrast">Contrast (0.1-3.0)</Label>
-                  <Input
-                    id="contrast"
-                    type="number"
-                    value={transforms.contrast}
-                    onChange={(e) => setTransforms(prev => ({ ...prev, contrast: parseFloat(e.target.value) }))}
-                    placeholder="1.0"
-                    min="0.1"
-                    max="3.0"
-                    step="0.1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="saturation">Saturation (0.0-3.0)</Label>
-                  <Input
-                    id="saturation"
-                    type="number"
-                    value={transforms.saturation}
-                    onChange={(e) => setTransforms(prev => ({ ...prev, saturation: parseFloat(e.target.value) }))}
-                    placeholder="1.0"
-                    min="0.0"
-                    max="3.0"
-                    step="0.1"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-6">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="grayscale"
-                    checked={transforms.grayscale}
-                    onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, grayscale: checked }))}
-                  />
-                  <Label htmlFor="grayscale">Grayscale</Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="sharpen"
-                    checked={transforms.sharpen}
-                    onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, sharpen: checked }))}
-                  />
-                  <Label htmlFor="sharpen">Sharpen</Label>
-                </div>
-
-                {user?.plan === 'pro' || user?.plan === 'enterprise' ? (
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="watermark"
-                      checked={transforms.watermark}
-                      onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, watermark: checked }))}
-                    />
-                    <Label htmlFor="watermark">Apply Watermark</Label>
-                    <Badge variant="secondary">Pro</Badge>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2 opacity-50">
-                    <Switch id="watermark-disabled" disabled />
-                    <Label htmlFor="watermark-disabled">Apply Watermark</Label>
-                    <Badge variant="outline">Pro Only</Badge>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {/* Upload Button and Progress */}
-      {files.length > 0 && (
+      <div className="max-w-7xl mx-auto">
+        {/* Upload Area */}
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="text-sm text-gray-500">
-                {files.length} file{files.length !== 1 ? 's' : ''} ready to upload
-              </div>
-              <Button
-                onClick={handleUpload}
-                disabled={isUploading || files.every(f => f.status === 'completed')}
-                size="lg"
-              >
-                {isUploading ? 'Uploading...' : 'Upload All'}
-                <Upload className="w-4 h-4 ml-2" />
+          <CardContent className="p-8">
+            <div
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+              className="border-2 border-dashed rounded-lg p-8 text-center transition-colors border-gray-300 dark:border-gray-600 hover:border-gray-400"
+            >
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileSelect}
+                className="hidden"
+                ref={fileInputRef}
+              />
+              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                Upload your images
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                Drag and drop your images here, or click to browse
+              </p>
+              <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()}>
+                Choose Files
               </Button>
             </div>
-
-            {isUploading && (
-              <div>
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span>Overall progress</span>
-                  <span>{totalProgress}%</span>
-                </div>
-                <Progress value={totalProgress} className="h-3" />
-              </div>
-            )}
           </CardContent>
         </Card>
-      )}
 
-      {/* File List */}
-      {files.length > 0 && (
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="font-medium mb-4">Files Queue</h3>
-            <div className="space-y-3">
-              {files.map((file) => (
-                <div key={file.id} className="flex items-center space-x-4 p-3 border rounded-lg">
-                  <div className="flex-shrink-0">
-                    {file.preview ? (
-                      <img
-                        src={file.preview}
-                        alt={file.name}
-                        className="w-12 h-12 object-cover rounded"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center">
-                        <ImageIcon className="w-6 h-6 text-gray-400" />
-                      </div>
-                    )}
+        {/* Upload Options and Transforms */}
+        <Tabs defaultValue="metadata" className="w-full mt-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="metadata">Metadata</TabsTrigger>
+            <TabsTrigger value="transforms">Transforms</TabsTrigger>
+          </TabsList>
+          <TabsContent value="metadata">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FolderPlus className="w-5 h-5" />
+                  Image Metadata
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={metadata.title}
+                    onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Image title (optional)"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={metadata.description}
+                    onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Image description (optional)"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="tags">Tags</Label>
+                  <Input
+                    id="tags"
+                    value={metadata.tags}
+                    onChange={(e) => setMetadata(prev => ({ ...prev, tags: e.target.value }))}
+                    placeholder="nature, landscape, outdoor"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Separate tags with commas (max 10 tags, 50 chars each)</p>
+                </div>
+
+                <div>
+                  <Label htmlFor="folder">Folder</Label>
+                  <Input
+                    id="folder"
+                    value={metadata.folder}
+                    onChange={(e) => setMetadata(prev => ({ ...prev, folder: e.target.value }))}
+                    placeholder="Enter folder name (optional)"
+                  />
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isPublic"
+                    checked={metadata.isPublic}
+                    onCheckedChange={(checked) => setMetadata(prev => ({ ...prev, isPublic: checked }))}
+                  />
+                  <Label htmlFor="isPublic">Make images publicly accessible</Label>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="transforms">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Image Transforms & Effects
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="width">Width (px)</Label>
+                    <Input
+                      id="width"
+                      type="number"
+                      value={transforms.width}
+                      onChange={(e) => setTransforms(prev => ({ ...prev, width: e.target.value }))}
+                      placeholder="Auto"
+                      min="1"
+                      max="4000"
+                    />
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-
-                    {file.status === 'uploading' && (
-                      <Progress value={file.progress || 0} className="h-1 mt-2" />
-                    )}
-
-                    {file.status === 'error' && (
-                      <p className="text-sm text-red-500 mt-1">{file.error}</p>
-                    )}
+                  <div>
+                    <Label htmlFor="height">Height (px)</Label>
+                    <Input
+                      id="height"
+                      type="number"
+                      value={transforms.height}
+                      onChange={(e) => setTransforms(prev => ({ ...prev, height: e.target.value }))}
+                      placeholder="Auto"
+                      min="1"
+                      max="4000"
+                    />
                   </div>
+                </div>
 
-                  <div className="flex-shrink-0 flex items-center space-x-2">
-                    <Badge variant={
-                      file.status === 'completed' ? 'default' :
-                      file.status === 'uploading' ? 'secondary' :
-                      file.status === 'error' ? 'destructive' : 'outline'
-                    }>
-                      {file.status === 'completed' && <Check className="w-3 h-3 mr-1" />}
-                      {file.status === 'error' && <AlertCircle className="w-3 h-3 mr-1" />}
-                      {file.status === 'completed' ? 'Done' : file.status === 'error' ? 'Failed' : file.status === 'uploading' ? 'Uploading' : 'Pending'}
-                    </Badge>
-
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(file.id)}
-                      disabled={file.status === 'uploading'}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="format">Output Format</Label>
+                    <Select
+                      value={transforms.format}
+                      onValueChange={(value) => setTransforms(prev => ({ ...prev, format: value }))}
                     >
-                      <X className="w-4 h-4" />
-                    </Button>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Auto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Auto</SelectItem>
+                        <SelectItem value="jpeg">JPEG</SelectItem>
+                        <SelectItem value="png">PNG</SelectItem>
+                        <SelectItem value="webp">WebP</SelectItem>
+                        <SelectItem value="avif">AVIF</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label htmlFor="fit">Resize Mode</Label>
+                    <Select
+                      value={transforms.fit}
+                      onValueChange={(value) => setTransforms(prev => ({ ...prev, fit: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cover">Cover</SelectItem>
+                        <SelectItem value="contain">Contain</SelectItem>
+                        <SelectItem value="fill">Fill</SelectItem>
+                        <SelectItem value="inside">Inside</SelectItem>
+                        <SelectItem value="outside">Outside</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      {/* Added Section for Documentation and Library Usage */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5" />
-            Documentation & Usage
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <h4 className="text-lg font-semibold mb-2">How to Use</h4>
-            <Tabs defaultValue="library" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="library">Library</TabsTrigger>
-                <TabsTrigger value="sdk">SDK</TabsTrigger>
-                <TabsTrigger value="api">API</TabsTrigger>
-              </TabsList>
-              <TabsContent value="library">
-                <Card className="mt-4">
-                  <CardContent className="p-4">
-                    <h5 className="font-medium mb-2">Using the Library</h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Integrate our React component seamlessly into your project.
-                      Follow the installation instructions and import `EnhancedUploadForm`
-                      wherever you need an upload interface.
-                    </p>
-                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
-                      <code>{`import { EnhancedUploadForm } from './your-upload-component';
+
+                <div>
+                  <Label htmlFor="quality">Quality ({transforms.quality}%)</Label>
+                  <Slider
+                    id="quality"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={[transforms.quality]}
+                    onValueChange={(value) => setTransforms(prev => ({ ...prev, quality: value[0] }))}
+                    className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="rotate">Rotation (degrees)</Label>
+                  <Input
+                    id="rotate"
+                    type="number"
+                    value={transforms.rotate}
+                    onChange={(e) => setTransforms(prev => ({ ...prev, rotate: parseInt(e.target.value) }))}
+                    placeholder="0"
+                    min="0"
+                    max="360"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="blur">Blur (0.3-1000)</Label>
+                    <Input
+                      id="blur"
+                      type="number"
+                      value={transforms.blur}
+                      onChange={(e) => setTransforms(prev => ({ ...prev, blur: parseInt(e.target.value) }))}
+                      placeholder="0"
+                      min="0.3"
+                      max="1000"
+                      step="0.1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="brightness">Brightness (0.1-3.0)</Label>
+                    <Input
+                      id="brightness"
+                      type="number"
+                      value={transforms.brightness}
+                      onChange={(e) => setTransforms(prev => ({ ...prev, brightness: parseFloat(e.target.value) }))}
+                      placeholder="1.0"
+                      min="0.1"
+                      max="3.0"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="contrast">Contrast (0.1-3.0)</Label>
+                    <Input
+                      id="contrast"
+                      type="number"
+                      value={transforms.contrast}
+                      onChange={(e) => setTransforms(prev => ({ ...prev, contrast: parseFloat(e.target.value) }))}
+                      placeholder="1.0"
+                      min="0.1"
+                      max="3.0"
+                      step="0.1"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="saturation">Saturation (0.0-3.0)</Label>
+                    <Input
+                      id="saturation"
+                      type="number"
+                      value={transforms.saturation}
+                      onChange={(e) => setTransforms(prev => ({ ...prev, saturation: parseFloat(e.target.value) }))}
+                      placeholder="1.0"
+                      min="0.0"
+                      max="3.0"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="grayscale"
+                      checked={transforms.grayscale}
+                      onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, grayscale: checked }))}
+                    />
+                    <Label htmlFor="grayscale">Grayscale</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="sharpen"
+                      checked={transforms.sharpen}
+                      onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, sharpen: checked }))}
+                    />
+                    <Label htmlFor="sharpen">Sharpen</Label>
+                  </div>
+
+                  {user?.plan === 'pro' || user?.plan === 'enterprise' ? (
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="watermark"
+                        checked={transforms.watermark}
+                        onCheckedChange={(checked) => setTransforms(prev => ({ ...prev, watermark: checked }))}
+                      />
+                      <Label htmlFor="watermark">Apply Watermark</Label>
+                      <Badge variant="secondary">Pro</Badge>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-2 opacity-50">
+                      <Switch id="watermark-disabled" disabled />
+                      <Label htmlFor="watermark-disabled">Apply Watermark</Label>
+                      <Badge variant="outline">Pro Only</Badge>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        {/* Upload Button and Progress */}
+        {files.length > 0 && (
+          <Card className="mt-6">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-sm text-gray-500">
+                  {files.length} file{files.length !== 1 ? 's' : ''} ready to upload
+                </div>
+                <Button
+                  onClick={uploadFiles}
+                  disabled={isUploading || files.every(f => f.status === 'completed')}
+                  size="lg"
+                >
+                  {isUploading ? 'Uploading...' : 'Upload All'}
+                  <Upload className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+
+              {isUploading && (
+                <div>
+                  <div className="flex items-center justify-between text-sm mb-2">
+                    <span>Overall progress</span>
+                    <span>{totalProgress}%</span>
+                  </div>
+                  <Progress value={totalProgress} className="h-3" />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* File List */}
+        {files.length > 0 && (
+          <Card className="mt-6">
+            <CardContent className="p-6">
+              <h3 className="font-medium mb-4">Files Queue</h3>
+              <div className="space-y-3">
+                {files.map((file) => (
+                  <div key={file.id} className="flex items-center space-x-4 p-3 border rounded-lg">
+                    <div className="flex-shrink-0">
+                      {file.preview ? (
+                        <img
+                          src={file.preview}
+                          alt={file.name}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded flex items-center justify-center">
+                          <ImageIcon className="w-6 h-6 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                        {file.name}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+
+                      {file.status === 'uploading' && (
+                        <Progress value={file.progress || 0} className="h-1 mt-2" />
+                      )}
+
+                      {file.status === 'error' && (
+                        <p className="text-sm text-red-500 mt-1">{file.error}</p>
+                      )}
+                    </div>
+
+                    <div className="flex-shrink-0 flex items-center space-x-2">
+                      <Badge variant={
+                        file.status === 'completed' ? 'default' :
+                        file.status === 'uploading' ? 'secondary' :
+                        file.status === 'error' ? 'destructive' : 'outline'
+                      }>
+                        {file.status === 'completed' && <Check className="w-3 h-3 mr-1" />}
+                        {file.status === 'error' && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {file.status === 'completed' ? 'Done' : file.status === 'error' ? 'Failed' : file.status === 'uploading' ? 'Uploading' : 'Pending'}
+                      </Badge>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(file.id)}
+                        disabled={file.status === 'uploading'}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        {/* Added Section for Documentation and Library Usage */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Documentation & Usage
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="text-lg font-semibold mb-2">How to Use</h4>
+              <Tabs defaultValue="library" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="library">Library</TabsTrigger>
+                  <TabsTrigger value="sdk">SDK</TabsTrigger>
+                  <TabsTrigger value="api">API</TabsTrigger>
+                </TabsList>
+                <TabsContent value="library">
+                  <Card className="mt-4">
+                    <CardContent className="p-4">
+                      <h5 className="font-medium mb-2">Using the Library</h5>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Integrate our React component seamlessly into your project.
+                        Follow the installation instructions and import `EnhancedUploadForm`
+                        wherever you need an upload interface.
+                      </p>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                        <code>{`import { EnhancedUploadForm } from './your-upload-component';
 
 function App() {
   return (
@@ -676,42 +739,42 @@ function App() {
     </div>
   );
 }`}</code>
-                    </pre>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="sdk">
-                <Card className="mt-4">
-                  <CardContent className="p-4">
-                    <h5 className="font-medium mb-2">Using the SDK</h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Our SDK simplifies interactions with our services. Install it via npm
-                      and leverage its functions for more advanced control.
-                    </p>
-                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
-                      <code>{`npm install your-service-sdk
+                      </pre>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="sdk">
+                  <Card className="mt-4">
+                    <CardContent className="p-4">
+                      <h5 className="font-medium mb-2">Using the SDK</h5>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Our SDK simplifies interactions with our services. Install it via npm
+                        and leverage its functions for more advanced control.
+                      </p>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                        <code>{`npm install your-service-sdk
 # or
 yarn add your-service-sdk`}</code>
-                    </pre>
-                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
-                      <code>{`import { YourService } from 'your-service-sdk';
+                      </pre>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                        <code>{`import { YourService } from 'your-service-sdk';
 
 const service = new YourService({ apiKey: 'YOUR_API_KEY' });
 service.uploadImage({ file: imageFile, options: {...} }).then(res => console.log(res));`}</code>
-                    </pre>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              <TabsContent value="api">
-                <Card className="mt-4">
-                  <CardContent className="p-4">
-                    <h5 className="font-medium mb-2">Using the API</h5>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      Interact directly with our robust API endpoints for maximum flexibility.
-                      Refer to the API documentation for detailed endpoint specifications and request/response formats.
-                    </p>
-                    <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
-                      <code>{`POST /api/upload
+                      </pre>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="api">
+                  <Card className="mt-4">
+                    <CardContent className="p-4">
+                      <h5 className="font-medium mb-2">Using the API</h5>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Interact directly with our robust API endpoints for maximum flexibility.
+                        Refer to the API documentation for detailed endpoint specifications and request/response formats.
+                      </p>
+                      <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto mt-2">
+                        <code>{`POST /api/upload
 Content-Type: multipart/form-data
 
 {
@@ -720,37 +783,38 @@ Content-Type: multipart/form-data
   "description": "Optional Description",
   // ... other metadata and transform options
 }`}</code>
-                    </pre>
-                    <a href="/api/docs" className="text-blue-600 hover:underline mt-2 inline-block">View Full API Documentation</a>
+                      </pre>
+                      <a href="/api/docs" className="text-blue-600 hover:underline mt-2 inline-block">View Full API Documentation</a>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+            {/* Upgrade Plan Section */}
+            {user?.plan !== 'pro' && user?.plan !== 'enterprise' && (
+              <div className="mt-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <LayoutDashboard className="w-5 h-5" />
+                      Upgrade Your Plan
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Unlock advanced features and higher limits by upgrading your plan.
+                      Click the button below to proceed with the upgrade.
+                    </p>
+                    <Button onClick={handleUpgradePlan} className="bg-green-600 hover:bg-green-700">
+                      Upgrade to Pro Plan
+                    </Button>
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-          {/* Upgrade Plan Section */}
-          {user?.plan !== 'pro' && user?.plan !== 'enterprise' && (
-            <div className="mt-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <LayoutDashboard className="w-5 h-5" />
-                    Upgrade Your Plan
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Unlock advanced features and higher limits by upgrading your plan.
-                    Click the button below to proceed with the upgrade.
-                  </p>
-                  <Button onClick={handleUpgradePlan} className="bg-green-600 hover:bg-green-700">
-                    Upgrade to Pro Plan
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

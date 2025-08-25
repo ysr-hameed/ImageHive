@@ -31,7 +31,7 @@ import Upgrade from "./pages/upgrade";
 import Plans from "./pages/plans";
 import Notifications from "./pages/notifications";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest } from "./lib/axios";
+import { apiRequest } from "./lib/queryClient";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 

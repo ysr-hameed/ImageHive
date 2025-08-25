@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -60,17 +59,14 @@ export default function Analytics() {
     <SidebarContentLoader isLoading={isLoading}>
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-6">
-            <BarChart3 className="w-8 h-8 text-blue-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-                Analytics
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400">
-                Track your image performance and usage statistics
-              </p>
-            </div>
+          {/* Page Content Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Analytics
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Track your image performance and usage statistics
+            </p>
           </div>
 
           {/* Overview Stats */}

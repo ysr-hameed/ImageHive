@@ -107,19 +107,14 @@ export default function Settings() {
     <SidebarContentLoader isLoading={!user}>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="max-w-4xl mx-auto">
-          {/* Header */}
+          {/* Page Content Header */}
           <div className="mb-8">
-            <div className="flex items-center space-x-3">
-              <SettingsIcon className="w-8 h-8 text-brand-600 dark:text-brand-400" />
-              <div>
-                <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-white">
-                  Settings
-                </h1>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Manage your account and application settings
-                </p>
-              </div>
-            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              Settings
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">
+              Manage your account settings and preferences
+            </p>
           </div>
 
           <Tabs defaultValue="domains" className="space-y-6">

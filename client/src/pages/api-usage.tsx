@@ -161,7 +161,7 @@ export default function ApiUsage() {
   return (
     <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
+        {/* Page Content Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -171,13 +171,7 @@ export default function ApiUsage() {
               Monitor your API usage and manage your billing
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="p-2">
-              <Bell className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </Button>
-            <Button variant="ghost" size="sm" className="p-2">
-              <User className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-            </Button>
+          <div>
             <Badge variant="outline" className="text-lg px-4 py-2">
               {usageData.billing.plan} Plan
             </Badge>

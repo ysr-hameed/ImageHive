@@ -136,21 +136,23 @@ function AppContent() {
                   </div>
                 </div>
               </header>
-              <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-slate-900">
-                <Route path="/dashboard" component={Dashboard} />
-                <Route path="/images" component={Images} />
-                <Route path="/upload" component={Upload} />
-                <Route path="/analytics" component={Analytics} />
-                <Route path="/api-keys" component={ApiKeys} />
-                <Route path="/docs" component={ApiDocs} /> {/* Corrected to ApiDocs */}
-                <Route path="/settings" component={Settings} />
-                <Route path="/api-usage" component={ApiUsage} />
-                <Route path="/plans" component={Plans} />
-                <Route path="/notifications" component={Notifications} />
-                <Route path="/admin" component={Admin} />
-                <Route path="/collections" component={Collections} />
-                <Route path="/activity" component={Activity} />
-                <Route path="/" component={() => { window.location.href = '/dashboard'; return null; }} />
+              <div className="flex-1 w-full max-w-none overflow-y-auto bg-gray-50 dark:bg-slate-900">
+                <div className="w-full max-w-none min-h-screen">
+                  <Route path="/dashboard" component={Dashboard} />
+                  <Route path="/images" component={Images} />
+                  <Route path="/upload" component={Upload} />
+                  <Route path="/analytics" component={Analytics} />
+                  <Route path="/api-keys" component={ApiKeys} />
+                  <Route path="/docs" component={ApiDocs} /> {/* Corrected to ApiDocs */}
+                  <Route path="/settings" component={Settings} />
+                  <Route path="/api-usage" component={ApiUsage} />
+                  <Route path="/plans" component={Plans} />
+                  <Route path="/notifications" component={Notifications} />
+                  <Route path="/admin" component={Admin} />
+                  <Route path="/collections" component={Collections} />
+                  <Route path="/activity" component={Activity} />
+                  <Route path="/" component={() => { window.location.href = '/dashboard'; return null; }} />
+                </div>
               </div>
             </main>
           </div>

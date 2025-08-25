@@ -155,6 +155,17 @@
   .animate-pulse-slow {
     animation: pulse 3s infinite;
   }
+  
+  .full-width {
+    width: 100% !important;
+    max-width: none !important;
+  }
+  
+  .page-container {
+    width: 100%;
+    max-width: none;
+    min-height: 100vh;
+  }
 }
 
 @keyframes fadeIn {

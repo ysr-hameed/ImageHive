@@ -119,7 +119,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="w-full max-w-full space-y-4 p-4 md:p-8 pt-6">
+    <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
       {/* Notifications */}
       <NotificationBanner />
 

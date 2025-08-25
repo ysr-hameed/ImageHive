@@ -57,7 +57,7 @@ export default function Upload() {
   };
 
   return (
-    <div className="w-full space-y-4 p-4 md:p-8 pt-6">
+    <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-6">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">

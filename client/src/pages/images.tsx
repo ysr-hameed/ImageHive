@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -8,16 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { 
-  ImageIcon, 
-  Search, 
-  Filter, 
-  Grid, 
-  List, 
-  Download, 
-  Trash2, 
-  Eye, 
-  Copy, 
+import {
+  ImageIcon,
+  Search,
+  Filter,
+  Grid,
+  List,
+  Download,
+  Trash2,
+  Eye,
+  Copy,
   ExternalLink,
   Calendar,
   FileImage,
@@ -55,7 +54,7 @@ export default function Images() {
   const [privacyFilter, setPrivacyFilter] = useState<'all' | 'public' | 'private'>('all');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'name' | 'size'>('newest');
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -68,7 +67,7 @@ export default function Images() {
         if (selectedTags.length > 0) params.append('tags', selectedTags.join(','));
         if (privacyFilter !== 'all') params.append('privacy', privacyFilter);
         params.append('sort', sortBy);
-        
+
         return await apiRequest('GET', `/api/v1/images?${params.toString()}`);
       } catch (error) {
         console.error('Images query error:', error);
@@ -80,7 +79,7 @@ export default function Images() {
   });
 
   const images = Array.isArray(imagesResponse) ? imagesResponse : (imagesResponse?.images || []);
-  
+
   // Extract unique tags from all images
   const allTags = Array.from(new Set(images.flatMap((image: any) => (image.tags as string[]) || [])));
 
@@ -143,8 +142,8 @@ export default function Images() {
   };
 
   const toggleImageSelection = (imageId: string) => {
-    setSelectedImages(prev => 
-      prev.includes(imageId) 
+    setSelectedImages(prev =>
+      prev.includes(imageId)
         ? prev.filter(id => id !== imageId)
         : [...prev, imageId]
     );
@@ -160,7 +159,7 @@ export default function Images() {
 
 
   return (
-    <div className="w-full space-y-6 p-4 md:p-8 pt-6">
+    <div className="w-full max-w-none min-h-screen space-y-6 p-4 md:p-8 pt-6">
         {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           <div className="relative flex-1">
@@ -172,9 +171,9 @@ export default function Images() {
               className="pl-10"
             />
           </div>
-          
+
           <div className="flex gap-2">
-            
+
 
             <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
               <SelectTrigger className="w-[120px]">
@@ -339,7 +338,7 @@ export default function Images() {
                       className="rounded border-gray-300"
                     />
                   </div>
-                  
+
                 </div>
                 <CardContent className="p-4">
                   <h3 className="font-medium text-gray-900 dark:text-white truncate mb-1">
@@ -391,7 +390,7 @@ export default function Images() {
                       {formatBytes(image.size)} • {image.width}×{image.height} • {formatDate(image.createdAt)}
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       size="sm"

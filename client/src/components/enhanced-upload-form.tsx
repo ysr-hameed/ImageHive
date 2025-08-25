@@ -94,7 +94,7 @@ export function EnhancedUploadForm() {
   });
 
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated || !user) {
     return (
       <Card>
         <CardContent className="text-center py-12">
@@ -395,8 +395,8 @@ export function EnhancedUploadForm() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="w-full max-w-none space-y-6">
+      <div className="w-full">
         {/* Upload Area */}
         <Card>
           <CardContent className="p-8">

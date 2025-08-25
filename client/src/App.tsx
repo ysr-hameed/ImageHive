@@ -216,7 +216,6 @@ function Router() {
 }
 
 function App() {
-  const { isAuthenticated, isLoading } = useAuth();
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

@@ -457,6 +457,22 @@ class Storage {
     }
   }
 
+  async getImageById(imageId: string) {
+    const [image] = await db.select().from(images)
+      .where(eq(images.id, imageId));
+    return image;
+  }
+
+  async deleteImage(imageId: string) {
+    // Delete analytics first
+    await db.delete(imageAnalytics).where(eq(imageAnalytics.imageId, imageId));
+    
+    // Delete image
+    await db.delete(images).where(eq(images.id, imageId));
+    
+    console.log(`Image deleted: ${imageId}`);
+  }
+
   // System logging
   async logSystemEvent(level: string, message: string, userId?: string, metadata?: any) {
     try {

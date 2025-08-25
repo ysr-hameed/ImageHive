@@ -57,7 +57,7 @@ export function EnhancedUploadForm() {
     width: '',
     height: '',
     quality: 80,
-    format: '',
+    format: 'auto',
     fit: 'cover',
     blur: 0,
     brightness: 1,
@@ -70,19 +70,33 @@ export function EnhancedUploadForm() {
     watermark: false, // Added watermark state
   });
 
-  // Added state for new upload options
-  const [privacy, setPrivacy] = useState('public');
-  const [quality, setQuality] = useState(80);
-  const [width, setWidth] = useState('');
-  const [height, setHeight] = useState('');
-  const [cropMode, setCropMode] = useState('fit');
-  const [description, setDescription] = useState('');
-  const [tags, setTags] = useState('');
-  const [folder, setFolder] = useState('');
-  const [autoEnhance, setAutoEnhance] = useState(false);
-  const [generateThumbs, setGenerateThumbs] = useState(false);
-  const [stripExif, setStripExif] = useState(false);
-  const [progressive, setProgressive] = useState(false);
+  // Enhanced upload options
+  const [uploadOptions, setUploadOptions] = useState({
+    privacy: 'public',
+    quality: 80,
+    width: '',
+    height: '',
+    cropMode: 'fit',
+    description: '',
+    tags: '',
+    folder: '',
+    autoEnhance: false,
+    generateThumbs: true,
+    stripExif: false,
+    progressive: false,
+    watermark: false,
+    backgroundRemoval: false,
+    aiUpscaling: false,
+    compression: 'balanced',
+    colorSpace: 'srgb',
+    dpi: 72,
+    metadata: {
+      title: '',
+      author: '',
+      copyright: '',
+      keywords: ''
+    }
+  });
 
 
   if (!isAuthenticated) {
@@ -369,9 +383,11 @@ export function EnhancedUploadForm() {
 
         {/* Upload Options and Transforms */}
         <Tabs defaultValue="metadata" className="w-full mt-6">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="metadata">Metadata</TabsTrigger>
             <TabsTrigger value="transforms">Transforms</TabsTrigger>
+            <TabsTrigger value="optimization">Optimization</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
           <TabsContent value="metadata">
             <Card>
@@ -482,7 +498,7 @@ export function EnhancedUploadForm() {
                         <SelectValue placeholder="Auto" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Auto</SelectItem>
+                        <SelectItem value="auto">Auto</SelectItem>
                         <SelectItem value="jpeg">JPEG</SelectItem>
                         <SelectItem value="png">PNG</SelectItem>
                         <SelectItem value="webp">WebP</SelectItem>
@@ -628,6 +644,225 @@ export function EnhancedUploadForm() {
                       <Label htmlFor="watermark-disabled">Apply Watermark</Label>
                       <Badge variant="outline">Pro Only</Badge>
                     </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="optimization">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5" />
+                  Optimization & Performance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <Label htmlFor="compression">Compression Strategy</Label>
+                  <Select
+                    value={uploadOptions.compression}
+                    onValueChange={(value) => setUploadOptions(prev => ({ ...prev, compression: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="lossless">Lossless (Best Quality)</SelectItem>
+                      <SelectItem value="balanced">Balanced</SelectItem>
+                      <SelectItem value="aggressive">Aggressive (Smaller Size)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="colorSpace">Color Space</Label>
+                  <Select
+                    value={uploadOptions.colorSpace}
+                    onValueChange={(value) => setUploadOptions(prev => ({ ...prev, colorSpace: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="srgb">sRGB</SelectItem>
+                      <SelectItem value="adobergb">Adobe RGB</SelectItem>
+                      <SelectItem value="p3">Display P3</SelectItem>
+                      <SelectItem value="rec2020">Rec.2020</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="dpi">DPI (Dots Per Inch)</Label>
+                  <Input
+                    id="dpi"
+                    type="number"
+                    value={uploadOptions.dpi}
+                    onChange={(e) => setUploadOptions(prev => ({ ...prev, dpi: parseInt(e.target.value) || 72 }))}
+                    placeholder="72"
+                    min="72"
+                    max="300"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="autoEnhance"
+                      checked={uploadOptions.autoEnhance}
+                      onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, autoEnhance: checked }))}
+                    />
+                    <Label htmlFor="autoEnhance">Auto Enhance</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="generateThumbs"
+                      checked={uploadOptions.generateThumbs}
+                      onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, generateThumbs: checked }))}
+                    />
+                    <Label htmlFor="generateThumbs">Generate Thumbnails</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="progressive"
+                      checked={uploadOptions.progressive}
+                      onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, progressive: checked }))}
+                    />
+                    <Label htmlFor="progressive">Progressive Loading</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="stripExif"
+                      checked={uploadOptions.stripExif}
+                      onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, stripExif: checked }))}
+                    />
+                    <Label htmlFor="stripExif">Strip EXIF Data</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="advanced">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Code className="w-5 h-5" />
+                  Advanced Features
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Image Title</Label>
+                    <Input
+                      id="title"
+                      value={uploadOptions.metadata.title}
+                      onChange={(e) => setUploadOptions(prev => ({
+                        ...prev,
+                        metadata: { ...prev.metadata, title: e.target.value }
+                      }))}
+                      placeholder="Image title"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="author">Author</Label>
+                    <Input
+                      id="author"
+                      value={uploadOptions.metadata.author}
+                      onChange={(e) => setUploadOptions(prev => ({
+                        ...prev,
+                        metadata: { ...prev.metadata, author: e.target.value }
+                      }))}
+                      placeholder="Author name"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="copyright">Copyright</Label>
+                  <Input
+                    id="copyright"
+                    value={uploadOptions.metadata.copyright}
+                    onChange={(e) => setUploadOptions(prev => ({
+                      ...prev,
+                      metadata: { ...prev.metadata, copyright: e.target.value }
+                    }))}
+                    placeholder="© 2024 Your Name"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="keywords">Keywords (SEO)</Label>
+                  <Input
+                    id="keywords"
+                    value={uploadOptions.metadata.keywords}
+                    onChange={(e) => setUploadOptions(prev => ({
+                      ...prev,
+                      metadata: { ...prev.metadata, keywords: e.target.value }
+                    }))}
+                    placeholder="keyword1, keyword2, keyword3"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-6">
+                  {user?.plan === 'pro' || user?.plan === 'enterprise' ? (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="backgroundRemoval"
+                          checked={uploadOptions.backgroundRemoval}
+                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, backgroundRemoval: checked }))}
+                        />
+                        <Label htmlFor="backgroundRemoval">AI Background Removal</Label>
+                        <Badge variant="secondary">Pro</Badge>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="aiUpscaling"
+                          checked={uploadOptions.aiUpscaling}
+                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, aiUpscaling: checked }))}
+                        />
+                        <Label htmlFor="aiUpscaling">AI Upscaling</Label>
+                        <Badge variant="secondary">Pro</Badge>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="watermark"
+                          checked={uploadOptions.watermark}
+                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, watermark: checked }))}
+                        />
+                        <Label htmlFor="watermark">Apply Watermark</Label>
+                        <Badge variant="secondary">Pro</Badge>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center space-x-2 opacity-50">
+                        <Switch id="backgroundRemoval-disabled" disabled />
+                        <Label htmlFor="backgroundRemoval-disabled">AI Background Removal</Label>
+                        <Badge variant="outline">Pro Only</Badge>
+                      </div>
+
+                      <div className="flex items-center space-x-2 opacity-50">
+                        <Switch id="aiUpscaling-disabled" disabled />
+                        <Label htmlFor="aiUpscaling-disabled">AI Upscaling</Label>
+                        <Badge variant="outline">Pro Only</Badge>
+                      </div>
+
+                      <div className="flex items-center space-x-2 opacity-50">
+                        <Switch id="watermark-disabled" disabled />
+                        <Label htmlFor="watermark-disabled">Apply Watermark</Label>
+                        <Badge variant="outline">Pro Only</Badge>
+                      </div>
+                    </>
                   )}
                 </div>
               </CardContent>

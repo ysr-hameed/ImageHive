@@ -1064,6 +1064,48 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Delete image endpoint
+  app.delete('/api/v1/images/:id', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      const imageId = req.params.id;
+
+      // Get image details first
+      const image = await storage.getImageById(imageId);
+      if (!image) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+
+      // Check if user owns the image
+      if (image.userId !== user.id) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      // Delete from Backblaze
+      try {
+        await backblazeService.deleteFile(image.backblazeFileId);
+      } catch (error) {
+        console.error('Failed to delete from Backblaze:', error);
+        // Continue with database deletion even if Backblaze fails
+      }
+
+      // Delete from database
+      await storage.deleteImage(imageId);
+
+      // Update user storage usage
+      const userData = await storage.getUser(user.id);
+      if (userData) {
+        const newUsage = Math.max(0, userData.storageUsed - image.size);
+        await storage.updateUserStorageUsage(user.id, newUsage);
+      }
+
+      res.json({ success: true, message: 'Image deleted successfully' });
+    } catch (error) {
+      console.error('Delete image error:', error);
+      res.status(500).json({ error: 'Failed to delete image' });
+    }
+  });
+
   // Legacy images endpoint
   app.get('/api/images', isAuthenticated, async (req, res) => {
     req.url = '/api/v1/images';

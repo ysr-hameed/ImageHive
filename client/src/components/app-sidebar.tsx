@@ -26,6 +26,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -48,6 +49,8 @@ import {
   Star,
   Clock,
   Activity,
+  UserIcon,
+  CreditCard,
 } from 'lucide-react';
 
 const data = {
@@ -94,7 +97,7 @@ export function AppSidebar() {
   const [location, navigate] = useLocation();
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
-  
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('POST', '/api/auth/logout', {});
@@ -122,6 +125,10 @@ export function AppSidebar() {
       default:
         return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
+  };
+
+  const logout = () => {
+    logoutMutation.mutate();
   };
 
   return (
@@ -201,7 +208,7 @@ export function AppSidebar() {
               </div>
             </SidebarMenuItem>
           )}
-          
+
           {/* Plan Upgrade Button */}
           {user?.plan !== 'enterprise' && (
             <SidebarMenuItem>
@@ -213,17 +220,63 @@ export function AppSidebar() {
               </SidebarMenuButton>
             </SidebarMenuItem>
           )}
-          
-          {/* Logout Button */}
+
           <SidebarMenuItem>
-            <SidebarMenuButton 
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-              className="h-10 px-3 py-2 text-red-600 dark:text-red-400"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="ml-3">{logoutMutation.isPending ? 'Signing out...' : 'Logout'}</span>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size="lg" className="!h-auto !p-3">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white cursor-pointer hover:from-blue-600 hover:to-purple-700 transition-all duration-200">
+                    <UserIcon className="size-4" />
+                  </div>
+                  <ChevronUp className="ml-auto transition-transform duration-200 group-data-[state=open]/menu-button:rotate-180" />
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-56 rounded-lg"
+                side="right"
+                align="start"
+                forceMount
+              >
+                <DropdownMenuLabel className="p-0 font-normal">
+                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                      <UserIcon className="size-4" />
+                    </div>
+                    <div className="grid flex-1 text-left text-sm leading-tight">
+                      <span className="truncate font-semibold">{user.name}</span>
+                      <span className="truncate text-xs text-gray-500">{user.email}</span>
+                    </div>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <a href="/settings" className="cursor-pointer">
+                    <Settings className="size-4 mr-2" />
+                    Settings
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href="/profile" className="cursor-pointer">
+                    <UserIcon className="size-4 mr-2" />
+                    Profile
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <a href="/plans" className="cursor-pointer">
+                    <CreditCard className="size-4 mr-2" />
+                    Billing
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-600 focus:text-red-600"
+                  onClick={logout}
+                >
+                  <LogOut className="size-4 mr-2" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>

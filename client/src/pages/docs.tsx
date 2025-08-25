@@ -53,6 +53,19 @@ const images = await response.json();
 console.log('Images:', images);`,
 
     delete: `// Delete an image
+const response = await fetch('/api/v1/images/IMAGE_ID', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY'
+  }
+});
+
+const result = await response.json();
+if (result.success) {
+  console.log('Image deleted successfully');
+} else {
+  console.error('Delete failed:', result.error);
+}`
 const response = await fetch('/api/v1/images/{imageId}', {
   method: 'DELETE',
   headers: {
@@ -112,14 +125,33 @@ export default function ApiDocs() {
     {
       method: 'POST',
       path: '/api/v1/images/upload',
-      description: 'Upload a new image',
+      description: 'Upload a new image with advanced processing options',
       auth: true,
       parameters: [
         { name: 'image', type: 'File', required: true, description: 'Image file to upload' },
-        { name: 'privacy', type: 'String', required: false, description: 'public or private (default: public)' },
+        { name: 'title', type: 'String', required: false, description: 'Image title' },
         { name: 'description', type: 'String', required: false, description: 'Image description' },
-        { name: 'altText', type: 'String', required: false, description: 'Alt text for accessibility' },
-        { name: 'tags', type: 'String', required: false, description: 'Comma-separated tags' }
+        { name: 'tags', type: 'String', required: false, description: 'Comma-separated tags' },
+        { name: 'folder', type: 'String', required: false, description: 'Folder path for organization' },
+        { name: 'isPublic', type: 'Boolean', required: false, description: 'Make image publicly accessible (default: true)' },
+        { name: 'width', type: 'Number', required: false, description: 'Resize width in pixels' },
+        { name: 'height', type: 'Number', required: false, description: 'Resize height in pixels' },
+        { name: 'quality', type: 'Number', required: false, description: 'JPEG quality (1-100, default: 80)' },
+        { name: 'format', type: 'String', required: false, description: 'Output format: auto, jpeg, png, webp, avif' },
+        { name: 'fit', type: 'String', required: false, description: 'Resize mode: cover, contain, fill, inside, outside' },
+        { name: 'blur', type: 'Number', required: false, description: 'Blur radius (0.3-1000)' },
+        { name: 'brightness', type: 'Number', required: false, description: 'Brightness multiplier (0.1-3.0)' },
+        { name: 'contrast', type: 'Number', required: false, description: 'Contrast multiplier (0.1-3.0)' },
+        { name: 'saturation', type: 'Number', required: false, description: 'Saturation multiplier (0.0-3.0)' },
+        { name: 'hue', type: 'Number', required: false, description: 'Hue rotation in degrees' },
+        { name: 'rotate', type: 'Number', required: false, description: 'Rotation in degrees (0-360)' },
+        { name: 'grayscale', type: 'Boolean', required: false, description: 'Convert to grayscale' },
+        { name: 'sharpen', type: 'Boolean', required: false, description: 'Apply sharpening filter' },
+        { name: 'watermark', type: 'Boolean', required: false, description: 'Apply watermark (Pro plan only)' },
+        { name: 'backgroundRemoval', type: 'Boolean', required: false, description: 'AI background removal (Pro plan only)' },
+        { name: 'aiUpscaling', type: 'Boolean', required: false, description: 'AI-powered upscaling (Pro plan only)' },
+        { name: 'stripExif', type: 'Boolean', required: false, description: 'Remove EXIF metadata' },
+        { name: 'progressive', type: 'Boolean', required: false, description: 'Generate progressive JPEG' }
       ]
     },
     {
@@ -159,11 +191,15 @@ export default function ApiDocs() {
     {
       method: 'DELETE',
       path: '/api/v1/images/{id}',
-      description: 'Delete an image',
+      description: 'Delete an image permanently',
       auth: true,
       parameters: [
         { name: 'id', type: 'String', required: true, description: 'Image ID' }
-      ]
+      ],
+      response: {
+        success: 'Boolean',
+        message: 'String'
+      }
     },
     {
       method: 'GET',

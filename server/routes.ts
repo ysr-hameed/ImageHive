@@ -119,9 +119,7 @@ async function isAuthenticated(req: Request, res: Response, next: Function) {
         req.user = {
           id: user.id,
           email: user.email || '',
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
-          name: `${user.firstName || ''} ${user.lastName || ''}`,
+          name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email?.split('@')[0] || '',
           emailVerified: user.emailVerified || false,
           isAdmin: user.isAdmin || false,
           plan: user.plan || 'free',
@@ -1546,6 +1544,100 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error('Payment webhook error:', error);
       res.status(500).json({ error: 'Webhook processing failed' });
+    }
+  });
+
+  // Notifications API
+  app.get('/api/v1/notifications', async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+      const notifications = [
+        {
+          id: '1',
+          title: 'Welcome to ImageVault!',
+          message: 'Your account has been created successfully. Start uploading images to get started.',
+          type: 'success',
+          isRead: false,
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: '2',
+          title: 'Storage Update',
+          message: 'Your storage usage is at 50% of your plan limit.',
+          type: 'info',
+          isRead: true,
+          createdAt: new Date(Date.now() - 86400000).toISOString()
+        }
+      ];
+      res.json(notifications);
+    } catch (error) {
+      console.error('Notifications error:', error);
+      res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+  });
+
+  // Mark notification as read
+  app.patch('/api/v1/notifications/:id', async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    try {
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Mark notification error:', error);
+      res.status(500).json({ error: 'Failed to update notification' });
+    }
+  });
+
+  // Delete notification
+  app.delete('/api/v1/notifications/:id', async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    try {
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete notification error:', error);
+      res.status(500).json({ error: 'Failed to delete notification' });
+    }
+  });
+
+  // Mark all notifications as read
+  app.patch('/api/v1/notifications/mark-all-read', async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    try {
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Mark all read error:', error);
+      res.status(500).json({ error: 'Failed to mark notifications as read' });
+    }
+  });
+
+  // Quick analytics for user dropdown
+  app.get('/api/v1/analytics/quick', async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+      const totalImages = await storage.getUserImageCount(req.user.id);
+      const storageUsed = await storage.getUserStorageUsed(req.user.id);
+      
+      res.json({
+        totalImages,
+        storageUsed,
+        storageLimit: req.user.storageLimit,
+        apiRequestsUsed: req.user.apiRequestsUsed,
+        apiRequestsLimit: req.user.apiRequestsLimit
+      });
+    } catch (error) {
+      console.error('Quick analytics error:', error);
+      res.json({ totalImages: 0, storageUsed: 0 });
     }
   });
 

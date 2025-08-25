@@ -26,6 +26,8 @@ import NotFound from "@/pages/not-found";
 import ApiDocs from "@/pages/docs";
 import ApiUsage from "@/pages/api-usage";
 import Upgrade from "./pages/upgrade";
+import Plans from "./pages/plans";
+import Notifications from "./pages/notifications";
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
@@ -127,6 +129,8 @@ function Router() {
           <Route path="/api-keys" component={ApiKeys} />
           <Route path="/api-usage" component={ApiUsage} />
           <Route path="/activity" component={Activity} />
+          <Route path="/plans" component={Plans} />
+          <Route path="/notifications" component={Notifications} />
           {user?.isAdmin && <Route path="/admin" component={Admin} />}
           <Route path="/upgrade" component={Upgrade} />
           <Route component={NotFound} />

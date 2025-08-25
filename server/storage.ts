@@ -470,6 +470,83 @@ class Storage {
       console.error('System log error:', error);
     }
   }
+
+  // Payment session management
+  async createPaymentSession(sessionData: any) {
+    // Store payment session in system logs for now
+    await this.logSystemEvent('info', 'payment_session', sessionData.userId, sessionData);
+    return sessionData;
+  }
+
+  // User plan management
+  async updateUserPlan(userId: string, plan: string) {
+    const limits = this.getPlanLimits(plan);
+    await db.update(users)
+      .set({ 
+        plan, 
+        storageLimit: limits.storageLimit,
+        apiRequestsLimit: limits.apiRequestsLimit,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId));
+  }
+
+  async updateUserLimits(userId: string, limits: { storageLimit?: number; apiRequestsLimit?: number }) {
+    await db.update(users)
+      .set({ 
+        ...limits,
+        updatedAt: new Date() 
+      })
+      .where(eq(users.id, userId));
+  }
+
+  private getPlanLimits(plan: string) {
+    const planLimits = {
+      free: {
+        storageLimit: 1024 * 1024 * 1024, // 1GB
+        apiRequestsLimit: 1000
+      },
+      starter: {
+        storageLimit: 10 * 1024 * 1024 * 1024, // 10GB
+        apiRequestsLimit: 10000
+      },
+      pro: {
+        storageLimit: 100 * 1024 * 1024 * 1024, // 100GB
+        apiRequestsLimit: 100000
+      },
+      enterprise: {
+        storageLimit: 1024 * 1024 * 1024 * 1024, // 1TB
+        apiRequestsLimit: 1000000
+      }
+    };
+    return planLimits[plan as keyof typeof planLimits] || planLimits.free;
+  }
+
+  // Additional helper methods
+  async getUserImageCount(userId: string): Promise<number> {
+    try {
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(images)
+        .where(eq(images.userId, userId));
+      return result[0]?.count || 0;
+    } catch (error) {
+      console.error('Get user image count error:', error);
+      return 0;
+    }
+  }
+
+  async getUserStorageUsed(userId: string): Promise<number> {
+    try {
+      const userResult = await db.select({ storageUsed: users.storageUsed })
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+      return userResult[0]?.storageUsed || 0;
+    } catch (error) {
+      console.error('Get user storage error:', error);
+      return 0;
+    }
+  }
 }
 
 export const storage = new Storage();

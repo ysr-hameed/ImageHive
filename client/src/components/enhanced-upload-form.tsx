@@ -21,7 +21,7 @@ import { Check, AlertCircle } from 'lucide-react';
 // Mocking Upay integration for now, replace with actual integration
 const upayPayment = {
   init: () => console.log('Upay initialized'),
-  open: (options) => console.log('Opening Upay with:', options),
+  open: (options: any) => console.log('Opening Upay with:', options),
 };
 
 interface UploadFile extends File {

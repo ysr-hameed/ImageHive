@@ -190,75 +190,42 @@ export function AppSidebar() {
 
       <SidebarFooter className="p-4">
         <SidebarMenu>
+          {/* Current Plan Display */}
+          {user?.plan && (
+            <SidebarMenuItem>
+              <div className="px-3 py-2 mb-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Current Plan</div>
+                <Badge className={`${getPlanColor(user.plan)} text-xs w-full justify-center`}>
+                  {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)} Plan
+                </Badge>
+              </div>
+            </SidebarMenuItem>
+          )}
+          
+          {/* Plan Upgrade Button */}
+          {user?.plan !== 'enterprise' && (
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild className="h-10 px-3 py-2">
+                <Link href="/plans">
+                  <Zap className="h-4 w-4" />
+                  <span className="ml-3">Upgrade Plan</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
+          
+          {/* Logout Button */}
           <SidebarMenuItem>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <SidebarMenuButton
-                  size="lg"
-                  className="h-12 data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                >
-                  <Avatar className="h-9 w-9 rounded-lg">
-                    <AvatarImage src={user?.profileImageUrl || undefined} alt={user?.firstName || 'User'} />
-                    <AvatarFallback className="rounded-lg bg-gradient-to-r from-brand-500 to-emerald-500 text-white">
-                      {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight ml-3">
-                    <span className="truncate font-semibold">
-                      {user?.firstName || user?.email?.split('@')[0]}
-                    </span>
-                    <span className="truncate text-xs text-gray-500 dark:text-gray-400">{user?.email}</span>
-                  </div>
-                  <ChevronUp className="ml-auto size-4" />
-                </SidebarMenuButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-                side="bottom"
-                align="end"
-                sideOffset={4}
-              >
-                <DropdownMenuItem asChild>
-                  <Link href="/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Account Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/api-usage">
-                    <Activity className="mr-2 h-4 w-4" />
-                    Usage & Billing
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={toggleTheme}>
-                  {theme === 'dark' ? (
-                    <Sun className="mr-2 h-4 w-4" />
-                  ) : (
-                    <Moon className="mr-2 h-4 w-4" />
-                  )}
-                  Toggle Theme
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => logoutMutation.mutate()}
-                  disabled={logoutMutation.isPending}
-                >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  {logoutMutation.isPending ? 'Signing out...' : 'Sign out'}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <SidebarMenuButton 
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
+              className="h-10 px-3 py-2 text-red-600 dark:text-red-400"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="ml-3">{logoutMutation.isPending ? 'Signing out...' : 'Logout'}</span>
+            </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        
-        {user?.plan && (
-          <div className="px-2 py-1">
-            <Badge className={`${getPlanColor(user.plan)} text-xs w-full justify-center`}>
-              {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)} Plan
-            </Badge>
-          </div>
-        )}
       </SidebarFooter>
     </Sidebar>
   );

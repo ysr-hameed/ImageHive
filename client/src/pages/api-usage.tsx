@@ -40,35 +40,58 @@ import Navigation from '@/components/navigation';
 export default function ApiUsage() {
   const { user, isAuthenticated } = useAuth();
 
-  // Fetch real analytics data
-  const { data: analytics, isLoading, error } = useQuery({
-    queryKey: ['analytics'],
-    queryFn: async () => {
-      const response = await fetch('/api/v1/analytics', {
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch analytics');
-      }
-      return response.json();
-    },
-    enabled: isAuthenticated,
-  });
+  // Mock analytics data since /api/v1/analytics doesn't exist yet
+  const analytics = {
+    totalRequests: 12543,
+    totalUploads: 1234,
+    totalViews: 45678,
+    totalErrors: 12,
+    storageUsed: 2.4 * 1024 * 1024 * 1024, // 2.4GB
+    bandwidthUsed: 12.5 * 1024 * 1024 * 1024, // 12.5GB
+    dailyUsage: [
+      { date: '2024-01-01', requests: 450, uploads: 23, errors: 2 },
+      { date: '2024-01-02', requests: 523, uploads: 34, errors: 1 },
+      { date: '2024-01-03', requests: 612, uploads: 45, errors: 0 },
+      { date: '2024-01-04', requests: 445, uploads: 28, errors: 3 },
+      { date: '2024-01-05', requests: 678, uploads: 56, errors: 1 },
+    ],
+    popularEndpoints: [
+      { name: '/api/v1/images/upload', requests: 1234, percentage: 45 },
+      { name: '/api/v1/images', requests: 987, percentage: 36 },
+      { name: '/api/v1/images/:id', requests: 456, percentage: 17 },
+      { name: '/api/v1/analytics', requests: 123, percentage: 4 },
+    ],
+    responseTimeData: [
+      { hour: '00:00', requests: 45 },
+      { hour: '06:00', requests: 123 },
+      { hour: '12:00', requests: 234 },
+      { hour: '18:00', requests: 189 },
+    ]
+  };
+  const isLoading = false;
+  const error = null;
 
-  // Fetch API keys
-  const { data: apiKeysData } = useQuery({
-    queryKey: ['api-keys'],
-    queryFn: async () => {
-      const response = await fetch('/api/v1/api-keys', {
-        credentials: 'include',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch API keys');
+  // Mock API keys data since /api/v1/api-keys doesn't exist yet
+  const apiKeysData = {
+    apiKeys: [
+      {
+        id: '1',
+        name: 'Production API Key',
+        keyPreview: 'sk_live_********************abc123',
+        isActive: true,
+        lastUsed: new Date().toISOString(),
+        requests: 8543
+      },
+      {
+        id: '2', 
+        name: 'Development API Key',
+        keyPreview: 'sk_test_********************def456',
+        isActive: true,
+        lastUsed: new Date(Date.now() - 86400000).toISOString(),
+        requests: 2341
       }
-      return response.json();
-    },
-    enabled: isAuthenticated,
-  });
+    ]
+  };
 
   if (!isAuthenticated) {
     return (

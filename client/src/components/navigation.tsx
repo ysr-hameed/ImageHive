@@ -61,19 +61,17 @@ function QuickStats() {
     retry: false,
   });
 
-  if (!stats) return <div className="text-xs text-gray-500">Loading stats...</div>;
-
   return (
     <div className="grid grid-cols-2 gap-3 text-xs">
       <div className="text-center">
         <div className="font-semibold text-gray-900 dark:text-white">
-          {stats.totalImages || 0}
+          {stats?.totalImages || 0}
         </div>
         <div className="text-gray-500 dark:text-gray-400">Images</div>
       </div>
       <div className="text-center">
         <div className="font-semibold text-gray-900 dark:text-white">
-          {formatBytes(stats.storageUsed || 0)}
+          {formatBytes(stats?.storageUsed || 0)}
         </div>
         <div className="text-gray-500 dark:text-gray-400">Storage</div>
       </div>
@@ -270,7 +268,7 @@ export default function Navigation() {
                           )}
                           <div className="flex-1">
                             <div className="font-medium text-gray-900 dark:text-white">
-                              {user?.name || user?.email?.split('@')[0]}
+                              {user?.firstName || user?.email?.split('@')[0] || 'User'}
                             </div>
                             <div className="text-sm text-gray-500 dark:text-gray-400">
                               {user?.email}

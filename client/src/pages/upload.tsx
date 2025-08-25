@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EnhancedUploadForm } from "@/components/enhanced-upload-form";
 import { useLocation } from "wouter";
-import Navigation from "@/components/navigation";
 
 export default function Upload() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -58,10 +57,8 @@ export default function Upload() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <Navigation />
-      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        <div className="max-w-4xl mx-auto">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -83,7 +80,6 @@ export default function Upload() {
 
         {/* Upload Form */}
         <EnhancedUploadForm />
-        </div>
       </div>
     </div>
   );

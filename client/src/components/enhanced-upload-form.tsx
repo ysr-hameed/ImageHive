@@ -112,17 +112,15 @@ export function EnhancedUploadForm() {
       if (transforms.watermark) formData.append('watermark', 'true'); // Append watermark if selected
 
       console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
-      console.log('Upload options:', { ...metadata, ...transforms });
-
-      // Mocking upload progress
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress = Math.min(progress + 10, 100);
-        setFiles(prev => prev.map(f =>
-          f.id === file.id ? { ...f, progress: progress, status: 'uploading' } : f
-        ));
-        if (progress === 100) clearInterval(interval);
-      }, 100);
+      console.log('FormData contents:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0] + ': ' + (pair[1] instanceof File ? `${pair[1].name} (${pair[1].size} bytes)` : pair[1]));
+      }
+      
+      // Set uploading status immediately
+      setFiles(prev => prev.map(f =>
+        f.id === file.id ? { ...f, status: 'uploading', progress: 10 } : f
+      ));
 
       const response = await fetch('/api/v1/images/upload', {
         method: 'POST',
@@ -130,13 +128,24 @@ export function EnhancedUploadForm() {
         credentials: 'include',
       });
 
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        const error = await response.json();
-        clearInterval(interval); // Clear interval on error
-        throw new Error(error.error || 'Upload failed');
+        const errorText = await response.text();
+        console.error('Upload error response:', errorText);
+        let errorMessage;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || 'Upload failed';
+        } catch (e) {
+          errorMessage = errorText || 'Upload failed';
+        }
+        throw new Error(errorMessage);
       }
-
-      return response.json();
+      
+      const result = await response.json();
+      console.log('Upload successful:', result);
+      return result;
     },
     onSuccess: (data, file) => {
       setFiles(prev => prev.map(f =>

@@ -1,4 +1,3 @@
-
 import { Switch, Route, Link } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -31,16 +30,86 @@ import ApiUsage from "@/pages/api-usage";
 import Upgrade from "./pages/upgrade";
 import Plans from "./pages/plans";
 import Notifications from "./pages/notifications";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest } from "./lib/axios";
+import { Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+// Notification Bell Component
+function NotificationBell() {
+  const { data: notifications } = useQuery({
+    queryKey: ['/api/v1/notifications'],
+    queryFn: () => apiRequest('GET', '/api/v1/notifications'),
+    retry: false,
+  });
+
+  const unreadCount = Array.isArray(notifications)
+    ? notifications.filter(n => !n.isRead).length
+    : 0;
+
+  return (
+    <div className="relative">
+      <Button variant="ghost" size="sm" asChild>
+        <Link href="/notifications">
+          <Bell className="w-4 h-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Link>
+      </Button>
+    </div>
+  );
+}
+
+// Profile Menu Component
+function ProfileMenu() {
+  const { user } = useAuth();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/auth/logout', {});
+    },
+    onSettled: () => {
+      window.location.href = '/';
+    }
+  });
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="text-right hidden sm:block">
+        <p className="text-sm font-medium text-gray-900 dark:text-white">
+          {user?.firstName || user?.email?.split('@')[0]}
+        </p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {user?.email}
+        </p>
+      </div>
+      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-white text-sm font-medium">
+        {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+      </div>
+    </div>
+  );
+}
+
 
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <Navigation />
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center border-b px-4 bg-white dark:bg-slate-800">
-            <SidebarTrigger className="-ml-1" />
+          <header className="flex h-16 shrink-0 items-center justify-between gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 px-4">
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="-ml-1" />
+            </div>
+            <div className="flex items-center gap-2">
+              {/* Notification Bell */}
+              <NotificationBell />
+              {/* Profile Menu */}
+              <ProfileMenu />
+            </div>
           </header>
           <div className="flex-1 overflow-auto">
             <SidebarContentLoader isLoading={false}>
@@ -147,6 +216,7 @@ function Router() {
 }
 
 function App() {
+  const { isAuthenticated, isLoading } = useAuth();
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

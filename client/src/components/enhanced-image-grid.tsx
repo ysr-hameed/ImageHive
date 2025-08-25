@@ -140,7 +140,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
   }, [images, searchQuery, sortBy, filterBy]);
 
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (!bytes || bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -148,6 +148,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
   };
 
   const formatNumber = (num: number) => {
+    if (!num || num === 0) return '0';
     if (num >= 1000) {
       return (num / 1000).toFixed(1) + 'K';
     }

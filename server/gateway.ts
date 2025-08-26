@@ -10,7 +10,7 @@ dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+const HOST = '0.0.0.0'; // Use 0.0.0.0 for proper access in Replit preview
 const STATUS = process.env.STATUS || 'development';
 const isProduction = STATUS === 'production';
 

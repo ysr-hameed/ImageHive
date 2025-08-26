@@ -86,7 +86,7 @@ export class ImageProcessor {
     return buffer;
   }
 
-  
+
 
   static async generateThumbnail(
     buffer: Buffer,

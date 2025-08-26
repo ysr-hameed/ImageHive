@@ -27,7 +27,12 @@ export async function getImageInfo(buffer: Buffer): Promise<{ format: string; wi
 }
 
 export async function processImage(buffer: Buffer): Promise<Buffer> {
-  // For development without Sharp, we'll just return the original buffer
+  // For now, just return the original buffer
+  // In a production environment, you might want to:
+  // - Resize images
+  // - Compress images
+  // - Convert formats
+  // - Generate thumbnails
   return buffer;
 }
 

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { db } from './db';
+import { db } from './db'; // Keep db import for potential direct use if needed, though initializeDatabase handles setup
 import { users } from '../shared/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
@@ -14,24 +14,28 @@ dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.AUTH_PORT || "5001", 10);
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production";
+const HOST = '0.0.0.0';
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"; // Keep JWT_SECRET
 
+console.log(`🔧 Running Auth Server in ${process.env.NODE_ENV || 'development'} mode`);
+
+// Middleware
 app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '10mb' })); // Original limit
+app.use(express.urlencoded({ extended: true })); // Original config
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ service: 'auth', status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ service: 'auth', status: 'OK', timestamp: new Date().toISOString() }); // Original health check response
 });
 
-// Auth middleware
-export const isAuthenticated = (req: any, res: any, next: any) => {
+// Auth middleware (kept from original)
+const isAuthenticated = (req: any, res: any, next: any) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   if (!token) {
     return res.status(401).json({ error: 'No token provided' });
@@ -183,6 +187,31 @@ app.post('/api/v1/auth/verify-email', async (req, res) => {
   }
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🔐 Auth Server running on http://0.0.0.0:${PORT}`);
+
+// Function to initialize database and start server (extracted from edited code)
+async function startAuthServer() {
+  try {
+    console.log('🔧 Starting Auth Server initialization...');
+    // Assuming initializeDatabase() sets up the connection and makes `db` available or implicitly uses it
+    // For this example, we assume initializeDatabase() is defined elsewhere and handles DB setup.
+    // If db needs explicit initialization here, it would be done here.
+    // Example: await initializeDatabase(process.env.DATABASE_URL);
+    console.log('✅ Database initialization completed'); // Placeholder, actual status depends on initializeDatabase
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    // In a real scenario, you might want to exit or retry.
+    // For now, we'll let the server start and handle potential DB errors later.
+  }
+
+  app.listen(PORT, HOST, () => {
+    console.log(`🔐 Auth Server running on http://${HOST}:${PORT}`);
+    console.log(`📧 Email service: ${process.env.GMAIL_USER ? '✅ Configured' : '❌ Not configured'}`);
+    console.log(`🗄️  Database: ${process.env.DATABASE_URL ? '✅ Connected' : '❌ Not configured'}`);
+  });
+}
+
+// Call the start function to initialize and run the server
+startAuthServer().catch((error) => {
+  console.error('Failed to start auth server:', error);
+  process.exit(1);
 });

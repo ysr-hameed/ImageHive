@@ -2,11 +2,14 @@
 export const API_CONFIG = {
   BASE_URL: '',  // Will use relative URLs for same-origin requests
   ENDPOINTS: {
-    AUTH: '/api/auth',
+    AUTH: '/api/v1/auth',
     IMAGES: '/api/v1/images',
     API_KEYS: '/api/v1/api-keys',
     ANALYTICS: '/api/v1/analytics',
     USERS: '/api/v1/users',
+    ADMIN: '/api/v1/admin',
+    PUBLIC: '/api/v1/public',
+    NOTIFICATIONS: '/api/v1/notifications',
   },
   UPLOAD: {
     MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB

@@ -258,8 +258,8 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  // Auth routes - support both /api/auth and /api/v1/auth for compatibility
-  app.post('/api/auth/register', async (req: Request, res: Response) => {
+  // Auth routes - standardized to /api/v1/ prefix
+  app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
     try {
       const { firstName, lastName, email, password, acceptTerms, subscribeNewsletter } = req.body;
 
@@ -302,7 +302,7 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
+  app.post('/api/v1/auth/register-alt', async (req: Request, res: Response) => {
     try {
       const { email, password } = registerSchema.parse(req.body);
 
@@ -337,7 +337,7 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  app.post('/api/auth/login', async (req: Request, res: Response) => {
+  app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
     try {
       const { email, password } = loginSchema.parse(req.body);
 
@@ -380,52 +380,18 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
-    try {
-      const { email, password } = loginSchema.parse(req.body);
-
-      const user = await storage.getUserByEmail(email);
-      if (!user || !user.password) {
-        await logSystemEvent('warn', `Failed login attempt for: ${email}`, undefined, { reason: 'User not found' });
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      const validPassword = await bcrypt.compare(password, user.password);
-      if (!validPassword) {
-        await logSystemEvent('warn', `Failed login attempt for: ${email}`, user.id, { reason: 'Invalid password' });
-        return res.status(401).json({ error: 'Invalid credentials' });
-      }
-
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
-
-      await logSystemEvent('info', `User logged in: ${email}`, user.id);
-
-      res.json({
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          isAdmin: user.isAdmin || false,
-          emailVerified: user.emailVerified || false
-        }
-      });
-    } catch (error: any) {
-      await logSystemEvent('error', `Login error: ${error.message}`, undefined, { error: error.message });
-      console.error('Login error:', error);
-      res.status(400).json({ error: error.message || 'Login failed' });
-    }
-  });
+  
 
   // OAuth Routes (redirect and callback handled directly in server.ts or a dedicated OAuth controller)
   // These are placeholder endpoints that would initiate the OAuth flow.
   // The actual callback handling is integrated above for simplicity.
-  app.get('/api/auth/google', (req: Request, res: Response) => {
+  app.get('/api/v1/auth/google', (req: Request, res: Response) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
       return res.status(500).json({ error: 'Google OAuth not configured' });
     }
 
-    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/google/callback`;
+    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`;
     const scope = 'openid email profile';
     const responseType = 'code';
     const state = crypto.randomBytes(32).toString('hex');
@@ -435,7 +401,7 @@ export function registerRoutes(app: express.Express) {
     res.redirect(authUrl);
   });
 
-  app.get('/api/auth/google/callback', async (req: Request, res: Response) => {
+  app.get('/api/v1/auth/google/callback', async (req: Request, res: Response) => {
     try {
       const { code, state } = req.query;
 
@@ -452,7 +418,7 @@ export function registerRoutes(app: express.Express) {
           client_secret: process.env.GOOGLE_CLIENT_SECRET!,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/google/callback`
+          redirect_uri: `${process.env.BASE_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`
         })
       });
 
@@ -496,13 +462,13 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  app.get('/api/auth/github', (req: Request, res: Response) => {
+  app.get('/api/v1/auth/github', (req: Request, res: Response) => {
     const clientId = process.env.GITHUB_CLIENT_ID;
     if (!clientId) {
       return res.status(500).json({ error: 'GitHub OAuth not configured' });
     }
 
-    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/auth/github/callback`;
+    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/v1/auth/github/callback`;
     const scope = 'user:email';
     const state = crypto.randomBytes(32).toString('hex');
 
@@ -511,7 +477,7 @@ export function registerRoutes(app: express.Express) {
     res.redirect(authUrl);
   });
 
-  app.get('/api/auth/github/callback', async (req: Request, res: Response) => {
+  app.get('/api/v1/auth/github/callback', async (req: Request, res: Response) => {
     try {
       const { code, state } = req.query;
 
@@ -587,7 +553,7 @@ export function registerRoutes(app: express.Express) {
   });
 
   // Email verification and password reset routes
-  app.post('/api/auth/resend-verification', async (req: Request, res: Response) => {
+  app.post('/api/v1/auth/resend-verification', async (req: Request, res: Response) => {
     try {
       const { email } = req.body;
 
@@ -614,7 +580,7 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  app.get('/api/auth/verify-email', async (req: Request, res: Response) => {
+  app.get('/api/v1/auth/verify-email', async (req: Request, res: Response) => {
     try {
       const { token } = req.query;
 
@@ -632,7 +598,7 @@ export function registerRoutes(app: express.Express) {
   });
 
   // User profile route
-  app.get('/api/auth/user', isAuthenticated, async (req: Request, res: Response) => {
+  app.get('/api/v1/auth/user', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
       const userData = await storage.getUser(user.id);
@@ -1047,12 +1013,12 @@ export function registerRoutes(app: express.Express) {
   });
 
   // Health check
-  app.get('/api/health', (req: Request, res: Response) => {
+  app.get('/api/v1/health', (req: Request, res: Response) => {
     res.json({ status: 'OK', timestamp: new Date().toISOString() });
   });
 
   // Example: Get public images
-  app.get('/api/public/images', async (req: Request, res: Response) => {
+  app.get('/api/v1/public/images', async (req: Request, res: Response) => {
     try {
       const { search, limit = 20, offset = 0 } = req.query;
 

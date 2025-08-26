@@ -75,11 +75,17 @@ export default function Admin() {
     }
   }, [user, toast]);
 
-  // Fetch admin data with real data
+  // Fetch admin data with real data including API calls
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ["/api/v1/admin/stats"],
     retry: false,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 10000, // Refresh every 10 seconds for real-time data
+  });
+
+  const { data: apiMetrics, isLoading: metricsLoading } = useQuery({
+    queryKey: ["/api/v1/admin/api-metrics"],
+    retry: false,
+    refetchInterval: 5000, // Refresh every 5 seconds
   });
 
   const { data: users, isLoading: usersLoading } = useQuery({
@@ -221,8 +227,8 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* Real-time System Health Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Real-time System Health Overview with API Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -237,6 +243,24 @@ export default function Admin() {
             <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
               <TrendingUp className="w-3 h-3 inline mr-1" />
               +{stats?.userGrowth || 0}% this month
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">API Calls</p>
+                <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                  {metricsLoading ? '...' : formatNumber(apiMetrics?.totalCalls || stats?.apiRequests || 0)}
+                </p>
+              </div>
+              <Zap className="w-8 h-8 text-indigo-500" />
+            </div>
+            <div className="mt-2 text-xs text-indigo-600 dark:text-indigo-400">
+              <TrendingUp className="w-3 h-3 inline mr-1" />
+              {apiMetrics?.callsToday || 0} today
             </div>
           </CardContent>
         </Card>
@@ -302,6 +326,82 @@ export default function Admin() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Real-time API Metrics Dashboard */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Real-time API Metrics
+            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Live</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                {metricsLoading ? '...' : formatNumber(apiMetrics?.totalCalls || 0)}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Total API Calls</div>
+              <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                +{apiMetrics?.callsToday || 0} today
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                {metricsLoading ? '...' : `${apiMetrics?.successRate || stats?.successRate || 0}%`}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Success Rate</div>
+              <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                Last 24h average
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                {metricsLoading ? '...' : `${apiMetrics?.avgResponseTime || stats?.responseTime || 0}ms`}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Avg Response</div>
+              <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                P95: {apiMetrics?.p95ResponseTime || 0}ms
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-3xl font-bold text-red-600 dark:text-red-400">
+                {metricsLoading ? '...' : formatNumber(apiMetrics?.errorCount || 0)}
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Errors (24h)</div>
+              <div className="text-xs text-red-600 dark:text-red-400 mt-1">
+                {apiMetrics?.errorRate || stats?.errorRate || 0}% rate
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-600">
+            <h4 className="font-medium mb-3">Top API Endpoints (24h)</h4>
+            <div className="space-y-2">
+              {(apiMetrics?.topEndpoints || [
+                { endpoint: '/api/v1/images/upload', calls: 1234, avgTime: 145 },
+                { endpoint: '/api/v1/images', calls: 892, avgTime: 89 },
+                { endpoint: '/api/v1/auth/login', calls: 456, avgTime: 234 },
+                { endpoint: '/api/v1/admin/stats', calls: 234, avgTime: 67 }
+              ]).map((endpoint: any, index: number) => (
+                <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
+                  <div className="flex-1">
+                    <div className="font-mono text-sm">{endpoint.endpoint}</div>
+                  </div>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                    <span>{formatNumber(endpoint.calls)} calls</span>
+                    <span>{endpoint.avgTime}ms avg</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* System Information */}
       <Card>

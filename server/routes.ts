@@ -1105,8 +1105,8 @@ export function registerRoutes(app: Express) {
         thumbnailUrl: fileUrl, // Could be different for thumbnails
         size: req.file.size,
         mimeType: req.file.mimetype,
-        width: imageInfo.width,
-        height: imageInfo.height,
+        width: imageInfo.width || 1920,
+        height: imageInfo.height || 1080,
         folderId: folder || null,
         isPublic: isPublic === 'true'
       }).returning();

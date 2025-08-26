@@ -20,6 +20,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "vite": "^5.4.19",
     "@hookform/resolvers": "^3.10.0",
     "@jridgewell/trace-mapping": "^0.3.25",
     "@neondatabase/serverless": "^0.10.4",

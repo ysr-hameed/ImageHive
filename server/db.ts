@@ -32,21 +32,28 @@ export async function initializeDatabase() {
 
     if (process.env.DATABASE_URL) {
       try {
-        // Try to run a simple query to test connection
+        // First, test the database connection
+        console.log('Testing database connection...');
         await db.select().from(users).limit(1);
-        console.log('Database connection successful');
-        
-        // Run migrations if they exist
-        try {
-          const { execSync } = await import('child_process');
-          execSync('npm run db:push --force', { stdio: 'inherit' });
-          console.log('Database schema synchronized successfully');
-        } catch (pushError) {
-          console.log('Database push completed with warnings (this is usually normal)');
-        }
+        console.log('Database connection successful - tables already exist');
       } catch (dbError) {
-        console.error('Database connection failed:', dbError);
-        console.log('App will continue but database features may not work');
+        // If connection fails or tables don't exist, try to create them
+        console.log('Tables may not exist, attempting to create them...');
+        
+        try {
+          // Use Drizzle's push to create tables
+          const { execSync } = await import('child_process');
+          console.log('Creating database tables...');
+          execSync('npm run db:push --force', { stdio: 'inherit' });
+          console.log('Database tables created successfully');
+          
+          // Verify tables were created
+          await db.select().from(users).limit(1);
+          console.log('Database schema synchronized and verified');
+        } catch (createError) {
+          console.error('Failed to create tables:', createError);
+          console.log('App will continue but database features may not work');
+        }
       }
     } else {
       console.log('DATABASE_URL not configured - using fallback mode');

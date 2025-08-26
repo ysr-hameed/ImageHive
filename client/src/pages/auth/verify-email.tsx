@@ -15,7 +15,7 @@ export default function VerifyEmail() {
 
   const verifyEmailMutation = useMutation({
     mutationFn: async (token: string) => {
-      const response = await apiRequest('POST', '/api/auth/verify-email', { token });
+      const response = await apiRequest('POST', '/api/v1/auth/verify-email', { token });
       return response;
     },
     onSuccess: () => {
@@ -37,7 +37,7 @@ export default function VerifyEmail() {
 
   const resendVerificationMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/auth/resend-verification', {});
+      const response = await apiRequest('POST', '/api/v1/auth/resend-verification', {});
       return response;
     },
     onSuccess: () => {

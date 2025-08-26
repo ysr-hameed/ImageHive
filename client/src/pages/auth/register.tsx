@@ -26,7 +26,7 @@ export default function Register() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/auth/register', data);
+      const response = await apiRequest('POST', '/api/v1/auth/register', data);
       return response;
     },
     onSuccess: (data) => {
@@ -91,11 +91,11 @@ export default function Register() {
   };
 
   const handleGoogleSignup = () => {
-    window.location.href = '/api/auth/google?action=signup';
+    window.location.href = '/api/v1/auth/google?action=signup';
   };
 
   const handleGithubSignup = () => {
-    window.location.href = '/api/auth/github?action=signup';
+    window.location.href = '/api/v1/auth/github?action=signup';
   };
 
   return (

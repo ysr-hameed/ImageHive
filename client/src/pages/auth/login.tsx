@@ -36,7 +36,7 @@ export default function Login() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await apiRequest('POST', '/api/auth/login', data);
+      const response = await apiRequest('POST', '/api/v1/auth/login', data);
       return response;
     },
     onSuccess: (data) => {
@@ -45,7 +45,7 @@ export default function Login() {
         description: 'You have been successfully logged in.',
       });
       // Refresh auth state and redirect to dashboard
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/auth/user"] });
       setTimeout(() => {
         window.location.href = '/dashboard';
       }, 500);
@@ -65,7 +65,7 @@ export default function Login() {
 
   const resendVerificationMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/auth/resend-verification', { email: emailVerificationError });
+      return apiRequest('POST', '/api/v1/auth/resend-verification', { email: emailVerificationError });
     },
     onSuccess: () => {
       toast({
@@ -97,11 +97,11 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google';
+    window.location.href = '/api/v1/auth/google';
   };
 
   const handleGithubLogin = () => {
-    window.location.href = '/api/auth/github';
+    window.location.href = '/api/v1/auth/github';
   };
 
   return (

@@ -1,5 +1,10 @@
-
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+
+// Assuming API_BASE_URL is defined elsewhere, e.g., in an environment variable or config file
+// const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
+// For the purpose of this example, let's define a placeholder:
+const API_BASE_URL = '/api/v1';
+
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -21,33 +26,35 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<any> {
-  try {
-    const headers: HeadersInit = {};
-    
-    if (data && !(data instanceof FormData)) {
-      headers["Content-Type"] = "application/json";
-    }
+  const token = localStorage.getItem('token');
 
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: data instanceof FormData ? data : (data ? JSON.stringify(data) : undefined),
-      credentials: "include",
-    });
+  // Ensure URL starts with API base URL if it's a relative path
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? url.slice(4) : url}`;
 
-    await throwIfResNotOk(res);
-    
-    // Handle empty responses
-    const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      return await res.json();
-    }
-    
-    return null;
-  } catch (error) {
-    console.error('API Request Error:', error);
-    throw error;
+  const config: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    credentials: 'include',
+  };
+
+  if (data && method !== 'GET') {
+    config.body = JSON.stringify(data);
   }
+
+  const response = await fetch(fullUrl, config);
+
+  await throwIfResNotOk(response);
+
+  // Handle empty responses
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    return await response.json();
+  }
+
+  return null;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -56,8 +63,20 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Construct the URL using the queryKey, assuming it's an array of path segments.
+    // The queryKey might look like ['users', '123', 'profile'] which should become '/api/v1/users/123/profile'
+    // Or it could be ['api', 'v1', 'images'] which should become '/api/v1/images'
+    // We need to ensure it's correctly joined with the API_BASE_URL.
+
+    // Let's assume queryKey directly represents the path segments after the base URL.
+    // If queryKey could be like ['users'], we need to ensure it becomes '/users' before joining with API_BASE_URL.
+    // A safer approach might be to always join the base URL correctly.
+    const path = queryKey.join("/");
+    const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? path.slice(4) : path}`;
+
+
     try {
-      const res = await fetch(queryKey.join("/") as string, {
+      const res = await fetch(fullUrl, {
         credentials: "include",
       });
 
@@ -66,13 +85,13 @@ export const getQueryFn: <T>(options: {
       }
 
       await throwIfResNotOk(res);
-      
+
       // Handle empty responses
       const contentType = res.headers.get("content-type");
       if (contentType && contentType.includes("application/json")) {
         return await res.json();
       }
-      
+
       return null;
     } catch (error) {
       console.error('Query Error:', error);

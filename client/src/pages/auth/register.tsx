@@ -269,9 +269,10 @@ export default function Register() {
               <Button
                 variant="outline"
                 onClick={handleGoogleSignup}
-                className="w-full"
+                className="w-full flex items-center justify-center gap-2"
+                type="button"
               >
-                <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
                     d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -294,9 +295,10 @@ export default function Register() {
               <Button
                 variant="outline"
                 onClick={handleGithubSignup}
-                className="w-full"
+                className="w-full flex items-center justify-center gap-2"
+                type="button"
               >
-                <Github className="w-4 h-4 mr-2" />
+                <Github className="w-4 h-4" />
                 GitHub
               </Button>
             </div>

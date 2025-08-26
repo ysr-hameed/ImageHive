@@ -128,6 +128,15 @@ const registerSchema = z.object({
   password: z.string().min(6),
 });
 
+// Dummy authenticateToken for now, as it's used in the logout route
+const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+  // This is a placeholder. In a real app, this would verify the JWT token.
+  // For the purpose of this example, we'll assume the token is valid and attach a dummy user.
+  req.user = { userId: 'dummy-user-id' };
+  next();
+};
+
+
 export function registerRoutes(app: express.Express) {
   // Health check endpoint
   app.get("/api/v1/health", (req: Request, res: Response) => {
@@ -340,66 +349,78 @@ export function registerRoutes(app: express.Express) {
 
   app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
     try {
-      console.log('Login attempt:', { email: req.body.email, hasPassword: !!req.body.password });
-      
-      // Validate input data
-      const parseResult = loginSchema.safeParse(req.body);
-      if (!parseResult.success) {
-        console.log('Login validation failed:', parseResult.error);
-        return res.status(400).json({ error: 'Invalid email or password format' });
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
       }
 
-      const { email, password } = parseResult.data;
+      // Find user by email
+      const users = await db.select().from(usersTable).where(eq(usersTable.email, email));
+      const user = users[0];
 
-      const user = await storage.getUserByEmail(email);
-      console.log('User found:', !!user, user ? { id: user.id, emailVerified: user.emailVerified, hasPassword: !!user.password } : 'null');
-      
       if (!user) {
-        await logSystemEvent('warn', `Failed login attempt for: ${email}`, undefined, { reason: 'User not found' });
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      if (!user.passwordHash) {
-        await logSystemEvent('warn', `Login attempt for OAuth user: ${email}`, user.id);
-        return res.status(401).json({ error: 'This account uses social login. Please use Google or GitHub to sign in.' });
+      // Check if user was created via OAuth (no password) and provider exists
+      if (!user.password && user.provider && user.provider !== 'local') {
+        return res.status(401).json({ error: `This account was created using ${user.provider} login. Please use ${user.provider === 'google' ? 'Google' : 'GitHub'} to sign in.` });
       }
 
+      // If no password exists but provider is local or null, this is an error state
+      if (!user.password) {
+        return res.status(401).json({ error: 'Invalid account state. Please contact support.' });
+      }
+
+      // Verify password
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      // Check if email is verified
       if (!user.emailVerified) {
-        await logSystemEvent('warn', `Login attempt with unverified email: ${email}`, user.id);
-        return res.status(401).json({ error: 'Email verification required. Please check your email and verify your account before logging in.' });
+        return res.status(403).json({ error: 'Email verification required. Please check your inbox and verify your email before logging in.' });
       }
 
-      const validPassword = await bcrypt.compare(password, user.passwordHash);
-      console.log('Password valid:', validPassword);
-      
-      if (!validPassword) {
-        await logSystemEvent('warn', `Failed login attempt for: ${email}`, user.id, { reason: 'Invalid password' });
-        return res.status(401).json({ error: 'Invalid email or password' });
-      }
+      // Generate JWT token
+      const token = jwt.sign(
+        { 
+          userId: user.id, 
+          email: user.email,
+          role: user.role 
+        },
+        JWT_SECRET,
+        { expiresIn: '7d' }
+      );
 
-      const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-
-      await logSystemEvent('info', `User logged in: ${email}`, user.id);
+      // Update last login
+      await db.update(usersTable)
+        .set({ lastLogin: new Date() })
+        .where(eq(usersTable.id, user.id));
 
       res.json({
+        message: 'Login successful',
         token,
         user: {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          isAdmin: user.isAdmin || false,
-          emailVerified: user.emailVerified || false
+          role: user.role,
+          emailVerified: user.emailVerified,
+          createdAt: user.createdAt,
+          lastLogin: new Date()
         }
       });
     } catch (error: any) {
-      await logSystemEvent('error', `Login error: ${error.message}`, undefined, { error: error.message });
       console.error('Login error:', error);
-      res.status(500).json({ error: 'Login failed. Please try again.' });
+      res.status(500).json({ error: 'Login failed' });
     }
   });
 
-  
+
 
   // OAuth Routes (redirect and callback handled directly in server.ts or a dedicated OAuth controller)
   // These are placeholder endpoints that would initiate the OAuth flow.
@@ -414,7 +435,7 @@ export function registerRoutes(app: express.Express) {
     const baseUrl = process.env.REPL_SLUG ? 
       `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
       (process.env.BASE_URL || 'http://0.0.0.0:5000');
-    
+
     const redirectUri = `${baseUrl}/api/v1/auth/google/callback`;
     const scope = 'openid email profile';
     const responseType = 'code';
@@ -651,7 +672,7 @@ export function registerRoutes(app: express.Express) {
       // In a real implementation, you'd verify the token against database
       // For now, we'll simulate successful password reset
       const hashedPassword = await bcrypt.hash(password, 10);
-      
+
       // Find user by reset token (simplified for demo)
       // await storage.updateUserPassword(userId, hashedPassword);
 
@@ -720,14 +741,14 @@ export function registerRoutes(app: express.Express) {
 
       // Verify the token and get user
       const tokenData = await storage.verifyEmailToken(token);
-      
+
       if (!tokenData) {
         return res.status(400).json({ error: 'Invalid or expired verification token' });
       }
 
       // Mark user as verified
       await storage.markEmailAsVerified(tokenData.id);
-      
+
       // Clean up the token
       await storage.deleteEmailVerificationToken(token);
 
@@ -1739,10 +1760,10 @@ export function registerRoutes(app: express.Express) {
   app.get('/api/v1/folders', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
-      
+
       // Get folders for the user
       const userFolders = await db.select().from(folders).where(eq(folders.userId, user.id));
-      
+
       res.json(userFolders);
     } catch (error: any) {
       await logSystemEvent('error', `Folders fetch error: ${error.message}`, req.user?.id);
@@ -1781,7 +1802,7 @@ export function registerRoutes(app: express.Express) {
   app.get('/api/v1/api-keys', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
-      
+
       // Mock API keys data - in real implementation, fetch from database
       const apiKeys = [
         {
@@ -1793,7 +1814,7 @@ export function registerRoutes(app: express.Express) {
           usage: 150
         }
       ];
-      
+
       res.json(apiKeys);
     } catch (error: any) {
       await logSystemEvent('error', `API keys fetch error: ${error.message}`, req.user?.id);
@@ -1850,7 +1871,7 @@ export function registerRoutes(app: express.Express) {
   app.get('/api/v1/usage', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
-      
+
       // Mock usage data
       const usage = {
         current: {
@@ -1868,7 +1889,7 @@ export function registerRoutes(app: express.Express) {
           end: new Date().toISOString()
         }
       };
-      
+
       res.json(usage);
     } catch (error: any) {
       await logSystemEvent('error', `Usage fetch error: ${error.message}`, req.user?.id);

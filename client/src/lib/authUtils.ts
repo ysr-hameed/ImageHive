@@ -81,11 +81,11 @@ export const getCurrentUser = async (): Promise<User | null> => {
 // Placeholder for getAuthToken and clearAuthToken functions
 // In a real application, these would handle token storage (e.g., localStorage, cookies)
 function getAuthToken(): string | null {
-  return localStorage.getItem('authToken');
+  return localStorage.getItem('token');
 }
 
 function clearAuthToken(): void {
-  localStorage.removeItem('authToken');
+  localStorage.removeItem('token');
 }
 
 // Define types for clarity (assuming these are defined elsewhere in a real project)

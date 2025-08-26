@@ -68,23 +68,16 @@ export const getQueryFn: <T>(options: {
     // Or it could be ['api', 'v1', 'images'] which should become '/api/v1/images'
     // We need to ensure it's correctly joined with the API_BASE_URL.
 
-    // Let's assume queryKey directly represents the path segments after the base URL.
     // If queryKey could be like ['users'], we need to ensure it becomes '/users' before joining with API_BASE_URL.
     // A safer approach might be to always join the base URL correctly.
     const path = queryKey.join("/");
-
-    // Improved URL construction for queries
-    let fullUrl: string;
-    if (path.startsWith('http')) {
-      fullUrl = path;
-    } else if (path.startsWith('/api/v1')) {
-      fullUrl = path; // Already has full API path
-    } else if (path.startsWith('/api/')) {
-      fullUrl = path; // Legacy API path, keep as is
-    } else if (path.startsWith('/')) {
-      fullUrl = `${API_BASE_URL}${path}`;
-    } else {
-      fullUrl = `${API_BASE_URL}/${path}`;
+    let fullUrl = path;
+    if (!path.startsWith('http')) {
+      // Remove /api/v1 prefix if it exists since API_BASE_URL already includes it
+      const cleanPath = path.startsWith('/api/v1') ? path.slice(7) : path;
+      // Ensure the path starts with /
+      const finalPath = cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath;
+      fullUrl = `${API_BASE_URL}${finalPath}`;
     }
 
     try {

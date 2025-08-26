@@ -42,7 +42,10 @@ export const images = pgTable('images', {
   backblazeFileName: varchar('backblaze_file_name', { length: 255 }),
   cdnUrl: text('cdn_url'),
   folder: varchar('folder', { length: 500 }),
+  altText: text('alt_text'),
   views: integer('views').default(0),
+  // CDN optimization parameters
+  cdnOptions: jsonb('cdn_options').default({}),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });

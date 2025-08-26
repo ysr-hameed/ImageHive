@@ -1082,7 +1082,25 @@ export function registerRoutes(app: Express) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
 
-      const { title, description, folder, isPublic } = req.body;
+      const { title, description, folder, isPublic, altText, tags } = req.body;
+      
+      // Parse CDN optimization parameters
+      const cdnOptions = {
+        quality: req.body.quality ? parseInt(req.body.quality) : 85,
+        format: req.body.format || 'auto',
+        width: req.body.width ? parseInt(req.body.width) : undefined,
+        height: req.body.height ? parseInt(req.body.height) : undefined,
+        fit: req.body.fit || 'cover',
+        position: req.body.position || 'center',
+        blur: req.body.blur ? parseInt(req.body.blur) : 0,
+        sharpen: req.body.sharpen === 'true',
+        brightness: req.body.brightness ? parseFloat(req.body.brightness) : 1,
+        contrast: req.body.contrast ? parseFloat(req.body.contrast) : 1,
+        saturation: req.body.saturation ? parseFloat(req.body.saturation) : 1,
+        progressive: req.body.progressive !== 'false',
+        stripMetadata: req.body.stripMetadata !== 'false',
+        cacheTtl: req.body.cacheTtl ? parseInt(req.body.cacheTtl) : 31536000,
+      };
 
       // Process the image (simplified without Sharp)
       const processedImageBuffer = await processImage(req.file.buffer);
@@ -1110,13 +1128,16 @@ export function registerRoutes(app: Express) {
         originalFilename: req.file.originalname,
         title: title || req.file.originalname,
         description: description || null,
+        altText: altText || null,
         mimeType: req.file.mimetype,
         size: req.file.size,
         width: imageInfo.width || 1920,
         height: imageInfo.height || 1080,
         folder: folder || null,
         isPublic: isPublic === 'true',
-        cdnUrl: fileUrl
+        tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : [],
+        cdnUrl: fileUrl,
+        cdnOptions
       }).returning();
 
       await logSystemEvent('info', `Image uploaded: ${filename}`, user.id, {

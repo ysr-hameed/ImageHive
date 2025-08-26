@@ -6,6 +6,17 @@ ImageVault is a professional image hosting SaaS platform designed for developers
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Improvements (August 26, 2025)
+- ✅ Enhanced upload form with 10+ CDN optimization parameters
+- ✅ Changed fonts from Inter/JetBrains to Poppins/Fira Code/Crimson Text
+- ✅ Added "Get Started" banner for logged-in users on landing page
+- ✅ Improved landing page responsiveness 
+- ✅ Created comprehensive API documentation with CDN parameters
+- ✅ Created SDK documentation for all major programming languages
+- ✅ Updated database schema with CDN options and altText fields
+- ✅ Fixed all TypeScript compilation errors
+- ✅ Verified npm build works correctly
+
 # System Architecture
 
 ## Frontend Architecture

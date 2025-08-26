@@ -7,7 +7,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, X, ImageIcon } from 'lucide-react';
+import { Upload, X, ImageIcon, Settings, Sliders, Image as ImageLucide, Zap } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 interface UploadFile extends File {
   id: string;
@@ -24,9 +29,33 @@ export function SimpleUploadForm() {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Simple form state - only essential fields
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  // Enhanced form state with CDN/hosting parameters
+  const [metadata, setMetadata] = useState({
+    title: '',
+    description: '',
+    altText: '',
+    tags: '',
+    folder: '',
+  });
+
+  // CDN and optimization parameters
+  const [cdnOptions, setCdnOptions] = useState({
+    quality: 85,
+    format: 'auto', // auto, webp, avif, jpeg, png
+    resize: false,
+    width: '',
+    height: '',
+    fit: 'cover', // cover, contain, fill, inside, outside
+    position: 'center', // center, top, bottom, left, right
+    blur: 0,
+    sharpen: false,
+    brightness: 100,
+    contrast: 100,
+    saturation: 100,
+    progressive: true,
+    stripMetadata: true,
+    cacheTtl: 31536000, // 1 year in seconds
+  });
 
   if (!isAuthenticated) {
     return (
@@ -48,9 +77,30 @@ export function SimpleUploadForm() {
     mutationFn: async (file: UploadFile) => {
       const formData = new FormData();
       formData.append('image', file);
-      if (title) formData.append('title', title);
-      if (description) formData.append('description', description);
+      
+      // Metadata
+      if (metadata.title) formData.append('title', metadata.title);
+      if (metadata.description) formData.append('description', metadata.description);
+      if (metadata.altText) formData.append('altText', metadata.altText);
+      if (metadata.tags) formData.append('tags', metadata.tags);
+      if (metadata.folder) formData.append('folder', metadata.folder);
       formData.append('isPublic', 'true');
+
+      // CDN optimization parameters
+      if (cdnOptions.quality !== 85) formData.append('quality', cdnOptions.quality.toString());
+      if (cdnOptions.format !== 'auto') formData.append('format', cdnOptions.format);
+      if (cdnOptions.resize && cdnOptions.width) formData.append('width', cdnOptions.width);
+      if (cdnOptions.resize && cdnOptions.height) formData.append('height', cdnOptions.height);
+      if (cdnOptions.fit !== 'cover') formData.append('fit', cdnOptions.fit);
+      if (cdnOptions.position !== 'center') formData.append('position', cdnOptions.position);
+      if (cdnOptions.blur > 0) formData.append('blur', cdnOptions.blur.toString());
+      if (cdnOptions.sharpen) formData.append('sharpen', 'true');
+      if (cdnOptions.brightness !== 100) formData.append('brightness', (cdnOptions.brightness / 100).toString());
+      if (cdnOptions.contrast !== 100) formData.append('contrast', (cdnOptions.contrast / 100).toString());
+      if (cdnOptions.saturation !== 100) formData.append('saturation', (cdnOptions.saturation / 100).toString());
+      if (!cdnOptions.progressive) formData.append('progressive', 'false');
+      if (!cdnOptions.stripMetadata) formData.append('stripMetadata', 'false');
+      if (cdnOptions.cacheTtl !== 31536000) formData.append('cacheTtl', cdnOptions.cacheTtl.toString());
 
       const token = localStorage.getItem('token');
       const response = await fetch('/api/v1/images/upload', {
@@ -150,13 +200,16 @@ export function SimpleUploadForm() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-6xl mx-auto space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="w-5 h-5" />
-            Upload Images
+            Professional Image Upload & CDN Optimization
           </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Upload images with advanced CDN optimization for maximum performance and hosting efficiency
+          </p>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Upload Area */}
@@ -183,28 +236,290 @@ export function SimpleUploadForm() {
             />
           </div>
 
-          {/* Metadata Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="title">Title (optional)</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Enter image title"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Description (optional)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Enter image description"
-                rows={3}
-              />
-            </div>
-          </div>
+          {/* Advanced Configuration Tabs */}
+          <Tabs defaultValue="metadata" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="metadata" className="flex items-center gap-2">
+                <ImageLucide className="w-4 h-4" />
+                Metadata
+              </TabsTrigger>
+              <TabsTrigger value="optimization" className="flex items-center gap-2">
+                <Zap className="w-4 h-4" />
+                CDN Optimization
+              </TabsTrigger>
+              <TabsTrigger value="advanced" className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Advanced
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="metadata" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="title">Title</Label>
+                  <Input
+                    id="title"
+                    value={metadata.title}
+                    onChange={(e) => setMetadata({...metadata, title: e.target.value})}
+                    placeholder="Enter image title"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="altText">Alt Text (SEO)</Label>
+                  <Input
+                    id="altText"
+                    value={metadata.altText}
+                    onChange={(e) => setMetadata({...metadata, altText: e.target.value})}
+                    placeholder="Descriptive alt text for accessibility"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="tags">Tags (comma-separated)</Label>
+                  <Input
+                    id="tags"
+                    value={metadata.tags}
+                    onChange={(e) => setMetadata({...metadata, tags: e.target.value})}
+                    placeholder="tag1, tag2, tag3"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="folder">Folder/Category</Label>
+                  <Input
+                    id="folder"
+                    value={metadata.folder}
+                    onChange={(e) => setMetadata({...metadata, folder: e.target.value})}
+                    placeholder="Optional folder organization"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea
+                    id="description"
+                    value={metadata.description}
+                    onChange={(e) => setMetadata({...metadata, description: e.target.value})}
+                    placeholder="Detailed image description"
+                    rows={3}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="optimization" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Zap className="w-4 h-4" />
+                    Format & Quality
+                  </h4>
+                  
+                  <div>
+                    <Label>Output Format</Label>
+                    <Select value={cdnOptions.format} onValueChange={(value) => setCdnOptions({...cdnOptions, format: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto (Best Format)</SelectItem>
+                        <SelectItem value="webp">WebP (Modern)</SelectItem>
+                        <SelectItem value="avif">AVIF (Ultra Modern)</SelectItem>
+                        <SelectItem value="jpeg">JPEG (Universal)</SelectItem>
+                        <SelectItem value="png">PNG (Lossless)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Quality: {cdnOptions.quality}%</Label>
+                    <Slider
+                      value={[cdnOptions.quality]}
+                      onValueChange={(value) => setCdnOptions({...cdnOptions, quality: value[0]})}
+                      min={1}
+                      max={100}
+                      step={1}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">Resize Options</h4>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={cdnOptions.resize}
+                      onCheckedChange={(checked) => setCdnOptions({...cdnOptions, resize: checked})}
+                    />
+                    <Label>Enable Resizing</Label>
+                  </div>
+
+                  {cdnOptions.resize && (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label htmlFor="width">Width (px)</Label>
+                          <Input
+                            id="width"
+                            type="number"
+                            value={cdnOptions.width}
+                            onChange={(e) => setCdnOptions({...cdnOptions, width: e.target.value})}
+                            placeholder="1920"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="height">Height (px)</Label>
+                          <Input
+                            id="height"
+                            type="number"
+                            value={cdnOptions.height}
+                            onChange={(e) => setCdnOptions({...cdnOptions, height: e.target.value})}
+                            placeholder="1080"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label>Fit Mode</Label>
+                        <Select value={cdnOptions.fit} onValueChange={(value) => setCdnOptions({...cdnOptions, fit: value})}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cover">Cover (Crop to Fill)</SelectItem>
+                            <SelectItem value="contain">Contain (Fit Inside)</SelectItem>
+                            <SelectItem value="fill">Fill (Stretch)</SelectItem>
+                            <SelectItem value="inside">Inside (Max Dimensions)</SelectItem>
+                            <SelectItem value="outside">Outside (Min Dimensions)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="advanced" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <Sliders className="w-4 h-4" />
+                    Image Adjustments
+                  </h4>
+
+                  <div>
+                    <Label>Brightness: {cdnOptions.brightness}%</Label>
+                    <Slider
+                      value={[cdnOptions.brightness]}
+                      onValueChange={(value) => setCdnOptions({...cdnOptions, brightness: value[0]})}
+                      min={0}
+                      max={200}
+                      step={5}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Contrast: {cdnOptions.contrast}%</Label>
+                    <Slider
+                      value={[cdnOptions.contrast]}
+                      onValueChange={(value) => setCdnOptions({...cdnOptions, contrast: value[0]})}
+                      min={0}
+                      max={200}
+                      step={5}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Saturation: {cdnOptions.saturation}%</Label>
+                    <Slider
+                      value={[cdnOptions.saturation]}
+                      onValueChange={(value) => setCdnOptions({...cdnOptions, saturation: value[0]})}
+                      min={0}
+                      max={200}
+                      step={5}
+                      className="mt-2"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Blur: {cdnOptions.blur}px</Label>
+                    <Slider
+                      value={[cdnOptions.blur]}
+                      onValueChange={(value) => setCdnOptions({...cdnOptions, blur: value[0]})}
+                      min={0}
+                      max={50}
+                      step={1}
+                      className="mt-2"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-medium">CDN & Performance</h4>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={cdnOptions.sharpen}
+                      onCheckedChange={(checked) => setCdnOptions({...cdnOptions, sharpen: checked})}
+                    />
+                    <Label>Enable Sharpening</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={cdnOptions.progressive}
+                      onCheckedChange={(checked) => setCdnOptions({...cdnOptions, progressive: checked})}
+                    />
+                    <Label>Progressive Loading</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={cdnOptions.stripMetadata}
+                      onCheckedChange={(checked) => setCdnOptions({...cdnOptions, stripMetadata: checked})}
+                    />
+                    <Label>Strip EXIF Metadata</Label>
+                  </div>
+
+                  <div>
+                    <Label>Cache TTL (seconds)</Label>
+                    <Select 
+                      value={cdnOptions.cacheTtl.toString()} 
+                      onValueChange={(value) => setCdnOptions({...cdnOptions, cacheTtl: parseInt(value)})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3600">1 Hour</SelectItem>
+                        <SelectItem value="86400">1 Day</SelectItem>
+                        <SelectItem value="604800">1 Week</SelectItem>
+                        <SelectItem value="2592000">1 Month</SelectItem>
+                        <SelectItem value="31536000">1 Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Image Position (for cropping)</Label>
+                    <Select value={cdnOptions.position} onValueChange={(value) => setCdnOptions({...cdnOptions, position: value})}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="center">Center</SelectItem>
+                        <SelectItem value="top">Top</SelectItem>
+                        <SelectItem value="bottom">Bottom</SelectItem>
+                        <SelectItem value="left">Left</SelectItem>
+                        <SelectItem value="right">Right</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {/* File List */}
           {files.length > 0 && (

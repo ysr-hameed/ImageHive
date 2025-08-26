@@ -10,7 +10,6 @@ declare global {
 }
 import { createServer, type Server } from "http";
 import multer from "multer";
-import sharp from "sharp";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { users, images, folders, notifications, systemLogs, seoSettings, emailCampaigns, emailLogs } from "../shared/schema";
@@ -1075,7 +1074,7 @@ export function registerRoutes(app: Express) {
 
       const { title, description, folder, isPublic } = req.body;
 
-      // Process the image using the new imageProcessor service
+      // Process the image (simplified without Sharp)
       const processedImageBuffer = await processImage(req.file.buffer);
       const imageInfo = await getImageInfo(req.file.buffer);
 

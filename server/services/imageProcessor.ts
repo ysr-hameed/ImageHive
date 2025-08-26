@@ -12,6 +12,25 @@ export interface ProcessedImage {
   };
 }
 
+export async function getImageInfo(buffer: Buffer): Promise<{ format: string; width?: number; height?: number }> {
+  // Basic image format detection
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
+    return { format: 'jpeg' };
+  }
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
+    return { format: 'png' };
+  }
+  if (buffer.subarray(8, 12).toString() === 'WEBP') {
+    return { format: 'webp' };
+  }
+  return { format: 'unknown' };
+}
+
+export async function processImage(buffer: Buffer): Promise<Buffer> {
+  // For development without Sharp, we'll just return the original buffer
+  return buffer;
+}
+
 export class ImageProcessor {
   static async processImage(
     inputBuffer: Buffer,
@@ -26,7 +45,7 @@ export class ImageProcessor {
     // In production, you might want to use a different image processing solution
 
     // Detect basic image info from buffer
-    const info = this.getImageInfo(inputBuffer);
+    const info = await getImageInfo(inputBuffer);
 
     return {
       buffer: inputBuffer,
@@ -67,19 +86,7 @@ export class ImageProcessor {
     return buffer;
   }
 
-  private static getImageInfo(buffer: Buffer): { format: string; width?: number; height?: number } {
-    // Basic image format detection
-    if (buffer[0] === 0xFF && buffer[1] === 0xD8) {
-      return { format: 'jpeg' };
-    }
-    if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4E && buffer[3] === 0x47) {
-      return { format: 'png' };
-    }
-    if (buffer.subarray(8, 12).toString() === 'WEBP') {
-      return { format: 'webp' };
-    }
-    return { format: 'unknown' };
-  }
+  
 
   static async generateThumbnail(
     buffer: Buffer,

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react";
@@ -6,6 +5,16 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ImageIcon, Menu, X, Zap, Shield, Globe, Rocket } from "lucide-react";
+
+// Mocking auth state for demonstration purposes
+// In a real app, you would use a context or hook to get this state
+const isAuthenticated = true; // Change to false to test logged out state
+const user = { firstName: "Alex" }; // Example user object
+
+const handleLogout = () => {
+  console.log("Logging out...");
+  // Implement actual logout logic here
+};
 
 const navItems = [
   { name: "Features", href: "#features", icon: Zap },
@@ -53,15 +62,35 @@ export default function Navigation() {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" asChild className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
-              <Link href="/auth/login">Sign In</Link>
-            </Button>
-            <Button size="sm" asChild className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-blue-500/25 transition-all duration-300">
-              <Link href="/auth/login">
-                <Rocket className="w-4 h-4 mr-2" />
-                Get Started
-              </Link>
-            </Button>
+            {isAuthenticated ? (
+              <div className="flex items-center gap-4">
+                <div className="hidden sm:flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Signed in as {user?.firstName || 'User'}</span>
+                </div>
+                <Link href="/dashboard">
+                  <Button variant="outline" size="sm" className="font-medium">
+                    Dashboard
+                  </Button>
+                </Link>
+                <Button variant="ghost" size="sm" onClick={handleLogout} className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link href="/auth/login">
+                  <Button variant="ghost" size="sm" className="font-medium">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link href="/auth/register">
+                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                    Get Started Free
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -107,17 +136,31 @@ export default function Navigation() {
 
                   {/* Mobile Auth Buttons */}
                   <div className="p-4 space-y-3 border-t border-gray-200/20 dark:border-slate-700/20">
-                    <Button variant="outline" size="lg" asChild className="w-full justify-center">
-                      <Link href="/auth/login" onClick={() => setIsOpen(false)}>
-                        Sign In
-                      </Link>
-                    </Button>
-                    <Button size="lg" asChild className="w-full justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg">
-                      <Link href="/auth/login" onClick={() => setIsOpen(false)}>
-                        <Rocket className="w-4 h-4 mr-2" />
-                        Get Started
-                      </Link>
-                    </Button>
+                    {isAuthenticated ? (
+                      <>
+                        <Link href="/dashboard">
+                          <Button size="lg" asChild className="w-full justify-center font-medium">
+                            Dashboard
+                          </Button>
+                        </Link>
+                        <Button variant="outline" size="lg" onClick={handleLogout} className="w-full justify-center text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+                          Sign Out
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        <Button variant="outline" size="lg" asChild className="w-full justify-center">
+                          <Link href="/auth/login" onClick={() => setIsOpen(false)}>
+                            Sign In
+                          </Link>
+                        </Button>
+                        <Button size="lg" asChild className="w-full justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg">
+                          <Link href="/auth/login" onClick={() => setIsOpen(false)}>
+                            Get Started Free
+                          </Link>
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </SheetContent>

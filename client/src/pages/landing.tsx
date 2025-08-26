@@ -1,3 +1,4 @@
+
 import Navigation from "@/components/navigation";
 import HeroSection from "@/components/hero-section";
 import FeaturesSection from "@/components/features-section";
@@ -8,10 +9,10 @@ import Footer from "@/components/footer";
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
-import { ArrowRight, PlayCircle, Rocket, BarChart3 } from 'lucide-react';
+import { ArrowRight, PlayCircle, Rocket, BarChart3, Sparkles, Shield, Zap } from 'lucide-react';
 
 export default function Landing() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, isLoading } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-blue-950/30 dark:to-purple-950/30">
@@ -24,24 +25,88 @@ export default function Landing() {
 
       <Navigation />
 
-      {/* Get Started Banner for Logged In Users */}
-      {isAuthenticated && (
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 relative z-10">
-          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-3 text-center sm:text-left">
-              <PlayCircle className="w-5 h-5 flex-shrink-0" />
-              <div>
-                <span className="font-medium block sm:inline">Ready to get started?</span>
-                <span className="text-blue-100 text-sm block sm:inline sm:ml-2">Access your dashboard and start uploading images.</span>
+      {/* Enhanced Auth Banner */}
+      {!isLoading && (
+        <div className="relative z-10">
+          {isAuthenticated ? (
+            <div className="bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 text-white py-4 px-4 shadow-lg">
+              <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 text-center lg:text-left">
+                  <div className="p-2 bg-white/20 rounded-full">
+                    <Rocket className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-semibold text-lg">Welcome back, {user?.firstName || 'User'}!</span>
+                      <Sparkles className="w-5 h-5 text-yellow-300" />
+                    </div>
+                    <span className="text-emerald-100 text-sm">Your dashboard is ready with all your images and analytics.</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="hidden sm:flex items-center gap-4 text-sm text-white/80">
+                    <div className="flex items-center gap-1">
+                      <Shield className="w-4 h-4" />
+                      <span>Secure</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Zap className="w-4 h-4" />
+                      <span>Fast</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <BarChart3 className="w-4 h-4" />
+                      <span>Analytics</span>
+                    </div>
+                  </div>
+                  <Link href="/dashboard">
+                    <Button 
+                      variant="secondary" 
+                      size="lg" 
+                      className="bg-white text-blue-600 hover:bg-gray-100 font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex-shrink-0"
+                    >
+                      Open Dashboard
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
-            <Link href="/dashboard">
-              <Button variant="secondary" size="sm" className="bg-white text-blue-600 hover:bg-gray-100 flex-shrink-0">
-                Open Dashboard
-                <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </div>
+          ) : (
+            <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white py-4 px-4 shadow-lg">
+              <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4 text-center lg:text-left">
+                  <div className="p-2 bg-white/20 rounded-full">
+                    <PlayCircle className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-lg mb-1">Start Your Image Management Journey</div>
+                    <span className="text-blue-100 text-sm">Join thousands of users who trust ImageVault for their image storage and optimization needs.</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Link href="/auth/login">
+                    <Button 
+                      variant="outline" 
+                      size="lg" 
+                      className="bg-transparent border-white text-white hover:bg-white hover:text-blue-600 font-medium transition-all duration-200"
+                    >
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/auth/register">
+                    <Button 
+                      variant="secondary" 
+                      size="lg" 
+                      className="bg-white text-blue-600 hover:bg-gray-100 font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                    >
+                      Get Started Free
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

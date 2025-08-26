@@ -33,15 +33,7 @@ export default function Upload() {
     return <PageLoader text="Redirecting to login..." />;
   }
 
-  const getPlanColor = (plan: string) => {
-    switch (plan) {
-      case 'free': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-      case 'starter': return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
-      case 'pro': return 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200';
-      case 'enterprise': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-    }
-  };
+  
 
   return (
     <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-6">

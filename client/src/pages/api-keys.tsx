@@ -145,7 +145,8 @@ export default function ApiKeys() {
     });
   };
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (num: number | undefined | null) => {
+    if (!num || isNaN(num)) return '0';
     if (num >= 1000) {
       return (num / 1000).toFixed(1) + 'K';
     }
@@ -153,8 +154,8 @@ export default function ApiKeys() {
   };
 
   const filteredKeys = Array.isArray(apiKeys) ? apiKeys.filter((key: any) =>
-    key.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    key.keyPreview?.toLowerCase().includes(searchQuery.toLowerCase())
+    (key.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (key.keyPreview || key.key || '').toLowerCase().includes(searchQuery.toLowerCase())
   ) : [];
 
   return (

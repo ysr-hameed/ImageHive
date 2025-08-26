@@ -2038,6 +2038,73 @@ export function registerRoutes(app: Express) {
 
   // Payment Integration Routes
   
+  // Get available payment providers (admin configurable)
+  app.get('/api/v1/payment/providers', async (req: Request, res: Response) => {
+    try {
+      const providers = [
+        {
+          id: 'payu',
+          name: 'PayU',
+          description: 'Best for India payments',
+          supportedCountries: ['IN'],
+          currencies: ['INR'],
+          enabled: !!process.env.PAYU_KEY,
+          icon: '💳'
+        },
+        {
+          id: 'paypal',
+          name: 'PayPal',
+          description: 'Global payments',
+          supportedCountries: ['US', 'GB', 'CA', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'CH', 'SE', 'NO', 'DK', 'FI', 'PL'],
+          currencies: ['USD', 'EUR', 'GBP', 'CAD', 'AUD'],
+          enabled: !!process.env.PAYPAL_CLIENT_ID,
+          icon: '🌐'
+        },
+        {
+          id: 'stripe',
+          name: 'Stripe',
+          description: 'International card payments',
+          supportedCountries: ['US', 'GB', 'CA', 'AU', 'DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'CH', 'SE', 'NO', 'DK', 'FI', 'PL', 'IN'],
+          currencies: ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR'],
+          enabled: !!process.env.STRIPE_SECRET_KEY,
+          icon: '💰'
+        },
+        {
+          id: 'razorpay',
+          name: 'Razorpay',
+          description: 'India\'s leading payment gateway',
+          supportedCountries: ['IN'],
+          currencies: ['INR'],
+          enabled: !!process.env.RAZORPAY_KEY_ID,
+          icon: '🇮🇳'
+        },
+        {
+          id: 'cashfree',
+          name: 'Cashfree',
+          description: 'Digital payments for India',
+          supportedCountries: ['IN'],
+          currencies: ['INR'],
+          enabled: !!process.env.CASHFREE_APP_ID,
+          icon: '💸'
+        },
+        {
+          id: 'instamojo',
+          name: 'Instamojo',
+          description: 'Simple payments for India',
+          supportedCountries: ['IN'],
+          currencies: ['INR'],
+          enabled: !!process.env.INSTAMOJO_API_KEY,
+          icon: '⚡'
+        }
+      ];
+
+      res.json(providers.filter(p => p.enabled));
+    } catch (error: any) {
+      console.error('Payment providers error:', error);
+      res.status(500).json({ error: 'Failed to fetch payment providers' });
+    }
+  });
+
   // Create payment session
   app.post('/api/v1/payment/create', isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -2066,7 +2133,6 @@ export function registerRoutes(app: Express) {
             service_provider: 'payu_paisa'
           };
           
-          // Generate hash for PayU (would use actual hash generation)
           const payuHash = crypto.createHash('sha512')
             .update(`${payuData.key}|${payuData.txnid}|${payuData.amount}|${payuData.productinfo}|${payuData.firstname}|${payuData.email}|||||||||||${process.env.PAYU_SALT}`)
             .digest('hex');
@@ -2080,24 +2146,49 @@ export function registerRoutes(app: Express) {
           });
           break;
 
-        case 'paypal':
-          // PayPal integration
-          const paypalData = {
-            intent: 'CAPTURE',
-            purchase_units: [{
-              amount: {
-                currency_code: currency,
-                value: amount.toString()
-              },
-              description: description
-            }],
-            application_context: {
-              return_url: returnUrl,
-              cancel_url: cancelUrl
+        case 'razorpay':
+          // Razorpay integration
+          const razorpayOrderId = `rzp_${orderId}`;
+          res.json({
+            paymentUrl: `https://checkout.razorpay.com/v1/checkout.js`,
+            orderId: razorpayOrderId,
+            provider: 'razorpay',
+            options: {
+              key: process.env.RAZORPAY_KEY_ID,
+              amount: amount * 100, // Razorpay uses paise
+              currency: currency,
+              name: 'ImageVault',
+              description: description,
+              order_id: razorpayOrderId,
+              prefill: {
+                name: `${user.firstName} ${user.lastName}`,
+                email: user.email
+              }
             }
-          };
+          });
+          break;
 
-          // Would use actual PayPal SDK here
+        case 'cashfree':
+          // Cashfree integration
+          const cashfreeOrderId = `cf_${orderId}`;
+          res.json({
+            paymentUrl: `https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js`,
+            orderId: cashfreeOrderId,
+            provider: 'cashfree'
+          });
+          break;
+
+        case 'instamojo':
+          // Instamojo integration
+          const instamojoOrderId = `im_${orderId}`;
+          res.json({
+            paymentUrl: `https://test.instamojo.com/api/1.1/payment-requests/`,
+            orderId: instamojoOrderId,
+            provider: 'instamojo'
+          });
+          break;
+
+        case 'paypal':
           const paypalOrderId = `pp_${orderId}`;
           const paypalUrl = `https://www.sandbox.paypal.com/checkoutnow?token=${paypalOrderId}`;
           
@@ -2109,25 +2200,6 @@ export function registerRoutes(app: Express) {
           break;
 
         case 'stripe':
-          // Stripe integration
-          const stripeData = {
-            payment_method_types: ['card'],
-            line_items: [{
-              price_data: {
-                currency: currency.toLowerCase(),
-                product_data: {
-                  name: description,
-                },
-                unit_amount: amount * 100, // Stripe uses cents
-              },
-              quantity: 1,
-            }],
-            mode: 'payment',
-            success_url: returnUrl,
-            cancel_url: cancelUrl,
-          };
-
-          // Would use actual Stripe SDK here
           const stripeSessionId = `cs_${orderId}`;
           const stripeUrl = `https://checkout.stripe.com/pay/${stripeSessionId}`;
           

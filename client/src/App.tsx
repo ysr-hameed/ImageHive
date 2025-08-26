@@ -146,7 +146,7 @@ function AppContent() {
                 <Route path="/admin" component={Admin} />
                 <Route path="/collections" component={Collections} />
                 <Route path="/activity" component={Activity} />
-                <Route path="/" component={() => { window.location.href = '/dashboard'; return null; }} />
+                <Route path="/" component={Landing} />
               </div>
             </SidebarInset>
           </div>

@@ -339,12 +339,28 @@ export function registerRoutes(app: express.Express) {
 
   app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
     try {
-      const { email, password } = loginSchema.parse(req.body);
+      console.log('Login attempt:', { email: req.body.email, hasPassword: !!req.body.password });
+      
+      // Validate input data
+      const parseResult = loginSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        console.log('Login validation failed:', parseResult.error);
+        return res.status(400).json({ error: 'Invalid email or password format' });
+      }
+
+      const { email, password } = parseResult.data;
 
       const user = await storage.getUserByEmail(email);
-      if (!user || !user.password) {
+      console.log('User found:', !!user, user ? { id: user.id, emailVerified: user.emailVerified, hasPassword: !!user.password } : 'null');
+      
+      if (!user) {
         await logSystemEvent('warn', `Failed login attempt for: ${email}`, undefined, { reason: 'User not found' });
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
+
+      if (!user.password) {
+        await logSystemEvent('warn', `Login attempt for OAuth user: ${email}`, user.id);
+        return res.status(401).json({ error: 'This account uses social login. Please use Google or GitHub to sign in.' });
       }
 
       if (!user.emailVerified) {
@@ -353,12 +369,14 @@ export function registerRoutes(app: express.Express) {
       }
 
       const validPassword = await bcrypt.compare(password, user.password);
+      console.log('Password valid:', validPassword);
+      
       if (!validPassword) {
         await logSystemEvent('warn', `Failed login attempt for: ${email}`, user.id, { reason: 'Invalid password' });
-        return res.status(401).json({ error: 'Invalid credentials' });
+        return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
+      const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
       await logSystemEvent('info', `User logged in: ${email}`, user.id);
 
@@ -376,7 +394,7 @@ export function registerRoutes(app: express.Express) {
     } catch (error: any) {
       await logSystemEvent('error', `Login error: ${error.message}`, undefined, { error: error.message });
       console.error('Login error:', error);
-      res.status(400).json({ error: error.message || 'Login failed' });
+      res.status(500).json({ error: 'Login failed. Please try again.' });
     }
   });
 
@@ -388,10 +406,15 @@ export function registerRoutes(app: express.Express) {
   app.get('/api/v1/auth/google', (req: Request, res: Response) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) {
-      return res.status(500).json({ error: 'Google OAuth not configured' });
+      return res.status(500).json({ error: 'Google OAuth not configured. Please set GOOGLE_CLIENT_ID environment variable.' });
     }
 
-    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`;
+    // Use the correct base URL for Replit
+    const baseUrl = process.env.REPL_SLUG ? 
+      `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
+      (process.env.BASE_URL || 'http://0.0.0.0:5000');
+    
+    const redirectUri = `${baseUrl}/api/v1/auth/google/callback`;
     const scope = 'openid email profile';
     const responseType = 'code';
     const state = crypto.randomBytes(32).toString('hex');
@@ -403,29 +426,45 @@ export function registerRoutes(app: express.Express) {
 
   app.get('/api/v1/auth/google/callback', async (req: Request, res: Response) => {
     try {
-      const { code, state } = req.query;
+      const { code, state, error } = req.query;
+
+      if (error) {
+        console.error('Google OAuth error:', error);
+        return res.redirect('/auth/login?error=oauth_failed&message=' + encodeURIComponent(error as string));
+      }
 
       if (!code) {
-        return res.redirect('/auth/login?error=oauth_failed');
+        return res.redirect('/auth/login?error=oauth_failed&message=No_authorization_code_received');
       }
+
+      if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+        console.error('Google OAuth credentials missing');
+        return res.redirect('/auth/login?error=oauth_failed&message=OAuth_not_configured');
+      }
+
+      // Use the correct base URL for Replit
+      const baseUrl = process.env.REPL_SLUG ? 
+        `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
+        (process.env.BASE_URL || 'http://0.0.0.0:5000');
 
       // Exchange code for tokens
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-          client_id: process.env.GOOGLE_CLIENT_ID!,
-          client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+          client_id: process.env.GOOGLE_CLIENT_ID,
+          client_secret: process.env.GOOGLE_CLIENT_SECRET,
           code: code as string,
           grant_type: 'authorization_code',
-          redirect_uri: `${process.env.BASE_URL || 'http://localhost:5000'}/api/v1/auth/google/callback`
+          redirect_uri: `${baseUrl}/api/v1/auth/google/callback`
         })
       });
 
       const tokens = await tokenResponse.json();
 
       if (!tokens.access_token) {
-        return res.redirect('/auth/login?error=oauth_failed');
+        console.error('Google token exchange failed:', tokens);
+        return res.redirect('/auth/login?error=oauth_failed&message=Token_exchange_failed');
       }
 
       // Get user info from Google
@@ -465,10 +504,15 @@ export function registerRoutes(app: express.Express) {
   app.get('/api/v1/auth/github', (req: Request, res: Response) => {
     const clientId = process.env.GITHUB_CLIENT_ID;
     if (!clientId) {
-      return res.status(500).json({ error: 'GitHub OAuth not configured' });
+      return res.status(500).json({ error: 'GitHub OAuth not configured. Please set GITHUB_CLIENT_ID environment variable.' });
     }
 
-    const redirectUri = `${process.env.BASE_URL || 'http://localhost:5000'}/api/v1/auth/github/callback`;
+    // Use the correct base URL for Replit
+    const baseUrl = process.env.REPL_SLUG ? 
+      `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
+      (process.env.BASE_URL || 'http://0.0.0.0:5000');
+
+    const redirectUri = `${baseUrl}/api/v1/auth/github/callback`;
     const scope = 'user:email';
     const state = crypto.randomBytes(32).toString('hex');
 
@@ -479,10 +523,20 @@ export function registerRoutes(app: express.Express) {
 
   app.get('/api/v1/auth/github/callback', async (req: Request, res: Response) => {
     try {
-      const { code, state } = req.query;
+      const { code, state, error } = req.query;
+
+      if (error) {
+        console.error('GitHub OAuth error:', error);
+        return res.redirect('/auth/login?error=oauth_failed&message=' + encodeURIComponent(error as string));
+      }
 
       if (!code) {
-        return res.redirect('/auth/login?error=oauth_failed');
+        return res.redirect('/auth/login?error=oauth_failed&message=No_authorization_code_received');
+      }
+
+      if (!process.env.GITHUB_CLIENT_ID || !process.env.GITHUB_CLIENT_SECRET) {
+        console.error('GitHub OAuth credentials missing');
+        return res.redirect('/auth/login?error=oauth_failed&message=OAuth_not_configured');
       }
 
       // Exchange code for tokens
@@ -493,8 +547,8 @@ export function registerRoutes(app: express.Express) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          client_id: process.env.GITHUB_CLIENT_ID!,
-          client_secret: process.env.GITHUB_CLIENT_SECRET!,
+          client_id: process.env.GITHUB_CLIENT_ID,
+          client_secret: process.env.GITHUB_CLIENT_SECRET,
           code: code as string
         })
       });

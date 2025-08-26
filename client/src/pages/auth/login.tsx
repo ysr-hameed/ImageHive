@@ -24,13 +24,35 @@ export default function Login() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
+    const message = urlParams.get('message');
 
     if (error === 'oauth_failed') {
+      let description = 'OAuth authentication failed. Please try again.';
+      
+      if (message) {
+        switch (message) {
+          case 'OAuth_not_configured':
+            description = 'OAuth is not properly configured on the server.';
+            break;
+          case 'No_authorization_code_received':
+            description = 'Authorization was cancelled or failed.';
+            break;
+          case 'Token_exchange_failed':
+            description = 'Failed to exchange authorization code for access token.';
+            break;
+          default:
+            description = `OAuth error: ${decodeURIComponent(message)}`;
+        }
+      }
+      
       toast({
         title: 'Authentication failed',
-        description: 'OAuth authentication failed. Please try again.',
+        description,
         variant: 'destructive',
       });
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, '/auth/login');
     }
   }, [toast]);
 
@@ -40,10 +62,18 @@ export default function Login() {
       return response;
     },
     onSuccess: (data) => {
+      console.log('Login successful:', data);
+      
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        console.log('Token stored successfully');
+      }
+      
       toast({
         title: 'Welcome back!',
         description: 'You have been successfully logged in.',
       });
+      
       // Refresh auth state and redirect to dashboard
       queryClient.invalidateQueries({ queryKey: ["/api/v1/auth/user"] });
       setTimeout(() => {

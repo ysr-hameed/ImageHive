@@ -3,25 +3,25 @@ import { Image as ImageIcon, CheckCircle } from "lucide-react";
 
 const footerLinks = {
   product: [
-    { name: "Features", href: "#features" },
-    { name: "Pricing", href: "#pricing" },
-    { name: "API Documentation", href: "#docs" },
-    { name: "SDKs", href: "#sdks" },
-    { name: "Status", href: "#status" },
+    { name: "Features", href: "/features" },
+    { name: "Pricing", href: "/#pricing" },
+    { name: "API Documentation", href: "/docs" },
+    { name: "SDKs", href: "/sdks" },
+    { name: "Status", href: "/status" },
   ],
   company: [
-    { name: "About", href: "#about" },
-    { name: "Blog", href: "#blog" },
-    { name: "Careers", href: "#careers" },
-    { name: "Press", href: "#press" },
-    { name: "Contact", href: "#contact" },
+    { name: "About", href: "/about" },
+    { name: "Blog", href: "/blog" },
+    { name: "Careers", href: "/careers" },
+    { name: "Press", href: "/press" },
+    { name: "Contact", href: "/contact" },
   ],
   support: [
-    { name: "Help Center", href: "#help" },
-    { name: "Community", href: "#community" },
-    { name: "Guides", href: "#guides" },
-    { name: "Privacy Policy", href: "#privacy" },
-    { name: "Terms of Service", href: "#terms" },
+    { name: "Help Center", href: "/help" },
+    { name: "Community", href: "/community" },
+    { name: "Guides", href: "/guides" },
+    { name: "Privacy Policy", href: "/privacy" },
+    { name: "Terms of Service", href: "/terms" },
   ],
 };
 

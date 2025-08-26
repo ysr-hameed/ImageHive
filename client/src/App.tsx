@@ -1,204 +1,155 @@
-import { Switch, Route, Link, Redirect, Router } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { ErrorBoundary } from "@/components/error-boundary";
-import { PageLoader } from "@/components/futuristic-loader";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { ThemeProvider } from "@/components/theme-provider";
-import { useAuth } from "@/hooks/useAuth";
-import LandingPage from "@/pages/landing";
-import Dashboard from "@/pages/dashboard";
-import Admin from "@/pages/admin";
-import Upload from "@/pages/upload";
-import Images from "@/pages/images";
-import Analytics from "@/pages/analytics";
-import Activity from "@/pages/activity";
-import Settings from "@/pages/settings";
-import ApiKeys from "@/pages/api-keys";
-import Collections from "@/pages/collections";
-import Login from "@/pages/auth/login";
-import Register from "@/pages/auth/register";
-import ForgotPassword from "@/pages/auth/forgot-password";
-import ResetPassword from "@/pages/auth/reset-password";
-import VerifyEmail from "@/pages/auth/verify-email";
-import NotFound from "@/pages/not-found";
-import ApiDocs from "@/pages/docs";
-import ApiUsage from "@/pages/api-usage";
-import Upgrade from "./pages/upgrade";
-import Plans from "./pages/plans";
-import Notifications from "./pages/notifications";
-import { apiRequest } from "./lib/queryClient";
-import { Bell } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { PageLoader } from "@/components/futuristic-loader";
-import { useLocation } from "wouter";
+import React, { Suspense } from 'react';
+import { Router, Route, Switch } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { FuturisticLoader } from '@/components/futuristic-loader';
+import { NotificationBell } from '@/components/notification-management';
+import { ProfileMenu } from '@/components/app-sidebar';
+import { useAuth } from '@/hooks/useAuth';
 
-// Notification Bell Component
-function NotificationBell() {
-  const { data: notifications } = useQuery({
-    queryKey: ['/api/v1/notifications'],
-    queryFn: () => apiRequest('GET', '/api/v1/notifications'),
-    retry: false,
-  });
+// Pages
+import LandingPage from '@/pages/landing';
+import Login from '@/pages/auth/login';
+import Register from '@/pages/auth/register';
+import ForgotPassword from '@/pages/auth/forgot-password';
+import ResetPassword from '@/pages/auth/reset-password';
+import VerifyEmail from '@/pages/auth/verify-email';
+import Dashboard from '@/pages/dashboard';
+import Images from '@/pages/images';
+import Upload from '@/pages/upload';
+import Analytics from '@/pages/analytics';
+import ApiKeys from '@/pages/api-keys';
+import Settings from '@/pages/settings';
+import ApiUsage from '@/pages/api-usage';
+import Plans from '@/pages/plans';
+import Notifications from '@/pages/notifications';
+import Admin from '@/pages/admin';
+import Collections from '@/pages/collections';
+import Activity from '@/pages/activity';
+import ApiDocs from '@/pages/docs';
+import NotFound from '@/pages/not-found';
 
-  const unreadCount = Array.isArray(notifications)
-    ? notifications.filter(n => !n.isRead).length
-    : 0;
+// Footer pages
+import Features from '@/pages/features';
+import About from '@/pages/about';
+import Blog from '@/pages/blog';
+import Careers from '@/pages/careers';
+import Press from '@/pages/press';
+import Contact from '@/pages/contact';
+import Help from '@/pages/help';
+import Community from '@/pages/community';
+import Guides from '@/pages/guides';
+import Privacy from '@/pages/privacy';
+import Terms from '@/pages/terms';
+import Status from '@/pages/status';
+import SDKs from '@/pages/sdks';
 
-  return (
-    <div className="relative">
-      <Button variant="ghost" size="sm" asChild>
-        <Link href="/notifications">
-          <Bell className="w-4 h-4" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </Link>
-      </Button>
-    </div>
-  );
-}
-
-// Profile Menu Component
-function ProfileMenu() {
-  const { user } = useAuth();
-
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest('POST', '/api/v1/auth/logout', {});
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
     },
-    onSuccess: () => {
-      // Clear local storage and redirect
-      localStorage.removeItem('token');
-      window.location.href = '/auth/login';
-    }
-  });
+  },
+});
 
-  return (
-    <div className="flex items-center gap-2">
-      <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-emerald-500 flex items-center justify-center text-white text-sm font-medium">
-        {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
-      </div>
-    </div>
-  );
-}
-
-// AppContent component to handle routing and layout
 function AppContent() {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [location] = useLocation();
+  const { user, isLoading } = useAuth();
 
-  // Show loading while checking auth state
   if (isLoading) {
+    return <FuturisticLoader />;
+  }
+
+  const currentPath = window.location.pathname;
+  const isAuthPage = currentPath.startsWith('/auth/');
+  const isPublicPage = ['/', '/docs', '/features', '/about', '/blog', '/careers', '/press', '/contact', '/help', '/community', '/guides', '/privacy', '/terms', '/status', '/sdks'].includes(currentPath);
+
+  // Public pages without sidebar
+  if (isAuthPage || (isPublicPage && !user)) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
+      <div className="min-h-screen">
+        <Switch>
+          <Route path="/auth/login" component={Login} />
+          <Route path="/auth/register" component={Register} />
+          <Route path="/auth/forgot-password" component={ForgotPassword} />
+          <Route path="/auth/reset-password" component={ResetPassword} />
+          <Route path="/auth/verify-email" component={VerifyEmail} />
+          <Route path="/docs" component={ApiDocs} />
+          <Route path="/features" component={Features} />
+          <Route path="/about" component={About} />
+          <Route path="/blog" component={Blog} />
+          <Route path="/careers" component={Careers} />
+          <Route path="/press" component={Press} />
+          <Route path="/contact" component={Contact} />
+          <Route path="/help" component={Help} />
+          <Route path="/community" component={Community} />
+          <Route path="/guides" component={Guides} />
+          <Route path="/privacy" component={Privacy} />
+          <Route path="/terms" component={Terms} />
+          <Route path="/status" component={Status} />
+          <Route path="/sdks" component={SDKs} />
+          <Route path="/" component={LandingPage} />
+          <Route component={NotFound} />
+        </Switch>
       </div>
-    );
-  }
-
-  // Auth pages that don't need sidebar
-  const authPages = ["/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password", "/auth/verify-email"];
-  const isAuthPage = authPages.includes(location);
-
-  // Public pages that don't need auth or sidebar
-  const publicPages = ["/", "/docs"];
-  const isPublicPage = publicPages.includes(location);
-
-  // Redirect logic for authenticated users on auth pages
-  if (isAuthenticated && isAuthPage) {
-    return <Redirect to="/dashboard" />;
-  }
-
-  // Redirect unauthenticated users from protected pages to login
-  if (!isAuthenticated && !isAuthPage && !isPublicPage) {
-    return <Redirect to="/auth/login" />;
-  }
-
-  // Redirect authenticated users from landing to dashboard
-  if (isAuthenticated && location === "/") {
-    return <Redirect to="/dashboard" />;
-  }
-
-  // Pages without sidebar (auth pages and public pages)
-  if (isAuthPage || isPublicPage) {
-    return (
-      <>
-        <Route path="/auth/login" component={Login} />
-        <Route path="/auth/register" component={Register} />
-        <Route path="/auth/forgot-password" component={ForgotPassword} />
-        <Route path="/auth/reset-password" component={ResetPassword} />
-        <Route path="/auth/verify-email" component={VerifyEmail} />
-        <Route path="/docs" component={ApiDocs} />
-        <Route path="/" component={LandingPage} />
-        <Route component={NotFound} />
-      </>
     );
   }
 
   // Authenticated pages with sidebar
-  return (
-    <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset className="min-h-screen">
-        <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-          <div className="flex items-center justify-between">
-            <SidebarTrigger />
-            <div className="flex items-center gap-4">
-              <NotificationBell />
-              <ProfileMenu />
+  if (user) {
+    return (
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset className="min-h-screen">
+          <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+            <div className="flex items-center justify-between">
+              <SidebarTrigger />
+              <div className="flex items-center gap-4">
+                <NotificationBell />
+                <ProfileMenu />
+              </div>
             </div>
+          </header>
+          <div className="flex-1 w-full bg-gray-50 dark:bg-slate-900">
+            <Switch>
+              <Route path="/dashboard" component={Dashboard} />
+              <Route path="/images" component={Images} />
+              <Route path="/upload" component={Upload} />
+              <Route path="/analytics" component={Analytics} />
+              <Route path="/api-keys" component={ApiKeys} />
+              <Route path="/settings" component={Settings} />
+              <Route path="/api-usage" component={ApiUsage} />
+              <Route path="/plans" component={Plans} />
+              <Route path="/notifications" component={Notifications} />
+              <Route path="/admin" component={Admin} />
+              <Route path="/collections" component={Collections} />
+              <Route path="/activity" component={Activity} />
+              <Route component={NotFound} />
+            </Switch>
           </div>
-        </header>
-        <div className="flex-1 w-full bg-gray-50 dark:bg-slate-900">
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/images" component={Images} />
-          <Route path="/upload" component={Upload} />
-          <Route path="/analytics" component={Analytics} />
-          <Route path="/api-keys" component={ApiKeys} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/api-usage" component={ApiUsage} />
-          <Route path="/plans" component={Plans} />
-          <Route path="/notifications" component={Notifications} />
-          <Route path="/admin" component={Admin} />
-          <Route path="/collections" component={Collections} />
-          <Route path="/activity" component={Activity} />
-          <Route component={NotFound} />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-  );
+        </SidebarInset>
+      </SidebarProvider>
+    );
+  }
+
+  // Fallback to landing page
+  return <LandingPage />;
 }
 
-function App() {
+export default function App() {
   return (
-    <ErrorBoundary fallback={
-        <div className="p-8 text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-          <p className="text-gray-600">We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists.</p>
-        </div>
-      }>
+    <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router>
-              <AppContent />
-            </Router>
-          </TooltipProvider>
-        </ThemeProvider>
+        <Router>
+          <Suspense fallback={<FuturisticLoader />}>
+            <AppContent />
+          </Suspense>
+          <Toaster />
+        </Router>
       </QueryClientProvider>
     </ErrorBoundary>
   );
 }
-
-export default App;

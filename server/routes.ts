@@ -279,7 +279,7 @@ export function registerRoutes(app: express.Express) {
       const hashedPassword = await bcrypt.hash(password, 10);
       const user = await storage.createUser({
         email,
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         firstName,
         lastName,
         subscribeNewsletter: subscribeNewsletter || false
@@ -287,6 +287,7 @@ export function registerRoutes(app: express.Express) {
 
       // Send verification email
       const verificationToken = crypto.randomBytes(32).toString('hex');
+      await storage.createEmailVerificationToken(user.id, verificationToken);
       await emailService.sendVerificationEmail(email, verificationToken);
 
       await logSystemEvent('info', `New user registered: ${email}`, user.id);
@@ -358,7 +359,7 @@ export function registerRoutes(app: express.Express) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      if (!user.password) {
+      if (!user.passwordHash) {
         await logSystemEvent('warn', `Login attempt for OAuth user: ${email}`, user.id);
         return res.status(401).json({ error: 'This account uses social login. Please use Google or GitHub to sign in.' });
       }
@@ -368,7 +369,7 @@ export function registerRoutes(app: express.Express) {
         return res.status(401).json({ error: 'Email verification required. Please check your email and verify your account before logging in.' });
       }
 
-      const validPassword = await bcrypt.compare(password, user.password);
+      const validPassword = await bcrypt.compare(password, user.passwordHash);
       console.log('Password valid:', validPassword);
       
       if (!validPassword) {
@@ -682,6 +683,7 @@ export function registerRoutes(app: express.Express) {
       }
 
       const verificationToken = crypto.randomBytes(32).toString('hex');
+      await storage.createEmailVerificationToken(user.id, verificationToken);
       await emailService.sendVerificationEmail(email, verificationToken);
 
       res.json({ message: 'Verification email sent successfully' });
@@ -716,8 +718,21 @@ export function registerRoutes(app: express.Express) {
         return res.status(400).json({ error: 'Verification token is required' });
       }
 
-      // In a real implementation, you'd verify the token against database and update user's emailVerified status
-      // For now, we'll simulate successful verification
+      // Verify the token and get user
+      const tokenData = await storage.verifyEmailToken(token);
+      
+      if (!tokenData) {
+        return res.status(400).json({ error: 'Invalid or expired verification token' });
+      }
+
+      // Mark user as verified
+      await storage.markEmailAsVerified(tokenData.id);
+      
+      // Clean up the token
+      await storage.deleteEmailVerificationToken(token);
+
+      await logSystemEvent('info', `Email verified successfully`, tokenData.id);
+
       res.json({ message: 'Email verified successfully' });
     } catch (error: any) {
       console.error('Email verification error:', error);

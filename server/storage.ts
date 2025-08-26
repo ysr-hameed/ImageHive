@@ -79,7 +79,24 @@ class Storage {
   }
 
   async getUserByEmail(email: string) {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const [user] = await db.select({
+      id: users.id,
+      email: users.email,
+      firstName: users.firstName,
+      lastName: users.lastName,
+      passwordHash: users.passwordHash,
+      isAdmin: users.isAdmin,
+      emailVerified: users.emailVerified,
+      profileImageUrl: users.profileImageUrl,
+      plan: users.plan,
+      storageUsed: users.storageUsed,
+      storageLimit: users.storageLimit,
+      oauthProvider: users.oauthProvider,
+      oauthId: users.oauthId,
+      subscribeNewsletter: users.subscribeNewsletter,
+      createdAt: users.createdAt,
+      updatedAt: users.updatedAt
+    }).from(users).where(eq(users.email, email));
     return user;
   }
 
@@ -114,7 +131,7 @@ class Storage {
       level: 'info',
       message: 'email_verification_token',
       userId,
-      metadata: { token, expires: Date.now() + 24 * 60 * 60 * 1000 } // 24 hours
+      metadata: JSON.stringify({ token, expires: Date.now() + 24 * 60 * 60 * 1000 }) // 24 hours
     });
   }
 
@@ -123,12 +140,12 @@ class Storage {
       .from(systemLogs)
       .where(and(
         eq(systemLogs.message, 'email_verification_token'),
-        sql`metadata->>'token' = ${token}`
+        sql`json_extract(metadata, '$.token') = ${token}`
       ));
 
     if (!log || !log.metadata) return null;
 
-    const metadata = log.metadata as any;
+    const metadata = typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata;
     if (Date.now() > metadata.expires) {
       await this.deleteEmailVerificationToken(token);
       return null;
@@ -140,7 +157,7 @@ class Storage {
   async deleteEmailVerificationToken(token: string) {
     await db.delete(systemLogs).where(and(
       eq(systemLogs.message, 'email_verification_token'),
-      sql`metadata->>'token' = ${token}`
+      sql`json_extract(metadata, '$.token') = ${token}`
     ));
   }
 

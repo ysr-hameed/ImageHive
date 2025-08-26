@@ -117,117 +117,134 @@ export function SimpleUploadForm() {
 
   const uploadMutation = useMutation({
     mutationFn: async (file: UploadFile) => {
-      const formData = new FormData();
-      formData.append('image', file);
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
 
-      // Metadata
-      formData.append('title', title);
-      formData.append('description', description);
-      formData.append('altText', altText);
-      formData.append('tags', tags);
-      formData.append('folder', folder);
-      formData.append('isPublic', isPublic.toString());
+        // Metadata
+        formData.append('title', title);
+        formData.append('description', description);
+        formData.append('altText', altText);
+        formData.append('tags', tags);
+        formData.append('folder', folder);
+        formData.append('isPublic', isPublic.toString());
 
 
-      // Advanced parameters
-      formData.append('quality', quality[0].toString());
-      formData.append('format', format);
-      if (width) formData.append('width', width);
-      if (height) formData.append('height', height);
-      formData.append('fit', fit);
-      formData.append('position', position);
-      formData.append('blur', blur[0].toString());
-      formData.append('sharpen', sharpen.toString());
-      formData.append('brightness', brightness[0].toString());
-      formData.append('contrast', contrast[0].toString());
-      formData.append('saturation', saturation[0].toString());
-      formData.append('progressive', progressive.toString());
-      formData.append('stripMetadata', stripMetadata.toString());
-      formData.append('cacheTtl', cacheTtl);
-      formData.append('watermark', watermark.toString());
-      if (watermark && watermarkText) {
-        formData.append('watermarkText', watermarkText);
-        formData.append('watermarkOpacity', watermarkOpacity[0].toString());
-        formData.append('watermarkPosition', watermarkPosition);
+        // Advanced parameters
+        formData.append('quality', quality[0].toString());
+        formData.append('format', format);
+        if (width) formData.append('width', width);
+        if (height) formData.append('height', height);
+        formData.append('fit', fit);
+        formData.append('position', position);
+        formData.append('blur', blur[0].toString());
+        formData.append('sharpen', sharpen.toString());
+        formData.append('brightness', brightness[0].toString());
+        formData.append('contrast', contrast[0].toString());
+        formData.append('saturation', saturation[0].toString());
+        formData.append('progressive', progressive.toString());
+        formData.append('stripMetadata', stripMetadata.toString());
+        formData.append('cacheTtl', cacheTtl);
+        formData.append('watermark', watermark.toString());
+        if (watermark && watermarkText) {
+          formData.append('watermarkText', watermarkText);
+          formData.append('watermarkOpacity', watermarkOpacity[0].toString());
+          formData.append('watermarkPosition', watermarkPosition);
+        }
+        formData.append('autoBackup', autoBackup.toString());
+        formData.append('encryption', encryption.toString());
+        if (expiryDate) formData.append('expiryDate', expiryDate);
+        if (downloadLimit) formData.append('downloadLimit', downloadLimit);
+        if (geoRestriction) formData.append('geoRestriction', geoRestriction);
+
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/v1/images/upload', {
+          method: 'POST',
+          body: formData,
+          headers: {
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: response.statusText }));
+          throw new Error(errorData.error || `Upload failed: ${response.status}`);
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error('Upload error:', error);
+        throw error;
       }
-      formData.append('autoBackup', autoBackup.toString());
-      formData.append('encryption', encryption.toString());
-      if (expiryDate) formData.append('expiryDate', expiryDate);
-      if (downloadLimit) formData.append('downloadLimit', downloadLimit);
-      if (geoRestriction) formData.append('geoRestriction', geoRestriction);
-
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/v1/images/upload', {
-        method: 'POST',
-        body: formData,
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(errorData.error || 'Upload failed');
-      }
-
-      return response.json();
     },
     onSuccess: (data, file) => {
       setFiles(prev => prev.map(f =>
         f.id === file.id ? { ...f, status: 'completed' } : f
       ));
       queryClient.invalidateQueries({ queryKey: ['/api/v1/images'] });
+      queryClient.invalidateQueries({ queryKey: ['user'] });
       toast({
         title: "Upload successful",
         description: "Your image has been uploaded successfully.",
       });
     },
     onError: (error: any, file) => {
+      console.error('Upload mutation error:', error);
       setFiles(prev => prev.map(f =>
         f.id === file.id ? { ...f, status: 'error', error: error.message } : f
       ));
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: error.message || 'Unknown upload error',
         variant: "destructive",
       });
     },
   });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const filesWithLimitsChecked = acceptedFiles.filter(file => {
-      const storageLimitExceeded = !checkStorageLimit(file.size);
-      const imagesLimitExceeded = !checkImagesLimit();
+    try {
+      const filesWithLimitsChecked = acceptedFiles.filter(file => {
+        const storageLimitExceeded = !checkStorageLimit(file.size);
+        const imagesLimitExceeded = !checkImagesLimit();
 
-      if (storageLimitExceeded) {
-        toast({
-          title: "Storage Limit Exceeded",
-          description: `File "${file.name}" exceeds your storage limit.`,
-          variant: "destructive",
-        });
-        return false;
-      }
-      if (imagesLimitExceeded) {
-        toast({
-          title: "Image Limit Exceeded",
-          description: `You have reached your image upload limit.`,
-          variant: "destructive",
-        });
-        return false;
-      }
-      return true;
-    });
-
-    const newFiles = filesWithLimitsChecked.map(file => {
-      const uploadFile: UploadFile = Object.assign(file, {
-        id: Math.random().toString(36).substr(2, 9),
-        preview: URL.createObjectURL(file),
-        status: 'pending' as const
+        if (storageLimitExceeded) {
+          toast({
+            title: "Storage Limit Exceeded",
+            description: `File "${file.name}" exceeds your storage limit. Upgrade your plan for more storage.`,
+            variant: "destructive",
+          });
+          return false;
+        }
+        if (imagesLimitExceeded) {
+          toast({
+            title: "Image Limit Exceeded",
+            description: "You have reached your image upload limit. Upgrade your plan for more uploads.",
+            variant: "destructive",
+          });
+          return false;
+        }
+        return true;
       });
-      return uploadFile;
-    });
 
-    setFiles(prev => [...prev, ...newFiles]);
+      const newFiles: UploadFile[] = filesWithLimitsChecked.map(file => {
+        const uploadFile: UploadFile = Object.assign(file, {
+          id: Math.random().toString(36).substr(2, 9),
+          preview: URL.createObjectURL(file),
+          status: 'pending' as const
+        });
+        return uploadFile;
+      });
+
+      setFiles(prev => [...prev, ...newFiles]);
+    } catch (error) {
+      console.error('Drop error:', error);
+      toast({
+        title: "Upload error",
+        description: "Failed to process dropped files.",
+        variant: "destructive",
+      });
+    }
   }, [toast, checkStorageLimit, checkImagesLimit]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -845,7 +862,13 @@ export function SimpleUploadForm() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setFiles([])}
+                    onClick={() => {
+                      setFiles([]);
+                      toast({
+                        title: "Files Cleared",
+                        description: "All selected files have been removed.",
+                      });
+                    }}
                     disabled={isUploading}
                   >
                     Clear All

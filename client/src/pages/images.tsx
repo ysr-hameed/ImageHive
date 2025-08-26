@@ -69,13 +69,21 @@ export default function Images() {
         if (privacyFilter !== 'all') params.append('privacy', privacyFilter);
         params.append('sort', sortBy);
 
-        return await apiRequest('GET', `/api/v1/images?${params.toString()}`);
+        const result = await apiRequest('GET', `/api/v1/images?${params.toString()}`);
+        return result;
       } catch (error) {
         console.error('Images query error:', error);
         throw error;
       }
     },
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry on 401/403 errors
+      if (error && typeof error === 'object' && 'status' in error) {
+        const status = (error as any).status;
+        if (status === 401 || status === 403) return false;
+      }
+      return failureCount < 2;
+    },
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 

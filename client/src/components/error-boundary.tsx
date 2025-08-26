@@ -5,7 +5,7 @@ import { AlertTriangle, RefreshCw, Home, AlertCircle } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
-  fallback?: React.ComponentType<{ error: Error }> | React.ReactElement;
+  fallback?: React.ComponentType<{ error: Error }>;
 }
 
 interface ErrorBoundaryState {

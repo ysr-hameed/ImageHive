@@ -264,7 +264,7 @@ export function SimpleUploadForm() {
     setWidth('');
     setHeight('');
     setUploadProgress(0);
-    setUploading(false);
+    setIsUploading(false); // Corrected from setUploading to setIsUploading
   };
 
   const handlePayment = async (provider: 'payu' | 'paypal' | 'stripe') => {
@@ -343,7 +343,7 @@ export function SimpleUploadForm() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
               💡 Pro tip: You can also paste images directly from your clipboard (Ctrl+V)
             </p>
-            
+
             {/* Quick Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-center">
               <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
@@ -834,7 +834,7 @@ export function SimpleUploadForm() {
                   </Button>
                 </div>
               </div>
-              
+
               <Button
                 onClick={uploadFiles}
                 disabled={isUploading || files.every(f => f.status === 'completed')}

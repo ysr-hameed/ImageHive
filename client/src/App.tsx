@@ -1,4 +1,3 @@
-
 import { Switch, Route, Link, Redirect, Router } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -106,7 +105,7 @@ function AppContent() {
     <>
       {/* Email verification should be accessible without authentication */}
       <Route path="/auth/verify-email" component={VerifyEmail} />
-      
+
       {!isAuthenticated ? (
         <>
           <Route path="/auth/login" component={Login} />
@@ -131,7 +130,7 @@ function AppContent() {
                   </div>
                 </div>
               </header>
-              
+
               <div className="flex-1 w-full bg-gray-50 dark:bg-slate-900">
                 <Route path="/dashboard" component={Dashboard} />
                 <Route path="/images" component={Images} />

@@ -33,7 +33,7 @@ class EmailService {
 
   constructor() {
     this.gmailUser = process.env.GMAIL_USER;
-    this.gmailPass = process.env.GMAIL_APP_PASSWORD;
+    this.gmailPass = process.env.GMAIL_APP_PASSWORD || process.env.GMAIL_PASS;
     this.fromEmail = this.gmailUser ? `"${process.env.APP_NAME || 'ImageVault'}" <${this.gmailUser}>` : undefined;
     this.setupTransporter();
   }

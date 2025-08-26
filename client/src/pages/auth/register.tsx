@@ -99,68 +99,69 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+          <div className="mx-auto h-14 w-14 bg-gradient-to-br from-primary to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-xl">IV</span>
           </div>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="mt-6 text-3xl font-semibold text-foreground tracking-tight">
             Create account
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-muted-foreground">
             Get started with ImageVault today
           </p>
         </div>
 
         {/* Registration Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign Up</CardTitle>
+        <Card className="border-0 shadow-xl bg-card/50 backdrop-blur-sm">
+          <CardHeader className="space-y-1 pb-6">
+            <CardTitle className="text-xl font-semibold text-center">Sign Up</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="firstName">First Name</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                     <Input
                       id="firstName"
                       type="text"
                       placeholder="First name"
                       value={formData.firstName}
                       onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                      className="pl-10"
+                      className="pl-10 h-11 bg-background"
                       required
                     />
                   </div>
                 </div>
-                <div>
-                  <Label htmlFor="lastName">Last Name</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-sm font-medium">Last Name</Label>
                   <Input
                     id="lastName"
                     type="text"
                     placeholder="Last name"
                     value={formData.lastName}
                     onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    className="h-11 bg-background"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="email">Email</Label>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="pl-10"
+                    className="pl-10 h-11 bg-background"
                     required
                   />
                 </div>
@@ -249,7 +250,7 @@ export default function Register() {
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-11 font-medium"
                 disabled={registerMutation.isPending}
               >
                 {registerMutation.isPending ? 'Creating account...' : 'Create Account'}

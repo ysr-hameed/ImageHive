@@ -135,31 +135,31 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+          <div className="mx-auto h-14 w-14 bg-gradient-to-br from-primary to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-xl">IV</span>
           </div>
-          <h1 className="mt-4 text-3xl font-bold text-gray-900 dark:text-white">
+          <h1 className="mt-6 text-3xl font-semibold text-foreground tracking-tight">
             Welcome back
           </h1>
-          <p className="mt-2 text-gray-600 dark:text-gray-400">
+          <p className="mt-2 text-muted-foreground">
             Sign in to your ImageVault account
           </p>
         </div>
 
         {/* Login Form */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sign In</CardTitle>
+        <Card className="border-0 shadow-xl bg-card/50 backdrop-blur-sm">
+          <CardHeader className="space-y-1 pb-6">
+            <CardTitle className="text-xl font-semibold text-center">Sign In</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-5">
             {emailVerificationError && (
-              <Alert className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10">
-                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                <AlertDescription className="text-yellow-800 dark:text-yellow-200">
+              <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/20">
+                <AlertCircle className="h-4 w-4 text-amber-600" />
+                <AlertDescription className="text-amber-800 dark:text-amber-200">
                   <div className="flex flex-col gap-3">
                     <p className="font-medium">Email verification required</p>
                     <p className="text-sm">
@@ -181,54 +181,54 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="email">Email</Label>
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="Enter your email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="pl-10"
+                    className="pl-10 h-11 bg-background"
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <Label htmlFor="password">Password</Label>
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm font-medium">Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Enter your password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="pl-10 pr-10"
+                    className="pl-10 pr-10 h-11 bg-background"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between">
-                <Link href="/auth/forgot-password" className="text-sm text-blue-600 hover:text-blue-500">
+              <div className="flex items-center justify-end pt-1">
+                <Link href="/auth/forgot-password" className="text-sm text-primary hover:text-primary/80 font-medium transition-colors">
                   Forgot password?
                 </Link>
               </div>
 
               <Button
                 type="submit"
-                className="w-full"
+                className="w-full h-11 font-medium"
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? 'Signing in...' : 'Sign In'}
@@ -237,10 +237,10 @@ export default function Login() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-300 dark:border-gray-600" />
+                <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white dark:bg-slate-800 px-2 text-gray-500">Or continue with</span>
+                <span className="bg-card px-3 text-muted-foreground font-medium">Or continue with</span>
               </div>
             </div>
 

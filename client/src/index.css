@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500;600;700&family=Geist:wght@300;400;500;600;700;800&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -36,10 +36,10 @@
   --sidebar-accent-foreground: hsl(217, 91%, 60%);
   --sidebar-border: hsl(205.0000, 25.0000%, 90.5882%);
   --sidebar-ring: hsl(217, 91%, 60%);
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Georgia', serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-display: 'Playfair Display', serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --font-display: 'Geist', 'Inter', system-ui, sans-serif;
   --radius: 0.75rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(217, 91%, 60% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(217, 91%, 60% / 0.00);
@@ -110,10 +110,10 @@
   --sidebar-accent-foreground: hsl(210, 40%, 98%);
   --sidebar-border: hsl(216, 34%, 17%);
   --sidebar-ring: hsl(217, 91%, 60%);
-  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
   --font-serif: 'Georgia', serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-display: 'Playfair Display', serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+  --font-display: 'Geist', 'Inter', system-ui, sans-serif;
   --radius: 0.75rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(217, 91%, 60% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(217, 91%, 60% / 0.00);
@@ -132,6 +132,10 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {

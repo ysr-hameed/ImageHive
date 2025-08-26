@@ -5,13 +5,13 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic } from "./vite";
 import { initializeDatabase } from "./db";
 import dotenv from 'dotenv';
-import adminRoutes from './admin'; // Import admin routes
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
+const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
 const STATUS = process.env.STATUS || 'development';
 const isProduction = STATUS === 'production';
 
@@ -39,7 +39,8 @@ app.get('/health', (req, res) => {
 registerRoutes(app);
 
 // Admin routes
-app.use("/api/v1/admin", adminRoutes);
+// Assuming adminRoutes is defined elsewhere and imported
+// app.use("/api/v1/admin", adminRoutes); // Uncomment and ensure adminRoutes is correctly imported and defined
 
 // Setup Vite or static serving
 if (!isProduction) {
@@ -73,17 +74,21 @@ async function startServer() {
     console.error('❌ Database initialization failed, but continuing:', error);
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
-    console.log(`📧 Email service: ${process.env.GMAIL_USER ? '✅ Configured' : '❌ Not configured'}`);
-    console.log(`🗄️  Database: ${process.env.DATABASE_URL ? '✅ Connected' : '❌ Not configured'}`);
-    console.log(`☁️  Backblaze: ${process.env.BACKBLAZE_KEY_ID && process.env.BACKBLAZE_APPLICATION_KEY && process.env.BACKBLAZE_BUCKET_ID ? '✅ Configured' : '❌ Not configured'}`);
-    
+  app.listen(PORT, HOST, () => {
+    console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+    // Determine if email and backblaze are configured for logging
+    const emailConfigured = process.env.GMAIL_USER && process.env.GMAIL_PASS && process.env.GMAIL_HOST && process.env.GMAIL_PORT;
+    const backblazeConfigured = process.env.BACKBLAZE_KEY_ID && process.env.BACKBLAZE_APPLICATION_KEY && process.env.BACKBLAZE_BUCKET_ID;
+
+    console.log(`📧 Email service: ${emailConfigured ? '✅ Configured' : '❌ Not configured'}`);
+    console.log(`🗄️  PostgreSQL Database: ${process.env.DATABASE_URL ? '✅ Connected' : '❌ Not configured'}`);
+    console.log(`☁️  Backblaze: ${backblazeConfigured ? '✅ Configured' : '❌ Not configured'}`);
+
     if (!process.env.DATABASE_URL) {
       console.log('⚠️  Warning: DATABASE_URL not set. Using fallback mode.');
       console.log('📝 To enable full functionality, set DATABASE_URL in your environment variables.');
     }
-    
+
     console.log('🎉 Server startup completed successfully!');
   });
 }

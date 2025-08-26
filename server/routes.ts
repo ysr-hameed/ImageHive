@@ -17,7 +17,7 @@ import { users, images, folders, notifications, systemLogs, seoSettings, emailCa
 const usersTable = users; // Alias for consistency
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
-import * as bcrypt from "bcryptjs";
+import bcrypt from 'bcryptjs';
 import jwt from "jsonwebtoken";
 import nodemailer from 'nodemailer';
 import crypto from 'crypto';

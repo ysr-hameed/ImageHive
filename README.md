@@ -81,11 +81,8 @@ BASE_URL="http://localhost:5000"
 
 ### Installation
 
-1. **Clone the repository**
-```bash
-git clone <your-repo-url>
-cd imagevault
-```
+1. **Fork or import the project** to your Replit account
+   - Or clone locally: `git clone <your-repo-url> && cd imagevault`
 
 2. **Install dependencies**
 ```bash
@@ -138,19 +135,31 @@ npm run admin-server
 1. **Fork/Import the project** to your Replit account
 
 2. **Set up environment variables** in the Replit Secrets tab:
-   - `DATABASE_URL`: PostgreSQL connection string
-   - `JWT_SECRET`: Strong random secret key
-   - Add other optional variables as needed
+   ```
+   DATABASE_URL=postgresql://username:password@host:port/database
+   JWT_SECRET=your-super-secure-jwt-secret-key
+   SESSION_SECRET=your-session-secret-key
+   BACKBLAZE_KEY_ID=your-backblaze-key-id
+   BACKBLAZE_APPLICATION_KEY=your-backblaze-application-key
+   BACKBLAZE_BUCKET_ID=your-bucket-id
+   BACKBLAZE_BUCKET_NAME=your-bucket-name
+   ```
 
-3. **Configure the run command** in `.replit`:
-```
-run = "npm run build && npm start"
-```
+3. **Choose your deployment strategy**:
+
+   **Option A: All Services Together (Recommended)**
+   - Use the "All Services" workflow (already configured)
+   - Click the Run button to start all microservices
+
+   **Option B: Individual Service Deployment**
+   - Create separate Replit projects for each service
+   - Deploy gateway, auth, upload, images, and admin servers separately
+   - Update service URLs in environment variables
 
 4. **Deploy** using Replit's deployment feature:
    - Go to the Deployments tab
-   - Click "Create deployment"
-   - Choose your deployment type (Static/Autoscale/Reserved VM)
+   - Click "Create deployment" 
+   - Choose Autoscale deployment for microservices
    - Configure custom domain if needed
 
 ### Build Commands

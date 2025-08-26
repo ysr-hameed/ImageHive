@@ -28,7 +28,7 @@ export default function Login() {
 
     if (error === 'oauth_failed') {
       let description = 'OAuth authentication failed. Please try again.';
-      
+
       if (message) {
         switch (message) {
           case 'OAuth_not_configured':
@@ -44,13 +44,13 @@ export default function Login() {
             description = `OAuth error: ${decodeURIComponent(message)}`;
         }
       }
-      
+
       toast({
         title: 'Authentication failed',
         description,
         variant: 'destructive',
       });
-      
+
       // Clean up URL
       window.history.replaceState({}, document.title, '/auth/login');
     }
@@ -63,17 +63,17 @@ export default function Login() {
     },
     onSuccess: (data) => {
       console.log('Login successful:', data);
-      
+
       if (data.token) {
         localStorage.setItem('token', data.token);
         console.log('Token stored successfully');
       }
-      
+
       toast({
         title: 'Welcome back!',
         description: 'You have been successfully logged in.',
       });
-      
+
       // Refresh auth state and redirect to dashboard
       queryClient.invalidateQueries({ queryKey: ["/api/v1/auth/user"] });
       setTimeout(() => {

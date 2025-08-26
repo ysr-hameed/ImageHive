@@ -91,11 +91,11 @@ export default function Register() {
   };
 
   const handleGoogleSignup = () => {
-    window.location.href = '/api/v1/auth/google?action=signup';
+    window.location.href = '/api/v1/auth/google';
   };
 
   const handleGithubSignup = () => {
-    window.location.href = '/api/v1/auth/github?action=signup';
+    window.location.href = '/api/v1/auth/github';
   };
 
   return (

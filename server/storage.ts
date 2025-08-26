@@ -140,7 +140,7 @@ class Storage {
       .from(systemLogs)
       .where(and(
         eq(systemLogs.message, 'email_verification_token'),
-        sql`json_extract(metadata, '$.token') = ${token}`
+        sql`metadata->>'token' = ${token}`
       ));
 
     if (!log || !log.metadata) return null;
@@ -157,7 +157,7 @@ class Storage {
   async deleteEmailVerificationToken(token: string) {
     await db.delete(systemLogs).where(and(
       eq(systemLogs.message, 'email_verification_token'),
-      sql`json_extract(metadata, '$.token') = ${token}`
+      sql`metadata->>'token' = ${token}`
     ));
   }
 

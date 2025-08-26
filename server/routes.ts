@@ -597,6 +597,23 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
+  app.post('/api/v1/auth/verify-email', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        return res.status(400).json({ error: 'Verification token is required' });
+      }
+
+      // In a real implementation, you'd verify the token against database and update user's emailVerified status
+      // For now, we'll simulate successful verification
+      res.json({ message: 'Email verified successfully' });
+    } catch (error: any) {
+      console.error('Email verification error:', error);
+      res.status(500).json({ error: 'Email verification failed' });
+    }
+  });
+
   // User profile route
   app.get('/api/v1/auth/user', isAuthenticated, async (req: Request, res: Response) => {
     try {

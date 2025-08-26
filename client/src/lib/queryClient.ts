@@ -29,7 +29,7 @@ export async function apiRequest(
   const token = localStorage.getItem('token');
 
   // Ensure URL starts with API base URL if it's a relative path
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/') ? url.slice(4) : url}`;
+  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/api/v1') ? url.slice(7) : (url.startsWith('/') ? url : '/' + url)}`;
 
   const config: RequestInit = {
     method,
@@ -72,7 +72,7 @@ export const getQueryFn: <T>(options: {
     // If queryKey could be like ['users'], we need to ensure it becomes '/users' before joining with API_BASE_URL.
     // A safer approach might be to always join the base URL correctly.
     const path = queryKey.join("/");
-    const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? path.slice(4) : path}`;
+    const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/api/v1') ? path.slice(7) : (path.startsWith('/') ? path : '/' + path)}`;
 
 
     try {

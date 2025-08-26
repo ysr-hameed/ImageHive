@@ -39,7 +39,7 @@ externalPort = 3000
 PORT = "5000"
 
 [workflows]
-runButton = "Main App"
+runButton = "All Services"
 
 [[workflows.workflow]]
 name = "Project"

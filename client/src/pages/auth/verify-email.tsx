@@ -138,18 +138,18 @@ export default function VerifyEmail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-r from-blue-500 to-emerald-500 rounded-lg flex items-center justify-center">
+          <div className="mx-auto h-14 w-14 bg-gradient-to-br from-primary to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
             <span className="text-white font-bold text-xl">IV</span>
           </div>
         </div>
 
         {/* Status Card */}
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="border-0 shadow-xl bg-card/50 backdrop-blur-sm">
+          <CardContent className="pt-8 pb-8">
             <div className="text-center space-y-4">
               <div className="mx-auto w-16 h-16 flex items-center justify-center">
                 {content.icon}

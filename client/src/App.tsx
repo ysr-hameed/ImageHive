@@ -104,13 +104,15 @@ function AppContent() {
 
   return (
     <>
+      {/* Email verification should be accessible without authentication */}
+      <Route path="/auth/verify-email" component={VerifyEmail} />
+      
       {!isAuthenticated ? (
         <>
           <Route path="/auth/login" component={Login} />
           <Route path="/auth/register" component={Register} />
           <Route path="/auth/forgot-password" component={ForgotPassword} />
           <Route path="/auth/reset-password" component={ResetPassword} />
-          <Route path="/auth/verify-email" component={VerifyEmail} />
           <Route path="/upgrade" component={Upgrade} />
           <Route path="/" component={LandingPage} />
           <Route component={() => <Redirect to="/auth/login" />} />

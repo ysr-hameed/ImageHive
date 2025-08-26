@@ -6,7 +6,7 @@
     "target": "ES2022",
     "moduleResolution": "bundler",
     "outDir": "./dist",
-    "rootDir": "./server",
+    "rootDir": ".",
     "declaration": false,
     "sourceMap": false,
     "removeComments": true,

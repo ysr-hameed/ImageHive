@@ -4,7 +4,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: string; userId?: string; };
+      user?: { id: string; userId?: string; isAdmin?: boolean; };
     }
   }
 }
@@ -99,7 +99,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     // Attach user to request for downstream middleware/handlers
-    req.user = { id: decoded.userId, userId: decoded.userId };
+    req.user = { id: decoded.userId, userId: decoded.userId, isAdmin: false };
     next();
   } catch (error) {
     logSystemEvent('warn', 'Invalid JWT token used', undefined, { token: token.substring(0, 10) + '...' });
@@ -137,12 +137,22 @@ const registerSchema = z.object({
   password: z.string().min(6),
 });
 
-// Dummy authenticateToken for now, as it's used in the logout route
+// Replace dummy auth with proper token authentication
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  // This is a placeholder. In a real app, this would verify the JWT token.
-  // For the purpose of this example, we'll assume the token is valid and attach a dummy user.
-  req.user = { userId: 'dummy-user-id' };
-  next();
+  const token = req.headers.authorization?.replace('Bearer ', '');
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    req.user = { id: decoded.userId, userId: decoded.userId, isAdmin: false };
+    next();
+  } catch (error) {
+    logSystemEvent('warn', 'Invalid JWT token used', undefined, { token: token.substring(0, 10) + '...' });
+    return res.status(401).json({ error: 'Invalid token' });
+  }
 };
 
 
@@ -853,11 +863,11 @@ export function registerRoutes(app: Express) {
         .from(images)
         .where(sql`${images.createdAt} > ${today}`);
 
-      const totalUsers = parseInt(userCount.count) || 0;
-      const totalImages = parseInt(imageCount.count) || 0;
-      const totalStorage = parseInt(storageSum.total) || 0;
-      const newUsers = parseInt(recentUsers.count) || 0;
-      const imagesToday = parseInt(todayImages.count) || 0;
+      const totalUsers = parseInt(String(userCount.count)) || 0;
+      const totalImages = parseInt(String(imageCount.count)) || 0;
+      const totalStorage = parseInt(String(storageSum.total)) || 0;
+      const newUsers = parseInt(String(recentUsers.count)) || 0;
+      const imagesToday = parseInt(String(todayImages.count)) || 0;
 
       const stats = {
         totalUsers,
@@ -919,8 +929,8 @@ export function registerRoutes(app: Express) {
           return {
             ...user,
             status: user.status || 'active',
-            imageCount: parseInt(imageStats?.imageCount) || 0,
-            storageUsed: parseInt(imageStats?.storageUsed) || 0
+            imageCount: parseInt(String(imageStats?.imageCount)) || 0,
+            storageUsed: parseInt(String(imageStats?.storageUsed)) || 0
           };
         })
       );
@@ -1086,7 +1096,7 @@ export function registerRoutes(app: Express) {
       let fileUrl: string;
       try {
         const uploadResult = await uploadToBackblaze(processedImageBuffer, filename, req.file.mimetype);
-        fileUrl = uploadResult.fileUrl;
+        fileUrl = (uploadResult as any).downloadUrl || (uploadResult as any).fileUrl || `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${filename}`;
       } catch (uploadError) {
         console.error('Backblaze upload failed, using fallback:', uploadError);
         // Fallback URL if Backblaze fails
@@ -1095,20 +1105,18 @@ export function registerRoutes(app: Express) {
 
       // Save to database
       const [imageRecord] = await db.insert(images).values({
-        id: uuidv4(),
         userId: user.id,
         filename,
-        originalName: req.file.originalname,
+        originalFilename: req.file.originalname,
         title: title || req.file.originalname,
         description: description || null,
-        url: fileUrl,
-        thumbnailUrl: fileUrl, // Could be different for thumbnails
-        size: req.file.size,
         mimeType: req.file.mimetype,
+        size: req.file.size,
         width: imageInfo.width || 1920,
         height: imageInfo.height || 1080,
-        folderId: folder || null,
-        isPublic: isPublic === 'true'
+        folder: folder || null,
+        isPublic: isPublic === 'true',
+        cdnUrl: fileUrl
       }).returning();
 
       await logSystemEvent('info', `Image uploaded: ${filename}`, user.id, {
@@ -1139,13 +1147,22 @@ export function registerRoutes(app: Express) {
       let query = db.select().from(images).where(eq(images.userId, user.id));
 
       if (folder) {
-        query = query.where(eq(images.folderId, folder as string));
+        query = db.select().from(images).where(
+          and(
+            eq(images.userId, user.id),
+            eq(images.folder, folder as string)
+          )
+        );
       }
       // Add search functionality if 'search' query param is provided
       if (search) {
-        query = query.where(
-          sql`(${images.title} ilike ${`%${search}%`} or ${images.description} ilike ${`%${search}%`} or ${images.originalName} ilike ${`%${search}%`})`
+        const searchQuery = db.select().from(images).where(
+          and(
+            eq(images.userId, user.id),
+            sql`(${images.title} ilike ${`%${search}%`} or ${images.description} ilike ${`%${search}%`} or ${images.originalFilename} ilike ${`%${search}%`})`
+          )
         );
+        query = searchQuery;
       }
 
       const userImages = await query.limit(Number(limit)).offset(Number(offset));
@@ -1174,7 +1191,7 @@ export function registerRoutes(app: Express) {
 
       // Delete from storage if using Backblaze
       try {
-        await deleteFromBackblaze(image.filename);
+        await deleteFromBackblaze(image.filename, image.backblazeFileId || '');
       } catch (deleteError) {
         console.error('Failed to delete from Backblaze:', deleteError);
         // Log the error but continue with database deletion
@@ -1206,9 +1223,13 @@ export function registerRoutes(app: Express) {
       let query = db.select().from(images).where(eq(images.isPublic, true));
 
       if (search) {
-        query = query.where(
-          sql`(${images.title} ilike ${`%${search}%`} or ${images.description} ilike ${`%${search}%`} or ${images.originalName} ilike ${`%${search}%`})`
+        const searchQuery = db.select().from(images).where(
+          and(
+            eq(images.isPublic, true),
+            sql`(${images.title} ilike ${`%${search}%`} or ${images.description} ilike ${`%${search}%`} or ${images.originalFilename} ilike ${`%${search}%`})`
+          )
         );
+        query = searchQuery;
       }
 
       const publicImages = await query.limit(Number(limit)).offset(Number(offset));
@@ -1238,7 +1259,7 @@ export function registerRoutes(app: Express) {
       // If no notifications, potentially create a default welcome one if the user is new
       if (userNotifications.length === 0) {
         const userExists = await storage.getUser(user.id);
-        if (userExists && userExists.createdAt > new Date(Date.now() - 5 * 60 * 1000)) { // If user created in last 5 mins
+        if (userExists && userExists.createdAt && userExists.createdAt > new Date(Date.now() - 5 * 60 * 1000)) { // If user created in last 5 mins
           const welcomeNotification = {
             id: uuidv4(),
             userId: user.id,
@@ -1622,13 +1643,13 @@ export function registerRoutes(app: Express) {
 
       const { campaignId } = req.params;
 
-      let query = db.select().from(emailLogs).orderBy(desc(emailLogs.createdAt)).limit(100);
+      const logs = campaignId 
+        ? await db.select().from(emailLogs)
+            .where(eq(emailLogs.campaignId, campaignId))
+            .orderBy(desc(emailLogs.createdAt)).limit(100)
+        : await db.select().from(emailLogs)
+            .orderBy(desc(emailLogs.createdAt)).limit(100);
 
-      if (campaignId) {
-        query = query.where(eq(emailLogs.campaignId, campaignId));
-      }
-
-      const logs = await query;
       res.json(logs);
     } catch (error: any) {
       await logSystemEvent('error', `Email logs fetch error: ${error.message}`, req.user?.id);

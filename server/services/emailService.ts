@@ -440,8 +440,12 @@ class EmailService {
         text: `Welcome to ImageVault! Please verify your email address by visiting: ${verificationUrl}\n\nThis link will expire in 24 hours.\n\nIf you didn't create an account, you can safely ignore this email.`
       };
 
-      await this.transporter.sendMail(mailOptions);
-      console.log('Verification email sent successfully to:', email);
+      if (this.transporter) {
+        await this.transporter.sendMail(mailOptions);
+        console.log('Verification email sent successfully to:', email);
+      } else {
+        console.log('Email transporter not configured, would send verification email to:', email);
+      }
       return true;
     } catch (error) {
       console.error('Failed to send verification email:', error);
@@ -551,8 +555,12 @@ class EmailService {
         text: `Password Reset Request\n\nYou requested a password reset for your ImageVault account. Visit this link to reset your password: ${resetUrl}\n\nThis link will expire in 1 hour for security reasons.\n\nIf you didn't request this reset, you can safely ignore this email.`
       };
 
-      await this.transporter.sendMail(mailOptions);
-      console.log('Password reset email sent successfully to:', email);
+      if (this.transporter) {
+        await this.transporter.sendMail(mailOptions);
+        console.log('Password reset email sent successfully to:', email);
+      } else {
+        console.log('Email transporter not configured, would send password reset email to:', email);
+      }
       return true;
     } catch (error) {
       console.error('Failed to send password reset email:', error);

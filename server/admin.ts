@@ -36,7 +36,7 @@ router.get('/stats', requireAdmin, async (req: Request, res: Response) => {
       responsePtime: Math.floor(Math.random() * 200) + 50,
       successRate: 99.5 + Math.random() * 0.5,
       errorRate: Math.random() * 0.5,
-      avgFileSize: (imageStats[0]?.totalSize || 0) / (imageStats[0]?.count || 1),
+      avgFileSize: Number(imageStats[0]?.totalSize || 0) / (imageStats[0]?.count || 1),
       imagesToday: Math.floor(Math.random() * 100),
       popularFormat: 'JPEG'
     };

@@ -8,7 +8,7 @@ import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 import { ImageGrid } from "@/components/image-grid";
 import EmailVerificationBanner from "@/components/email-verification-banner";
 import { NotificationBanner } from '@/components/notification-banner';
-import { Upload, Image as ImageIcon, BarChart3, Key, Settings } from "lucide-react";
+import { Upload, Image as ImageIcon, BarChart3, Key, Settings, LogOut } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { CreateApiKeyDialog } from "@/components/api-key-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageLoader } from "@/components/futuristic-loader";
+import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 
 export default function Dashboard() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -127,7 +128,8 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
+    <SidebarContentLoader showSidebar={true}>
+      <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
       {/* Notifications */}
       <NotificationBanner />
 
@@ -431,6 +433,7 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </SidebarContentLoader>
   );
 }

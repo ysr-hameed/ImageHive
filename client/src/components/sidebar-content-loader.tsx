@@ -1,21 +1,43 @@
-import React from 'react';
+
+import React, { ReactNode } from 'react';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/app-sidebar';
+import { useAuth } from '@/hooks/useAuth';
+import { PageLoader } from '@/components/futuristic-loader';
 
 interface SidebarContentLoaderProps {
-  children: React.ReactNode;
-  isLoading?: boolean;
+  children: ReactNode;
+  showSidebar?: boolean;
 }
 
-export function SidebarContentLoader({ children, isLoading }: { children: React.ReactNode; isLoading?: boolean }) {
+export function SidebarContentLoader({ children, showSidebar = true }: SidebarContentLoaderProps) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show loading while checking authentication
   if (isLoading) {
+    return <PageLoader text="Loading application..." variant="neural" />;
+  }
+
+  // If user should have sidebar but isn't authenticated, redirect
+  if (showSidebar && !isAuthenticated) {
+    window.location.href = '/auth/login';
+    return <PageLoader text="Redirecting to login..." variant="quantum" />;
+  }
+
+  // If sidebar should be shown and user is authenticated
+  if (showSidebar && isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
+      <SidebarProvider>
+        <AppSidebar />
+        <SidebarInset>
+          <div className="flex-1 flex flex-col min-h-screen">
+            {children}
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     );
   }
 
+  // No sidebar needed (e.g., landing page, auth pages)
   return <>{children}</>;
 }

@@ -58,10 +58,10 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       }
 
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
-          <div className="max-w-lg w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center">
-              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-blue-950/30 dark:to-purple-950/30 p-4">
+          <div className="max-w-lg w-full bg-white/80 backdrop-blur-sm dark:bg-slate-800/80 rounded-xl shadow-xl border border-gray-200/50 dark:border-slate-700/50 p-8 text-center">
+            <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-red-100 to-orange-100 dark:from-red-900/20 dark:to-orange-900/20 rounded-full flex items-center justify-center shadow-lg">
+              <AlertTriangle className="w-10 h-10 text-red-600 dark:text-red-400 animate-pulse" />
             </div>
 
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">

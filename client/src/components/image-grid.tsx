@@ -35,7 +35,7 @@ interface ImageGridProps {
   images: Image[];
 }
 
-export default function ImageGrid({ images }: ImageGridProps) {
+export function ImageGrid({ images }: ImageGridProps) {
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -315,3 +315,5 @@ export default function ImageGrid({ images }: ImageGridProps) {
     </div>
   );
 }
+
+export default ImageGrid;

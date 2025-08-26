@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { EnhancedUploadForm } from "@/components/enhanced-upload-form";
+import { SimpleUploadForm } from "@/components/simple-upload-form";
 import { useLocation } from "wouter";
 
 export default function Upload() {
@@ -58,27 +58,8 @@ export default function Upload() {
 
   return (
     <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-white">
-                Upload Images
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-2">
-                Upload and organize your images with ease
-              </p>
-            </div>
-            {user?.plan && (
-              <Badge className={getPlanColor(user.plan)}>
-                {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)} Plan
-              </Badge>
-            )}
-          </div>
-        </div>
-
         {/* Upload Form */}
-        <EnhancedUploadForm />
+        <SimpleUploadForm />
     </div>
   );
 }

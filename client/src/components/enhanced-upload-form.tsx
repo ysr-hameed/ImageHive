@@ -43,36 +43,12 @@ export function EnhancedUploadForm() {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Form state
+  // Simplified form state - only essential fields
   const [metadata, setMetadata] = useState({
     title: '',
     description: '',
-    tags: '',
-    folder: '',
-    isPublic: true, // Always public
+    isPublic: true,
   });
-
-  // Transform state
-  const [transforms, setTransforms] = useState({
-    width: '',
-    height: '',
-    quality: 80,
-    format: 'auto',
-    fit: 'cover',
-    blur: 0,
-    brightness: 1,
-    contrast: 1,
-    saturation: 1,
-    hue: 0,
-    rotate: 0,
-    grayscale: false,
-    sharpen: false,
-    watermark: false, // Added watermark state
-  });
-
-  // Enhanced upload options
-  const [uploadOptions, setUploadOptions] = useState({
-    privacy: 'public',
     quality: 85,
     format: 'original',
     watermark: false,

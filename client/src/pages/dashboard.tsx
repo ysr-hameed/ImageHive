@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { SidebarContentLoader } from "@/components/sidebar-content-loader";
-import EnhancedImageGrid from "@/components/enhanced-image-grid";
+import { ImageGrid } from "@/components/image-grid";
 import EmailVerificationBanner from "@/components/email-verification-banner";
 import { NotificationBanner } from '@/components/notification-banner';
 import { Upload, Image as ImageIcon, BarChart3, Key, Settings } from "lucide-react";
@@ -285,7 +285,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <EnhancedImageGrid images={(imagesData as any)?.images || []} />
+                <ImageGrid images={(imagesData as any)?.images || []} />
               )}
             </CardContent>
           </Card>

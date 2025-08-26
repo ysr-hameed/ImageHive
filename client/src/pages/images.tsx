@@ -81,7 +81,7 @@ export default function Images() {
   const images = Array.isArray(imagesResponse) ? imagesResponse : (imagesResponse?.images || []);
 
   // Extract unique tags from all images
-  const allTags = Array.from(new Set(images.flatMap((image: any) => (image.tags as string[]) || [])));
+  const allTags: string[] = Array.from(new Set(images?.flatMap((image: ImageData) => image.tags || []) || []));
 
   const deleteMutation = useMutation({
     mutationFn: async (imageIds: string[]) => {
@@ -201,16 +201,16 @@ export default function Images() {
         {allTags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Tags:</span>
-            {allTags.map((tag) => (
+            {allTags.map((tag: string) => (
               <Badge
                 key={tag}
                 variant={selectedTags.includes(tag) ? "default" : "outline"}
                 className="cursor-pointer"
                 onClick={() => {
                   setSelectedTags(prev =>
-                    prev.includes(tag)
+                    prev.includes(tag as string)
                       ? prev.filter(t => t !== tag)
-                      : [...prev, tag]
+                      : [...prev, tag as string]
                   );
                 }}
               >

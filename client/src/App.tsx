@@ -157,7 +157,12 @@ function AppContent() {
 
 function App() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary fallback={
+        <div className="p-8 text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
+          <p className="text-gray-600">We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists.</p>
+        </div>
+      }>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <TooltipProvider>

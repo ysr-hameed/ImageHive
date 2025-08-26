@@ -72,8 +72,20 @@ export const getQueryFn: <T>(options: {
     // If queryKey could be like ['users'], we need to ensure it becomes '/users' before joining with API_BASE_URL.
     // A safer approach might be to always join the base URL correctly.
     const path = queryKey.join("/");
-    const fullUrl = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/api/v1') ? path.slice(7) : (path.startsWith('/') ? path : '/' + path)}`;
 
+    // Improved URL construction for queries
+    let fullUrl: string;
+    if (path.startsWith('http')) {
+      fullUrl = path;
+    } else if (path.startsWith('/api/v1')) {
+      fullUrl = path; // Already has full API path
+    } else if (path.startsWith('/api/')) {
+      fullUrl = path; // Legacy API path, keep as is
+    } else if (path.startsWith('/')) {
+      fullUrl = `${API_BASE_URL}${path}`;
+    } else {
+      fullUrl = `${API_BASE_URL}/${path}`;
+    }
 
     try {
       const res = await fetch(fullUrl, {

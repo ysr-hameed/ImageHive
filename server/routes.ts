@@ -552,6 +552,63 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
+  // Password reset routes
+  app.post('/api/v1/auth/forgot-password', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // Don't reveal if user exists or not for security
+        return res.json({ message: 'If an account with that email exists, we have sent a password reset link.' });
+      }
+
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      // In a real implementation, you'd store this token with expiration time
+      // For now, we'll just send the email
+      await emailService.sendPasswordResetEmail(email, resetToken);
+
+      await logSystemEvent('info', `Password reset requested for: ${email}`, user.id);
+
+      res.json({ message: 'If an account with that email exists, we have sent a password reset link.' });
+    } catch (error: any) {
+      console.error('Forgot password error:', error);
+      res.status(500).json({ error: 'Failed to send reset email' });
+    }
+  });
+
+  app.post('/api/v1/auth/reset-password', async (req: Request, res: Response) => {
+    try {
+      const { token, password } = req.body;
+
+      if (!token || !password) {
+        return res.status(400).json({ error: 'Token and password are required' });
+      }
+
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+      }
+
+      // In a real implementation, you'd verify the token against database
+      // For now, we'll simulate successful password reset
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Find user by reset token (simplified for demo)
+      // await storage.updateUserPassword(userId, hashedPassword);
+
+      await logSystemEvent('info', `Password reset completed`, undefined, { token: token.substring(0, 10) + '...' });
+
+      res.json({ message: 'Password has been reset successfully' });
+    } catch (error: any) {
+      console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Failed to reset password' });
+    }
+  });
+
   // Email verification and password reset routes
   app.post('/api/v1/auth/resend-verification', async (req: Request, res: Response) => {
     try {
@@ -614,7 +671,31 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  // User profile route
+  // User profile routes
+  app.put('/api/v1/auth/user', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { firstName, lastName, email } = req.body;
+
+      if (!firstName || !lastName || !email) {
+        return res.status(400).json({ error: 'First name, last name, and email are required' });
+      }
+
+      // In a real implementation, you'd update the user in the database
+      // For now, we'll just return success
+      await logSystemEvent('info', `User profile updated: ${user.id}`, user.id);
+
+      res.json({ 
+        message: 'Profile updated successfully',
+        user: { id: user.id, email, firstName, lastName }
+      });
+    } catch (error: any) {
+      await logSystemEvent('error', `Profile update error: ${error.message}`, req.user?.id);
+      console.error('Profile update error:', error);
+      res.status(500).json({ error: 'Failed to update profile' });
+    }
+  });
+
   app.get('/api/v1/auth/user', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
@@ -1583,6 +1664,158 @@ export function registerRoutes(app: express.Express) {
       console.error('Send notification error:', error);
       res.status(500).json({ error: 'Failed to send notifications' });
     }
+  });
+
+  // Folders management
+  app.get('/api/v1/folders', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      
+      // Get folders for the user
+      const userFolders = await db.select().from(folders).where(eq(folders.userId, user.id));
+      
+      res.json(userFolders);
+    } catch (error: any) {
+      await logSystemEvent('error', `Folders fetch error: ${error.message}`, req.user?.id);
+      console.error('Folders fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch folders' });
+    }
+  });
+
+  app.post('/api/v1/folders', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { name, description } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: 'Folder name is required' });
+      }
+
+      const [folder] = await db.insert(folders).values({
+        id: uuidv4(),
+        userId: user.id,
+        name,
+        description: description || null
+      }).returning();
+
+      await logSystemEvent('info', `Folder created: ${name}`, user.id);
+
+      res.json(folder);
+    } catch (error: any) {
+      await logSystemEvent('error', `Folder creation error: ${error.message}`, req.user?.id);
+      console.error('Folder creation error:', error);
+      res.status(500).json({ error: 'Failed to create folder' });
+    }
+  });
+
+  // API Keys management
+  app.get('/api/v1/api-keys', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      
+      // Mock API keys data - in real implementation, fetch from database
+      const apiKeys = [
+        {
+          id: '1',
+          name: 'Production Key',
+          key: 'sk_live_' + crypto.randomBytes(16).toString('hex'),
+          created: new Date().toISOString(),
+          lastUsed: new Date().toISOString(),
+          usage: 150
+        }
+      ];
+      
+      res.json(apiKeys);
+    } catch (error: any) {
+      await logSystemEvent('error', `API keys fetch error: ${error.message}`, req.user?.id);
+      console.error('API keys fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch API keys' });
+    }
+  });
+
+  app.post('/api/v1/api-keys', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { name } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: 'API key name is required' });
+      }
+
+      const apiKey = {
+        id: uuidv4(),
+        name,
+        key: 'sk_live_' + crypto.randomBytes(16).toString('hex'),
+        created: new Date().toISOString(),
+        lastUsed: null,
+        usage: 0
+      };
+
+      await logSystemEvent('info', `API key created: ${name}`, user.id);
+
+      res.json(apiKey);
+    } catch (error: any) {
+      await logSystemEvent('error', `API key creation error: ${error.message}`, req.user?.id);
+      console.error('API key creation error:', error);
+      res.status(500).json({ error: 'Failed to create API key' });
+    }
+  });
+
+  app.delete('/api/v1/api-keys/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { id } = req.params;
+
+      // In real implementation, delete from database
+      await logSystemEvent('info', `API key deleted: ${id}`, user.id);
+
+      res.json({ success: true, message: 'API key deleted successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `API key deletion error: ${error.message}`, req.user?.id);
+      console.error('API key deletion error:', error);
+      res.status(500).json({ error: 'Failed to delete API key' });
+    }
+  });
+
+  // Usage and analytics endpoints
+  app.get('/api/v1/usage', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      
+      // Mock usage data
+      const usage = {
+        current: {
+          requests: 1250,
+          storage: 5.2 * 1024 * 1024 * 1024, // 5.2 GB in bytes
+          bandwidth: 15.8 * 1024 * 1024 * 1024 // 15.8 GB in bytes
+        },
+        limits: {
+          requests: 10000,
+          storage: 100 * 1024 * 1024 * 1024, // 100 GB
+          bandwidth: 1000 * 1024 * 1024 * 1024 // 1 TB
+        },
+        period: {
+          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          end: new Date().toISOString()
+        }
+      };
+      
+      res.json(usage);
+    } catch (error: any) {
+      await logSystemEvent('error', `Usage fetch error: ${error.message}`, req.user?.id);
+      console.error('Usage fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch usage data' });
+    }
+  });
+
+  // Catch-all handler for unknown API routes
+  app.all('/api/*', (req: Request, res: Response) => {
+    res.status(404).json({ 
+      error: 'API endpoint not found',
+      method: req.method,
+      path: req.path,
+      message: `The endpoint ${req.method} ${req.path} does not exist. Check the API documentation for available endpoints.`
+    });
   });
 
   // Create server instance

@@ -296,37 +296,56 @@ export default function Images() {
             </Button>
           </div>
         ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {images.map((image: ImageData) => (
               <Card key={image.id} className="group overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="relative aspect-square">
                   <img
                     src={image.url}
                     alt={image.altText || image.originalName}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover rounded-t-lg"
+                    loading="lazy"
                   />
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                    <div className="flex gap-2">
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="flex gap-1">
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => window.open(image.url, '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(image.url, '_blank');
+                        }}
+                        className="h-8 w-8 p-0"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Eye className="w-3 h-3" />
                       </Button>
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => copyUrlToClipboard(image.url)}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          await copyUrlToClipboard(image.url);
+                        }}
+                        className="h-8 w-8 p-0"
                       >
-                        <Copy className="w-4 h-4" />
+                        <Copy className="w-3 h-3" />
                       </Button>
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => window.open(image.url + '?download=true', '_blank')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const link = document.createElement('a');
+                          link.href = image.url;
+                          link.download = image.originalName;
+                          link.target = '_blank';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        className="h-8 w-8 p-0"
                       >
-                        <Download className="w-4 h-4" />
+                        <Download className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
@@ -335,29 +354,28 @@ export default function Images() {
                       type="checkbox"
                       checked={selectedImages.includes(image.id)}
                       onChange={() => toggleImageSelection(image.id)}
-                      className="rounded border-gray-300"
+                      className="rounded border-gray-300 h-4 w-4"
                     />
                   </div>
-
                 </div>
-                <CardContent className="p-4">
-                  <h3 className="font-medium text-gray-900 dark:text-white truncate mb-1">
+                <CardContent className="p-2">
+                  <h3 className="font-medium text-gray-900 dark:text-white truncate text-xs mb-1">
                     {image.originalName}
                   </h3>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                    <p>{formatBytes(image.size)} • {image.width}×{image.height}</p>
-                    <p>{formatDate(image.createdAt)}</p>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    <p>{formatBytes(image.size)}</p>
+                    <p className="text-xs">{image.width}×{image.height}</p>
                   </div>
                   {image.tags && image.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {image.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {image.tags.slice(0, 2).map((tag) => (
+                        <Badge key={tag} variant="outline" className="text-xs px-1 py-0">
                           {tag}
                         </Badge>
                       ))}
-                      {image.tags.length > 3 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{image.tags.length - 3}
+                      {image.tags.length > 2 && (
+                        <Badge variant="outline" className="text-xs px-1 py-0">
+                          +{image.tags.length - 2}
                         </Badge>
                       )}
                     </div>

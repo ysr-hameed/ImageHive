@@ -33,6 +33,8 @@ import { apiRequest } from "./lib/queryClient";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { PageLoader } from "@/components/futuristic-loader";
+import { useLocation } from "wouter";
 
 // Notification Bell Component
 function NotificationBell() {
@@ -89,7 +91,9 @@ function ProfileMenu() {
 // AppContent component to handle routing and layout
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
+  const [location] = useLocation();
 
+  // Show loading while checking auth state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
@@ -101,57 +105,76 @@ function AppContent() {
     );
   }
 
+  // Auth pages that don't need sidebar
+  const authPages = ["/auth/login", "/auth/register", "/auth/forgot-password", "/auth/reset-password", "/auth/verify-email"];
+  const isAuthPage = authPages.includes(location);
+
+  // Public pages that don't need auth or sidebar
+  const publicPages = ["/", "/docs"];
+  const isPublicPage = publicPages.includes(location);
+
+  // Redirect logic for authenticated users on auth pages
+  if (isAuthenticated && isAuthPage) {
+    return <Redirect to="/dashboard" />;
+  }
+
+  // Redirect unauthenticated users from protected pages to login
+  if (!isAuthenticated && !isAuthPage && !isPublicPage) {
+    return <Redirect to="/auth/login" />;
+  }
+
+  // Redirect authenticated users from landing to dashboard
+  if (isAuthenticated && location === "/") {
+    return <Redirect to="/dashboard" />;
+  }
+
+  // Pages without sidebar (auth pages and public pages)
+  if (isAuthPage || isPublicPage) {
+    return (
+      <>
+        <Route path="/auth/login" component={Login} />
+        <Route path="/auth/register" component={Register} />
+        <Route path="/auth/forgot-password" component={ForgotPassword} />
+        <Route path="/auth/reset-password" component={ResetPassword} />
+        <Route path="/auth/verify-email" component={VerifyEmail} />
+        <Route path="/docs" component={ApiDocs} />
+        <Route path="/" component={LandingPage} />
+        <Route component={NotFound} />
+      </>
+    );
+  }
+
+  // Authenticated pages with sidebar
   return (
-    <>
-      {/* Email verification should be accessible without authentication */}
-      <Route path="/auth/verify-email" component={VerifyEmail} />
-
-      {!isAuthenticated ? (
-        <>
-          <Route path="/auth/login" component={Login} />
-          <Route path="/auth/register" component={Register} />
-          <Route path="/auth/forgot-password" component={ForgotPassword} />
-          <Route path="/auth/reset-password" component={ResetPassword} />
-          <Route path="/upgrade" component={Upgrade} />
-          <Route path="/" component={LandingPage} />
-          <Route component={() => <Redirect to="/auth/login" />} />
-        </>
-      ) : (
-        <SidebarProvider>
-          <div className="flex min-h-screen w-full">
-            <AppSidebar />
-            <SidebarInset className="flex-1 w-full">
-              <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <SidebarTrigger />
-                  <div className="flex items-center gap-4">
-                    <NotificationBell />
-                    <ProfileMenu />
-                  </div>
-                </div>
-              </header>
-
-              <div className="flex-1 w-full bg-gray-50 dark:bg-slate-900">
-                <Route path="/dashboard" component={Dashboard} />
-                <Route path="/images" component={Images} />
-                <Route path="/upload" component={Upload} />
-                <Route path="/analytics" component={Analytics} />
-                <Route path="/api-keys" component={ApiKeys} />
-                <Route path="/docs" component={ApiDocs} />
-                <Route path="/settings" component={Settings} />
-                <Route path="/api-usage" component={ApiUsage} />
-                <Route path="/plans" component={Plans} />
-                <Route path="/notifications" component={Notifications} />
-                <Route path="/admin" component={Admin} />
-                <Route path="/collections" component={Collections} />
-                <Route path="/activity" component={Activity} />
-                <Route path="/" component={LandingPage} />
-              </div>
-            </SidebarInset>
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset className="min-h-screen">
+        <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <SidebarTrigger />
+            <div className="flex items-center gap-4">
+              <NotificationBell />
+              <ProfileMenu />
+            </div>
           </div>
-        </SidebarProvider>
-      )}
-    </>
+        </header>
+        <div className="flex-1 w-full bg-gray-50 dark:bg-slate-900">
+          <Route path="/dashboard" component={Dashboard} />
+          <Route path="/images" component={Images} />
+          <Route path="/upload" component={Upload} />
+          <Route path="/analytics" component={Analytics} />
+          <Route path="/api-keys" component={ApiKeys} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/api-usage" component={ApiUsage} />
+          <Route path="/plans" component={Plans} />
+          <Route path="/notifications" component={Notifications} />
+          <Route path="/admin" component={Admin} />
+          <Route path="/collections" component={Collections} />
+          <Route path="/activity" component={Activity} />
+          <Route component={NotFound} />
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 

@@ -105,7 +105,7 @@ export default function Footer() {
                   ))}
                 </ul>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold mb-4">Company</h3>
                 <ul className="space-y-2">
@@ -122,7 +122,7 @@ export default function Footer() {
                   ))}
                 </ul>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold mb-4">Support</h3>
                 <ul className="space-y-2">

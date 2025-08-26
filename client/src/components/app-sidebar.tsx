@@ -153,8 +153,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   return (
-    <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader>
+    <Sidebar 
+      collapsible="icon" 
+      className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-r"
+      {...props}
+    >
+      <SidebarHeader className="bg-background/50 backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 py-2">
           <Link href="/dashboard">
             <div className="flex items-center space-x-2">

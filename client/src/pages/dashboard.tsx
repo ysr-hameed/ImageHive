@@ -159,30 +159,35 @@ export default function Dashboard() {
           {/* Profile Icon with Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
+              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
                 {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="Profile" className="h-8 w-8 rounded-full" />
+                  <img src={user.avatarUrl} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
                 ) : (
-                  <div className="h-8 w-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
-                    <span className="text-xl font-bold text-gray-700 dark:text-gray-300">{user?.firstName ? user.firstName.charAt(0) : user?.email?.charAt(0)}</span>
+                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                    <span className="text-sm font-bold text-white">
+                      {user?.firstName ? user.firstName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
+                    </span>
                   </div>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem disabled className="cursor-default">
-                <div>
-                  <p className="font-medium">{user?.firstName} {user?.lastName}</p>
-                  <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem disabled className="cursor-default opacity-100">
+                <div className="flex flex-col space-y-1">
+                  <p className="font-medium text-sm">{user?.firstName || 'User'} {user?.lastName || ''}</p>
+                  <p className="text-xs text-muted-foreground">{user?.email}</p>
                 </div>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/profile">Profile</Link>
+                <Link href="/settings" className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings">Settings</Link>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -4,72 +4,89 @@ import { CheckCircle } from "lucide-react";
 import { useState } from "react";
 
 const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "forever",
-    description: "Perfect for personal projects and testing",
-    features: [
-      "2 GB storage",
-      "5,000 API requests/month",
-      "Basic image optimization",
-      "HTTPS & CDN included",
-      "Community support"
-    ],
-    cta: "Get Started",
-    popular: false
-  },
-  {
-    name: "Starter",
-    price: "$5",
-    period: "/month",
-    description: "Great for small businesses and portfolios",
-    features: [
-      "25 GB storage",
-      "25,000 API requests/month",
-      "Advanced image processing",
-      "Custom domains",
-      "Email support",
-      "Image analytics"
-    ],
-    cta: "Start Free Trial",
-    popular: true
-  },
-  {
-    name: "Pro",
-    price: "$15",
-    period: "/month",
-    description: "For growing applications and teams",
-    features: [
-      "100 GB storage",
-      "100,000 API requests/month",
-      "Watermarks & branding",
-      "Batch operations",
-      "Priority support",
-      "Advanced analytics",
-      "Team collaboration"
-    ],
-    cta: "Start Free Trial",
-    popular: false
-  },
-  {
-    name: "Enterprise",
-    price: "$49",
-    period: "/month",
-    description: "Custom solutions for large-scale applications",
-    features: [
-      "500 GB storage",
-      "1M API requests/month",
-      "Custom integrations",
-      "SLA guarantees",
-      "Dedicated support",
-      "Advanced security",
-      "White-label solution"
-    ],
-    cta: "Contact Sales",
-    popular: false
-  }
-];
+    {
+      name: "Free",
+      price: "$0",
+      period: "/month",
+      description: "Perfect for getting started",
+      features: [
+        "2GB storage",
+        "5,000 API requests/month",
+        "Basic image optimization",
+        "Standard support",
+        "5 custom domains",
+        "Basic analytics"
+      ],
+      highlighted: false,
+      buttonText: "Get Started Free",
+      buttonVariant: "outline" as const,
+      popular: false
+    },
+    {
+      name: "Starter",
+      price: "$5",
+      period: "/month",
+      description: "Great for small projects",
+      features: [
+        "25GB storage",
+        "50,000 API requests/month",
+        "Advanced image optimization",
+        "Priority support",
+        "20 custom domains",
+        "Analytics dashboard",
+        "API access"
+      ],
+      highlighted: false,
+      buttonText: "Start Free Trial",
+      buttonVariant: "outline" as const,
+      popular: true
+    },
+    {
+      name: "Pro",
+      price: "$15",
+      period: "/month",
+      description: "Best for growing businesses",
+      features: [
+        "200GB storage",
+        "1,000,000 API requests/month",
+        "Advanced image optimization",
+        "Priority support",
+        "Unlimited custom domains",
+        "Advanced analytics",
+        "Full API access",
+        "Global CDN",
+        "Team collaboration"
+      ],
+      highlighted: true,
+      buttonText: "Start Free Trial",
+      buttonVariant: "default" as const,
+      popular: false
+    },
+    {
+      name: "Enterprise",
+      price: "$99",
+      period: "/month",
+      description: "For large-scale operations",
+      features: [
+        "Unlimited storage",
+        "Unlimited API requests",
+        "Advanced image optimization",
+        "24/7 dedicated support",
+        "Unlimited custom domains",
+        "Advanced analytics",
+        "Full API access",
+        "Global CDN",
+        "SLA guarantee",
+        "Custom integrations",
+        "White-label solution",
+        "Dedicated account manager"
+      ],
+      highlighted: false,
+      buttonText: "Contact Sales",
+      buttonVariant: "outline" as const,
+      popular: false
+    }
+  ];
 
 export default function PricingSection() {
   const [isYearly, setIsYearly] = useState(false);
@@ -123,83 +140,76 @@ export default function PricingSection() {
 
             return (
               <div
-                key={plan.name}
-                className={`rounded-2xl p-8 relative ${
-                  plan.popular
-                    ? 'bg-gradient-to-br from-brand-500 to-emerald-500 text-white'
-                    : 'bg-gray-50 dark:bg-slate-700'
-                } ${plan.popular ? '' : 'border border-gray-200 dark:border-slate-600'}`}
-                data-testid={`plan-${plan.name.toLowerCase()}`}
+                key={index}
+                className={`relative bg-white dark:bg-slate-800 rounded-2xl shadow-lg p-8 transition-all duration-300 ${
+                  plan.highlighted
+                    ? "ring-2 ring-blue-500 scale-105 z-10 shadow-2xl"
+                    : "hover:shadow-xl hover:scale-102"
+                }`}
               >
-                {plan.popular && (
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-white/20 text-white border-white/30" data-testid="popular-badge">
+                {plan.highlighted && (
+                  <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 text-sm font-semibold">
                       Most Popular
                     </Badge>
                   </div>
                 )}
 
-                <div className="text-center">
-                  <h3 className={`text-lg font-semibold mb-2 ${
-                    plan.popular ? 'text-white' : 'text-gray-900 dark:text-white'
-                  }`}>
+                {plan.popular && !plan.highlighted && (
+                  <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                    <Badge className="bg-emerald-500 text-white px-4 py-1 text-xs">
+                      Best Value
+                    </Badge>
+                  </div>
+                )}
+
+                <div className="text-center mb-8">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
                     {plan.name}
                   </h3>
-
-                  <div className="mb-6">
-                    {isEnterprise ? (
-                      <span className={`text-3xl font-bold ${
-                        plan.popular ? 'text-white' : 'text-gray-900 dark:text-white'
-                      }`}>
-                        Custom
-                      </span>
-                    ) : (
-                      <>
-                        <span className={`text-3xl font-bold ${
-                          plan.popular ? 'text-white' : 'text-gray-900 dark:text-white'
-                        }`}>
-                          ${price}
-                        </span>
-                        <span className={`${
-                          plan.popular ? 'text-white/80' : 'text-gray-600 dark:text-gray-400'
-                        }`}>
-                          {plan.period}
-                        </span>
-                      </>
+                  <div className="mb-4">
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">
+                      {plan.price}
+                    </span>
+                    {plan.price !== "Custom" && (
+                      <span className="text-gray-500 dark:text-gray-400">{plan.period}</span>
                     )}
                   </div>
-
-                  <ul className="space-y-3 mb-8 text-left">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center">
-                        <CheckCircle className={`w-4 h-4 mr-3 ${
-                          plan.popular ? 'text-white' : 'text-emerald-500'
-                        }`} />
-                        <span className={
-                          plan.popular ? 'text-white' : 'text-gray-600 dark:text-gray-300'
-                        }>
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    className={`w-full ${
-                      plan.popular
-                        ? 'bg-white text-brand-600 hover:bg-gray-50'
-                        : plan.name === 'Enterprise'
-                        ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100'
-                        : 'bg-brand-600 hover:bg-brand-700 text-white'
-                    }`}
-                    asChild
-                    data-testid={`button-${plan.name.toLowerCase()}`}
-                  >
-                    <a href="/auth/login">
-                      {plan.cta}
-                    </a>
-                  </Button>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    {plan.description}
+                  </p>
                 </div>
+
+                <ul className="space-y-3 mb-8 text-left">
+                  {plan.features.map((feature, featureIndex) => (
+                    <li key={featureIndex} className="flex items-center">
+                      <CheckCircle className={`w-4 h-4 mr-3 ${
+                        plan.highlighted ? 'text-white' : 'text-emerald-500'
+                      }`} />
+                      <span className={
+                        plan.highlighted ? 'text-white' : 'text-gray-600 dark:text-gray-300'
+                      }>
+                        {feature}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  className={`w-full ${
+                    plan.highlighted
+                      ? 'bg-white text-blue-600 hover:bg-gray-50'
+                      : plan.name === 'Enterprise'
+                        ? 'bg-gray-900 text-white hover:bg-gray-800 dark:bg-white dark:text-gray-900 dark:hover:bg-gray-100'
+                        : 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                  }`}
+                  asChild
+                  data-testid={`button-${plan.name.toLowerCase()}`}
+                >
+                  <a href="/auth/login">
+                    {plan.buttonText}
+                  </a>
+                </Button>
               </div>
             );
           })}

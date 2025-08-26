@@ -868,8 +868,8 @@ export function SimpleUploadForm() {
                       {files.filter(f => f.status === 'completed').length} / {files.length} completed
                     </span>
                   </div>
-                  <Progress 
-                    value={(files.filter(f => f.status === 'completed').length / files.length) * 100} 
+                  <Progress
+                    value={(files.filter(f => f.status === 'completed').length / files.length) * 100}
                     className="w-full"
                   />
                 </div>
@@ -897,9 +897,9 @@ export function SimpleUploadForm() {
                         View Analytics
                       </Link>
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => {
                         resetForm();
                         toast({

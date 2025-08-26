@@ -11,8 +11,8 @@ dotenv.config();
 
 const app = express();
 const PORT = parseInt(process.env.PORT || "5000", 10);
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
-const STATUS = process.env.STATUS || 'development';
+const HOST = '0.0.0.0';
+const STATUS = process.env.NODE_ENV || 'development';
 const isProduction = STATUS === 'production';
 
 console.log(`🔧 Running in ${STATUS} mode`);
@@ -37,10 +37,6 @@ app.get('/health', (req, res) => {
 
 // Setup routes
 registerRoutes(app);
-
-// Admin routes
-// Assuming adminRoutes is defined elsewhere and imported
-// app.use("/api/v1/admin", adminRoutes); // Uncomment and ensure adminRoutes is correctly imported and defined
 
 // Setup Vite or static serving
 if (!isProduction) {

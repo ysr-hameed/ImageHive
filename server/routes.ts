@@ -309,7 +309,8 @@ export function registerRoutes(app: Express) {
       await storage.createEmailVerificationToken(user.id, verificationToken);
       await emailService.sendVerificationEmail(email, verificationToken);
 
-      await logSystemEvent('info', `New user registered: ${email}`, user.id);
+      await logSystemEvent('info', 'New user registered: ' + email, user.id);
+      console.log('Verification email sent successfully to:', email);
 
       res.json({
         message: 'Registration successful. Please check your email to verify your account.',
@@ -332,8 +333,8 @@ export function registerRoutes(app: Express) {
       }
 
       // Find user by email
-      const users = await db.select().from(usersTable).where(eq(usersTable.email, email));
-      const user = users[0];
+      const userResults = await db.select().from(users).where(eq(users.email, email));
+      const user = userResults[0];
 
       if (!user) {
         return res.status(401).json({ error: 'Invalid email or password' });
@@ -370,10 +371,8 @@ export function registerRoutes(app: Express) {
         { expiresIn: '7d' }
       );
 
-      // Update user login timestamp
-      await db.update(users)
-        .set({ updatedAt: new Date() })
-        .where(eq(users.id, user.id));
+      // Log successful login
+      await logSystemEvent('info', 'User logged in successfully', user.id);
 
       res.json({
         message: 'Login successful',

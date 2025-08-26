@@ -119,23 +119,41 @@ class Storage {
 
   async markEmailAsVerified(userId: string) {
     await db.update(users)
-      .set({ emailVerified: true, updatedAt: new Date() })
+      .set({ 
+        emailVerified: true, 
+        verificationToken: null,
+        updatedAt: new Date() 
+      })
       .where(eq(users.id, userId));
   }
 
   // Email verification tokens
   async createEmailVerificationToken(userId: string, token: string) {
-    // Store token in a simple table or use a temporary storage
-    // For now, we'll use system logs as a temporary storage
+    // Store token in the users table for direct access
+    await db.update(users)
+      .set({ verificationToken: token })
+      .where(eq(users.id, userId));
+    
+    // Also store in system logs as backup
     await db.insert(systemLogs).values({
       level: 'info',
       message: 'email_verification_token',
       userId,
-      metadata: JSON.stringify({ token, expires: Date.now() + 24 * 60 * 60 * 1000 }) // 24 hours
+      metadata: { token, expires: Date.now() + 24 * 60 * 60 * 1000 } // 24 hours
     });
   }
 
   async verifyEmailToken(token: string) {
+    // First try to find user by verification token in users table
+    const [user] = await db.select()
+      .from(users)
+      .where(eq(users.verificationToken, token));
+    
+    if (user) {
+      return { id: user.id };
+    }
+
+    // Fallback to system logs method
     const [log] = await db.select()
       .from(systemLogs)
       .where(and(
@@ -155,6 +173,12 @@ class Storage {
   }
 
   async deleteEmailVerificationToken(token: string) {
+    // Clear token from users table
+    await db.update(users)
+      .set({ verificationToken: null })
+      .where(eq(users.verificationToken, token));
+      
+    // Also clean up system logs
     await db.delete(systemLogs).where(and(
       eq(systemLogs.message, 'email_verification_token'),
       sql`metadata->>'token' = ${token}`

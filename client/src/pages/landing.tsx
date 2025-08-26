@@ -8,7 +8,7 @@ import Footer from "@/components/footer";
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
-import { ArrowRight, PlayCircle } from 'lucide-react';
+import { ArrowRight, PlayCircle, Rocket, BarChart3 } from 'lucide-react';
 
 export default function Landing() {
   const { isAuthenticated } = useAuth();
@@ -37,7 +37,7 @@ export default function Landing() {
             </div>
             <Link href="/dashboard">
               <Button variant="secondary" size="sm" className="bg-white text-blue-600 hover:bg-gray-100 flex-shrink-0">
-                Get Started
+                Open Dashboard
                 <ArrowRight className="w-4 h-4 ml-1" />
               </Button>
             </Link>

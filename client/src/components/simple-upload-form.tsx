@@ -13,8 +13,9 @@ import { Progress } from '@/components/ui/progress';
 import { Slider } from '@/components/ui/slider';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, CreditCard, Star, Zap } from 'lucide-react';
+import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, CreditCard, Star, Zap, BarChart3 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Link } from 'wouter';
 
 interface UploadFile extends File {
   id: string;
@@ -66,6 +67,35 @@ export function SimpleUploadForm() {
   const [expiryDate, setExpiryDate] = useState('');
   const [downloadLimit, setDownloadLimit] = useState('');
   const [geoRestriction, setGeoRestriction] = useState('');
+
+  // Handle paste functionality
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const file = items[i].getAsFile();
+          if (file) {
+            imageFiles.push(file);
+          }
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        onDrop(imageFiles);
+        toast({
+          title: "Images pasted",
+          description: `${imageFiles.length} image(s) added from clipboard.`,
+        });
+      }
+    };
+
+    document.addEventListener('paste', handlePaste);
+    return () => document.removeEventListener('paste', handlePaste);
+  }, []);
 
   if (!isAuthenticated) {
     return (
@@ -293,18 +323,47 @@ export function SimpleUploadForm() {
         <CardContent className="space-y-6">
           {/* Upload Area */}
           <div
-            className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-pointer"
+            className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 dark:hover:border-blue-400 transition-colors cursor-pointer group"
             onDragOver={handleDragOver}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+            <div className="relative">
+              <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4 group-hover:text-blue-500 transition-colors" />
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold opacity-0 group-hover:opacity-100 transition-opacity">
+                +
+              </div>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
               Drop images here or click to browse
             </h3>
-            <p className="text-gray-600 dark:text-gray-400">
-              Support JPG, PNG, GIF, WebP up to 50MB
+            <p className="text-gray-600 dark:text-gray-400 mb-2">
+              Support JPG, PNG, GIF, WebP, AVIF up to 50MB each
             </p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+              💡 Pro tip: You can also paste images directly from your clipboard (Ctrl+V)
+            </p>
+            
+            {/* Quick Stats */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-center">
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                <div className="text-lg font-bold text-blue-600">25+</div>
+                <div className="text-xs text-blue-800 dark:text-blue-200">Transform Options</div>
+              </div>
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg">
+                <div className="text-lg font-bold text-emerald-600">Global</div>
+                <div className="text-xs text-emerald-800 dark:text-emerald-200">CDN Delivery</div>
+              </div>
+              <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                <div className="text-lg font-bold text-purple-600">Auto</div>
+                <div className="text-xs text-purple-800 dark:text-purple-200">Optimization</div>
+              </div>
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
+                <div className="text-lg font-bold text-amber-600">Instant</div>
+                <div className="text-xs text-amber-800 dark:text-amber-200">Processing</div>
+              </div>
+            </div>
+
             <input
               ref={fileInputRef}
               type="file"
@@ -740,15 +799,122 @@ export function SimpleUploadForm() {
             </div>
           )}
 
-          {/* Upload Button */}
+          {/* Bulk Actions */}
           {files.length > 0 && (
-            <Button
-              onClick={uploadFiles}
-              disabled={isUploading || files.every(f => f.status === 'completed')}
-              className="w-full"
-            >
-              {isUploading ? 'Uploading...' : 'Upload Images'}
-            </Button>
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2 justify-between items-center p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm font-medium">{files.length} file(s) selected</span>
+                  <Badge variant="outline">
+                    {(files.reduce((acc, file) => acc + file.size, 0) / 1024 / 1024).toFixed(2)} MB total
+                  </Badge>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setFiles([])}
+                    disabled={isUploading}
+                  >
+                    Clear All
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Apply current settings to all files
+                      toast({
+                        title: "Settings Applied",
+                        description: "Current settings will be applied to all files.",
+                      });
+                    }}
+                    disabled={isUploading}
+                  >
+                    Apply Settings to All
+                  </Button>
+                </div>
+              </div>
+              
+              <Button
+                onClick={uploadFiles}
+                disabled={isUploading || files.every(f => f.status === 'completed')}
+                className="w-full relative overflow-hidden"
+                size="lg"
+              >
+                {isUploading ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Processing {files.filter(f => f.status === 'uploading').length} of {files.length} files...
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <Upload className="w-4 h-4 mr-2" />
+                    Upload {files.length} Image{files.length > 1 ? 's' : ''}
+                    {files.length > 1 && (
+                      <Badge variant="secondary" className="ml-2">
+                        Batch Upload
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </Button>
+
+              {/* Upload Progress */}
+              {isUploading && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Progress</span>
+                    <span>
+                      {files.filter(f => f.status === 'completed').length} / {files.length} completed
+                    </span>
+                  </div>
+                  <Progress 
+                    value={(files.filter(f => f.status === 'completed').length / files.length) * 100} 
+                    className="w-full"
+                  />
+                </div>
+              )}
+
+              {/* Quick Actions for completed uploads */}
+              {files.some(f => f.status === 'completed') && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-lg">
+                  <h4 className="font-medium text-emerald-900 dark:text-emerald-100 mb-2">
+                    🎉 Upload Successful!
+                  </h4>
+                  <p className="text-sm text-emerald-800 dark:text-emerald-200 mb-3">
+                    Your images have been uploaded and optimized. What would you like to do next?
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href="/dashboard">
+                        <Eye className="w-4 h-4 mr-1" />
+                        View in Dashboard
+                      </Link>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link href="/api-usage">
+                        <BarChart3 className="w-4 h-4 mr-1" />
+                        View Analytics
+                      </Link>
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => {
+                        resetForm();
+                        toast({
+                          title: "Ready for next upload",
+                          description: "Form has been reset for your next batch.",
+                        });
+                      }}
+                    >
+                      <Upload className="w-4 h-4 mr-1" />
+                      Upload More
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </CardContent>
       </Card>

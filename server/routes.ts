@@ -1,10 +1,20 @@
 import type { Express, Request, Response, NextFunction } from "express";
+
+// Extend Request interface to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: string; userId?: string; };
+    }
+  }
+}
 import { createServer, type Server } from "http";
 import multer from "multer";
 import sharp from "sharp";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { users, images, folders, notifications, systemLogs, seoSettings, emailCampaigns, emailLogs } from "../shared/schema";
+const usersTable = users; // Alias for consistency
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
 import * as bcrypt from "bcryptjs";
@@ -90,7 +100,7 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
     // Attach user to request for downstream middleware/handlers
-    req.user = { id: decoded.userId };
+    req.user = { id: decoded.userId, userId: decoded.userId };
     next();
   } catch (error) {
     logSystemEvent('warn', 'Invalid JWT token used', undefined, { token: token.substring(0, 10) + '...' });
@@ -137,7 +147,7 @@ const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
 };
 
 
-export function registerRoutes(app: express.Express) {
+export function registerRoutes(app: Express) {
   // Health check endpoint
   app.get("/api/v1/health", (req: Request, res: Response) => {
     res.json({
@@ -312,40 +322,6 @@ export function registerRoutes(app: express.Express) {
     }
   });
 
-  app.post('/api/v1/auth/register-alt', async (req: Request, res: Response) => {
-    try {
-      const { email, password } = registerSchema.parse(req.body);
-
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ error: 'User already exists' });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = await storage.createUser({
-        email,
-        password: hashedPassword,
-      });
-
-      const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
-
-      await logSystemEvent('info', `New user registered: ${email}`, user.id);
-
-      res.json({
-        token,
-        user: {
-          id: user.id,
-          email: user.email,
-          isAdmin: user.isAdmin || false,
-          emailVerified: user.emailVerified || false
-        }
-      });
-    } catch (error: any) {
-      await logSystemEvent('error', `Registration failed: ${error.message}`, undefined, { error: error.message });
-      console.error('Registration error:', error);
-      res.status(400).json({ error: error.message || 'Registration failed' });
-    }
-  });
 
   app.post('/api/v1/auth/login', async (req: Request, res: Response) => {
     try {
@@ -364,17 +340,17 @@ export function registerRoutes(app: express.Express) {
       }
 
       // Check if user was created via OAuth (no password) and provider exists
-      if (!user.password && user.provider && user.provider !== 'local') {
-        return res.status(401).json({ error: `This account was created using ${user.provider} login. Please use ${user.provider === 'google' ? 'Google' : 'GitHub'} to sign in.` });
+      if (!user.passwordHash && user.oauthProvider && user.oauthProvider !== 'local') {
+        return res.status(401).json({ error: `This account was created using ${user.oauthProvider} login. Please use ${user.oauthProvider === 'google' ? 'Google' : 'GitHub'} to sign in.` });
       }
 
       // If no password exists but provider is local or null, this is an error state
-      if (!user.password) {
+      if (!user.passwordHash) {
         return res.status(401).json({ error: 'Invalid account state. Please contact support.' });
       }
 
       // Verify password
-      const isValidPassword = await bcrypt.compare(password, user.password);
+      const isValidPassword = await bcrypt.compare(password, user.passwordHash);
       if (!isValidPassword) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
@@ -388,17 +364,16 @@ export function registerRoutes(app: express.Express) {
       const token = jwt.sign(
         { 
           userId: user.id, 
-          email: user.email,
-          role: user.role 
+          email: user.email
         },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
 
-      // Update last login
-      await db.update(usersTable)
-        .set({ lastLogin: new Date() })
-        .where(eq(usersTable.id, user.id));
+      // Update user login timestamp
+      await db.update(users)
+        .set({ updatedAt: new Date() })
+        .where(eq(users.id, user.id));
 
       res.json({
         message: 'Login successful',
@@ -408,10 +383,9 @@ export function registerRoutes(app: express.Express) {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role,
           emailVerified: user.emailVerified,
-          createdAt: user.createdAt,
-          lastLogin: new Date()
+          isAdmin: user.isAdmin,
+          createdAt: user.createdAt
         }
       });
     } catch (error: any) {
@@ -722,8 +696,21 @@ export function registerRoutes(app: express.Express) {
         return res.status(400).json({ error: 'Verification token is required' });
       }
 
-      // In a real implementation, you'd verify the token and update the user
-      // For now, we'll just return success
+      // Verify the token and get user
+      const tokenData = await storage.verifyEmailToken(token as string);
+
+      if (!tokenData) {
+        return res.status(400).json({ error: 'Invalid or expired verification token' });
+      }
+
+      // Mark user as verified
+      await storage.markEmailAsVerified(tokenData.id!);
+
+      // Clean up the token
+      await storage.deleteEmailVerificationToken(token as string);
+
+      await logSystemEvent('info', 'Email verified successfully', tokenData.id!);
+
       res.json({ message: 'Email verified successfully' });
     } catch (error: any) {
       console.error('Email verification error:', error);
@@ -747,12 +734,12 @@ export function registerRoutes(app: express.Express) {
       }
 
       // Mark user as verified
-      await storage.markEmailAsVerified(tokenData.id);
+      await storage.markEmailAsVerified(tokenData.id!);
 
       // Clean up the token
       await storage.deleteEmailVerificationToken(token);
 
-      await logSystemEvent('info', `Email verified successfully`, tokenData.id);
+      await logSystemEvent('info', 'Email verified successfully', tokenData.id!);
 
       res.json({ message: 'Email verified successfully' });
     } catch (error: any) {
@@ -771,9 +758,17 @@ export function registerRoutes(app: express.Express) {
         return res.status(400).json({ error: 'First name, last name, and email are required' });
       }
 
-      // In a real implementation, you'd update the user in the database
-      // For now, we'll just return success
-      await logSystemEvent('info', `User profile updated: ${user.id}`, user.id);
+      // Update user in database
+      await db.update(users)
+        .set({ 
+          firstName, 
+          lastName, 
+          email, 
+          updatedAt: new Date() 
+        })
+        .where(eq(users.id, user.id));
+
+      await logSystemEvent('info', 'User profile updated: ' + user.id, user.id);
 
       res.json({ 
         message: 'Profile updated successfully',

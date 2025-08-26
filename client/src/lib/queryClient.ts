@@ -81,8 +81,13 @@ export const getQueryFn: <T>(options: {
     }
 
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch(fullUrl, {
         credentials: "include",
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {

@@ -69,10 +69,12 @@ function ProfileMenu() {
 
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/auth/logout', {});
+      return apiRequest('POST', '/api/v1/auth/logout', {});
     },
-    onSettled: () => {
-      window.location.href = '/';
+    onSuccess: () => {
+      // Clear local storage and redirect
+      localStorage.removeItem('token');
+      window.location.href = '/auth/login';
     }
   });
 
@@ -110,8 +112,8 @@ function AppContent() {
           <Route path="/auth/reset-password" component={ResetPassword} />
           <Route path="/auth/verify-email" component={VerifyEmail} />
           <Route path="/upgrade" component={Upgrade} />
-          <Route path="/" component={() => { window.location.href = '/auth/login'; return null; }} />
-          <Route component={Login} />
+          <Route path="/" component={LandingPage} />
+          <Route component={() => <Redirect to="/auth/login" />} />
         </>
       ) : (
         <SidebarProvider>

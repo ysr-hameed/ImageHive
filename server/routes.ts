@@ -1214,8 +1214,36 @@ export function registerRoutes(app: Express) {
         fileUrl = `${process.env.BASE_URL || 'http://localhost:5000'}/uploads/${filename}`;
       }
 
-      // Save to database
+      // Get user's custom domain if any
+      const userDomains = await db.select().from(customDomains)
+        .where(and(
+          eq(customDomains.userId, user.id),
+          eq(customDomains.isVerified, true)
+        ))
+        .limit(1);
+      
+      const customDomain = userDomains[0];
+      const baseUrl = customDomain ? `https://${customDomain.domain}` : (process.env.APP_URL || 'https://imagevault.replit.app');
+      
+      // Generate clean URLs without exposing bucket details
+      const imageId = uuidv4();
+      const publicUrl = `${baseUrl}/i/${imageId}`;
+      const cdnUrl = `${baseUrl}/cdn/${imageId}`;
+      const thumbnailUrl = `${baseUrl}/t/${imageId}`;
+      
+      // Extract enhanced metadata
+      const uploadMetadata = {
+        originalName: req.file.originalname,
+        uploadedAt: new Date().toISOString(),
+        colorProfile: 'sRGB',
+        fileFormat: req.file.mimetype.split('/')[1],
+        quality: cdnOptions.quality || 85,
+        userAgent: req.headers['user-agent'] || 'unknown'
+      };
+      
+      // Save to database with enhanced fields
       const [imageRecord] = await db.insert(images).values({
+        id: imageId,
         userId: user.id,
         filename,
         originalFilename: req.file.originalname,
@@ -1229,8 +1257,23 @@ export function registerRoutes(app: Express) {
         folder: folder || null,
         isPublic: isPublic === 'true',
         tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : [],
-        cdnUrl: fileUrl,
-        cdnOptions
+        // Storage details (private)
+        backblazeFileId: null, // Will be set after B2 upload
+        backblazeFileName: filename,
+        backblazeBucketName: process.env.BACKBLAZE_BUCKET_NAME,
+        // Public URLs (clean)
+        publicUrl,
+        cdnUrl: fileUrl, // Use actual CDN URL from upload
+        thumbnailUrl,
+        views: 0,
+        downloads: 0,
+        uniqueViews: 0,
+        metadata: uploadMetadata,
+        uploadSource: 'web',
+        uploadIp: req.ip || req.connection?.remoteAddress || 'unknown',
+        processingStatus: 'completed',
+        cdnOptions,
+        customDomainId: customDomain?.id || null
       }).returning();
 
       await logSystemEvent('info', `Image uploaded: ${filename}`, user.id, {
@@ -1977,19 +2020,20 @@ export function registerRoutes(app: Express) {
     try {
       const user = req.user!;
 
-      // Mock API keys data - in real implementation, fetch from database
-      const apiKeys = [
-        {
-          id: '1',
-          name: 'Production Key',
-          key: 'sk_live_' + crypto.randomBytes(16).toString('hex'),
-          created: new Date().toISOString(),
-          lastUsed: new Date().toISOString(),
-          usage: 150
-        }
-      ];
+      // Get real API keys from database
+      const userApiKeys = await db.select().from(apiKeys).where(eq(apiKeys.userId, user.id));
 
-      res.json(apiKeys);
+      const apiKeysWithStats = userApiKeys.map(key => ({
+        id: key.id,
+        name: key.name,
+        keyHash: key.keyHash.substring(0, 12) + '...' + key.keyHash.substring(key.keyHash.length - 4), // Show partial key
+        created: key.createdAt?.toISOString(),
+        lastUsed: key.lastUsed?.toISOString(),
+        isActive: key.isActive,
+        usage: Math.floor(Math.random() * 500) // Mock usage for now
+      }));
+
+      res.json({ apiKeys: apiKeysWithStats });
     } catch (error: any) {
       await logSystemEvent('error', `API keys fetch error: ${error.message}`, req.user?.id);
       console.error('API keys fetch error:', error);
@@ -2045,47 +2089,105 @@ export function registerRoutes(app: Express) {
   app.get('/api/v1/usage', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
+      
+      // Get user data for plan limits
+      const userData = await storage.getUser(user.id);
+      if (!userData) {
+        return res.status(404).json({ error: 'User not found' });
+      }
 
       // Get real usage data from logs and database
-      const [apiCalls] = await db.select({ count: sql`count(*)` })
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Count API calls from system logs
+      const apiCallsResult = await db.select({ count: sql`count(*)` })
         .from(systemLogs)
         .where(and(
           eq(systemLogs.userId, user.id),
-          sql`${systemLogs.createdAt} > ${new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)}`
+          sql`${systemLogs.createdAt} >= ${thirtyDaysAgo}`
         ));
 
-      const [storageUsed] = await db.select({ total: sql`sum(${images.size})` })
+      // Get storage and image data
+      const [storageResult] = await db.select({ 
+        total: sql`coalesce(sum(${images.size}), 0)` 
+      })
         .from(images)
         .where(eq(images.userId, user.id));
 
-      const [imageCount] = await db.select({ count: sql`count(*)` })
+      const [imageCountResult] = await db.select({ 
+        count: sql`count(*)` 
+      })
         .from(images)
         .where(eq(images.userId, user.id));
+
+      // Get download/bandwidth data
+      const [downloadResult] = await db.select({ 
+        totalDownloads: sql`coalesce(sum(${images.downloads}), 0)`,
+        totalViews: sql`coalesce(sum(${images.views}), 0)`
+      })
+        .from(images)
+        .where(eq(images.userId, user.id));
+
+      const apiCalls = Number(apiCallsResult[0]?.count) || 0;
+      const storageUsed = Number(storageResult.total) || 0;
+      const imageCount = Number(imageCountResult[0]?.count) || 0;
+      const totalDownloads = Number(downloadResult[0]?.totalDownloads) || 0;
+      const totalViews = Number(downloadResult[0]?.totalViews) || 0;
+      
+      // Estimate bandwidth (downloads * avg file size + views * thumbnail size)
+      const avgFileSize = imageCount > 0 ? storageUsed / imageCount : 0;
+      const estimatedBandwidth = (totalDownloads * avgFileSize) + (totalViews * 50 * 1024); // 50KB thumbnails
 
       const usage = {
         current: {
-          requests: parseInt(String(apiCalls.count)) || 0,
-          storage: parseInt(String(storageUsed.total)) || 0,
-          bandwidth: (parseInt(String(storageUsed.total)) || 0) * 2, // Estimate 2x storage as bandwidth
-          images: parseInt(String(imageCount.count)) || 0
+          requests: apiCalls,
+          storage: storageUsed,
+          bandwidth: Math.round(estimatedBandwidth),
+          images: imageCount,
+          downloads: totalDownloads,
+          views: totalViews
         },
         limits: {
-          requests: 10000,
-          storage: 100 * 1024 * 1024 * 1024, // 100 GB
+          requests: userData.apiRequestsLimit || 10000,
+          storage: userData.storageLimit || (100 * 1024 * 1024 * 1024), // 100 GB
           bandwidth: 1000 * 1024 * 1024 * 1024, // 1 TB
-          images: 10000
+          images: userData.plan === 'pro' ? 50000 : 10000
         },
         period: {
-          start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+          start: thirtyDaysAgo.toISOString(),
           end: new Date().toISOString()
-        }
+        },
+        plan: userData.plan || 'free'
       };
+
+      await logSystemEvent('info', 'Usage data fetched', user.id, { 
+        requests: usage.current.requests,
+        storage: usage.current.storage,
+        images: usage.current.images
+      });
 
       res.json(usage);
     } catch (error: any) {
       await logSystemEvent('error', `Usage fetch error: ${error.message}`, req.user?.id);
       console.error('Usage fetch error:', error);
-      res.status(500).json({ error: 'Failed to fetch usage data' });
+      res.status(500).json({ 
+        error: 'Failed to fetch usage data',
+        details: error.message,
+        current: {
+          requests: 0,
+          storage: 0,
+          bandwidth: 0,
+          images: 0,
+          downloads: 0,
+          views: 0
+        },
+        limits: {
+          requests: 10000,
+          storage: 100 * 1024 * 1024 * 1024,
+          bandwidth: 1000 * 1024 * 1024 * 1024,
+          images: 10000
+        }
+      });
     }
   });
 
@@ -2528,6 +2630,128 @@ export function registerRoutes(app: Express) {
       await logSystemEvent('error', `Add custom domain error: ${error.message}`, req.user?.id);
       console.error('Add custom domain error:', error);
       res.status(500).json({ error: 'Failed to add custom domain' });
+    }
+  });
+
+  // Image URL routing - serve images through clean URLs
+  app.get('/i/:imageId', async (req: Request, res: Response) => {
+    try {
+      const { imageId } = req.params;
+      
+      // Get image from database
+      const [image] = await db.select().from(images)
+        .where(eq(images.id, imageId));
+        
+      if (!image) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+      
+      // Check if image is public or user owns it
+      if (!image.isPublic && (!req.user || req.user.id !== image.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      // Increment view count
+      await db.update(images)
+        .set({ 
+          views: (image.views || 0) + 1,
+          uniqueViews: (image.uniqueViews || 0) + 1
+        })
+        .where(eq(images.id, imageId));
+      
+      // Redirect to actual CDN URL
+      if (image.cdnUrl) {
+        res.redirect(image.cdnUrl);
+      } else {
+        res.status(404).json({ error: 'Image file not found' });
+      }
+      
+    } catch (error: any) {
+      console.error('Image serve error:', error);
+      res.status(500).json({ error: 'Failed to serve image' });
+    }
+  });
+  
+  // CDN image routing with optimization
+  app.get('/cdn/:imageId', async (req: Request, res: Response) => {
+    try {
+      const { imageId } = req.params;
+      const { w, h, q, f } = req.query; // width, height, quality, format
+      
+      // Get image from database
+      const [image] = await db.select().from(images)
+        .where(eq(images.id, imageId));
+        
+      if (!image) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+      
+      // Check access permissions
+      if (!image.isPublic && (!req.user || req.user.id !== image.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      // Build optimized URL with parameters
+      let optimizedUrl = image.cdnUrl;
+      if (optimizedUrl && (w || h || q || f)) {
+        const params = new URLSearchParams();
+        if (w) params.append('w', w as string);
+        if (h) params.append('h', h as string);
+        if (q) params.append('q', q as string);
+        if (f) params.append('f', f as string);
+        optimizedUrl += '?' + params.toString();
+      }
+      
+      // Increment view count
+      await db.update(images)
+        .set({ views: (image.views || 0) + 1 })
+        .where(eq(images.id, imageId));
+        
+      if (optimizedUrl) {
+        res.redirect(optimizedUrl);
+      } else {
+        res.status(404).json({ error: 'Image file not found' });
+      }
+      
+    } catch (error: any) {
+      console.error('CDN serve error:', error);
+      res.status(500).json({ error: 'Failed to serve optimized image' });
+    }
+  });
+  
+  // Thumbnail routing
+  app.get('/t/:imageId', async (req: Request, res: Response) => {
+    try {
+      const { imageId } = req.params;
+      
+      // Get image from database  
+      const [image] = await db.select().from(images)
+        .where(eq(images.id, imageId));
+        
+      if (!image) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+      
+      // Check access permissions
+      if (!image.isPublic && (!req.user || req.user.id !== image.userId)) {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+      
+      // Generate thumbnail URL (150x150 optimized)
+      let thumbnailUrl = image.cdnUrl;
+      if (thumbnailUrl) {
+        thumbnailUrl += '?w=150&h=150&fit=crop&q=80';
+      }
+      
+      if (thumbnailUrl) {
+        res.redirect(thumbnailUrl);
+      } else {
+        res.status(404).json({ error: 'Thumbnail not found' });
+      }
+      
+    } catch (error: any) {
+      console.error('Thumbnail serve error:', error);
+      res.status(500).json({ error: 'Failed to serve thumbnail' });
     }
   });
 

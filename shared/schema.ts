@@ -38,15 +38,28 @@ export const images = pgTable('images', {
   height: integer('height'),
   isPublic: boolean('is_public').default(true),
   tags: jsonb('tags').default([]),
+  // Storage details (kept private)
   backblazeFileId: varchar('backblaze_file_id', { length: 255 }),
   backblazeFileName: varchar('backblaze_file_name', { length: 255 }),
-  cdnUrl: text('cdn_url'),
+  backblazeBucketName: varchar('backblaze_bucket_name', { length: 255 }),
+  // Public URLs (domain-aware)
+  publicUrl: text('public_url'), // Clean URL without bucket details
+  cdnUrl: text('cdn_url'), // CDN-optimized URL
+  thumbnailUrl: text('thumbnail_url'), // Thumbnail version
   folder: varchar('folder', { length: 500 }),
   altText: text('alt_text'),
   views: integer('views').default(0),
-  downloadCount: integer('download_count').default(0),
+  downloads: integer('downloads').default(0),
+  uniqueViews: integer('unique_views').default(0),
+  // Enhanced metadata
+  metadata: jsonb('metadata').default({}), // EXIF, camera data, etc.
+  uploadSource: varchar('upload_source', { length: 50 }).default('web'), // web, api, mobile
+  uploadIp: varchar('upload_ip', { length: 45 }),
+  processingStatus: varchar('processing_status', { length: 20 }).default('completed'),
   // CDN optimization parameters
   cdnOptions: jsonb('cdn_options').default({}),
+  // Custom domain support
+  customDomainId: uuid('custom_domain_id').references(() => customDomains.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });
@@ -157,9 +170,14 @@ export const customDomains = pgTable('custom_domains', {
   id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   domain: varchar('domain', { length: 255 }).unique().notNull(),
+  subdomain: varchar('subdomain', { length: 100 }), // For subdomain.domain.com setup
   isVerified: boolean('is_verified').default(false),
   sslEnabled: boolean('ssl_enabled').default(false),
+  cnameTarget: varchar('cname_target', { length: 255 }), // What CNAME should point to
+  verificationToken: varchar('verification_token', { length: 100 }),
   verifiedAt: timestamp('verified_at'),
+  lastChecked: timestamp('last_checked'),
+  status: varchar('status', { length: 20 }).default('pending'), // pending, active, failed
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 });

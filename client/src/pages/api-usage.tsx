@@ -50,9 +50,10 @@ interface UsageStats {
 }
 
 export default function ApiUsage() {
-  const { data: usage, isLoading, error } = useQuery({
-    queryKey: ["/api/v1/analytics/usage"],
-    queryFn: () => apiRequest('GET', '/api/v1/analytics/usage'),
+  const { data: usage, isLoading, error, refetch } = useQuery({
+    queryKey: ["/api/v1/usage"],
+    retry: 3,
+    staleTime: 30000,
   });
 
   const formatBytes = (bytes: number) => {
@@ -123,6 +124,12 @@ export default function ApiUsage() {
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
               Error Loading Usage Data
             </h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Failed to load API usage statistics. Please try again.
+            </p>
+            <Button onClick={() => refetch()} className="bg-blue-600 hover:bg-blue-700 text-white">
+              Retry
+            </Button>
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               Failed to load API usage statistics. Please try again.
             </p>

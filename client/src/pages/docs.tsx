@@ -529,6 +529,7 @@ Form Data:
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
     </SidebarContentLoader>
   );

@@ -233,7 +233,7 @@ export function NotificationManagement() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-4">Loading notifications...</div>
-          ) : notifications.length === 0 ? (
+          ) : !Array.isArray(notifications) || notifications.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No notifications created yet</p>
@@ -283,5 +283,17 @@ export function NotificationManagement() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Simple NotificationBell component for the header
+export function NotificationBell() {
+  return (
+    <Button variant="ghost" size="sm" className="relative">
+      <Bell className="w-5 h-5" />
+      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+        3
+      </span>
+    </Button>
   );
 }

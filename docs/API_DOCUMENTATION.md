@@ -2,7 +2,7 @@
 # ImageVault API Documentation
 
 ## Overview
-ImageVault provides a comprehensive RESTful API for image hosting, optimization, and CDN delivery. The API is designed for developers and businesses who need reliable, scalable image hosting with advanced optimization features.
+ImageVault provides a comprehensive RESTful API for image hosting, optimization, and management. The API is designed for developers and businesses who need reliable, scalable image hosting with advanced features.
 
 ## Base URL
 ```
@@ -11,7 +11,7 @@ Development: http://0.0.0.0:5000/api/v1
 ```
 
 ## Authentication
-All API requests require authentication using Bearer tokens. Include your API key in the Authorization header:
+All protected API requests require authentication using Bearer tokens. Include your API key in the Authorization header:
 
 ```bash
 Authorization: Bearer YOUR_API_KEY
@@ -22,87 +22,101 @@ Authorization: Bearer YOUR_API_KEY
 2. Navigate to Settings > API Keys
 3. Generate a new API key with appropriate permissions
 
-## Endpoints
+## Authentication Endpoints
+
+### Register User
+**Endpoint:** `POST /auth/register`
+
+**Body Parameters:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "securepassword123"
+}
+```
+
+**Response:**
+```json
+{
+  "user": {
+    "id": "user_123",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "plan": "free",
+    "createdAt": "2024-01-15T14:32:15.000Z"
+  },
+  "token": "jwt_token_here"
+}
+```
+
+### Login User
+**Endpoint:** `POST /auth/login`
+
+**Body Parameters:**
+```json
+{
+  "email": "john@example.com",
+  "password": "securepassword123"
+}
+```
+
+### Logout User
+**Endpoint:** `POST /auth/logout`
+
+### Forgot Password
+**Endpoint:** `POST /auth/forgot-password`
+
+**Body Parameters:**
+```json
+{
+  "email": "john@example.com"
+}
+```
+
+### Reset Password
+**Endpoint:** `POST /auth/reset-password`
+
+**Body Parameters:**
+```json
+{
+  "token": "reset_token_from_email",
+  "password": "newpassword123"
+}
+```
+
+## Image Management Endpoints
 
 ### Upload Image
-Upload and optimize images with comprehensive CDN parameters and premium features.
+Upload and process images with comprehensive options.
 
 **Endpoint:** `POST /images/upload`
 
 **Content-Type:** `multipart/form-data`
 
-#### Basic Parameters
+#### Parameters
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `image` | File | Yes | Image file (JPEG, PNG, WebP, AVIF, TIFF, BMP) |
+| `customFilename` | String | No | Custom filename for the image |
 | `title` | String | No | Image title for organization |
 | `description` | String | No | Detailed image description |
 | `altText` | String | No | Alt text for accessibility |
 | `tags` | String | No | Comma-separated tags for categorization |
 | `folder` | String | No | Folder/category organization |
 | `isPublic` | Boolean | No | Make image publicly accessible (default: true) |
-
-#### CDN Optimization Parameters
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `quality` | Integer | 85 | Image quality (1-100) |
-| `format` | String | auto | Output format (auto, webp, avif, jpeg, png) |
-| `width` | Integer | - | Resize width in pixels |
-| `height` | Integer | - | Resize height in pixels |
-| `fit` | String | cover | Resize mode (cover, contain, fill, inside, outside) |
-| `position` | String | center | Crop position (center, top, bottom, left, right, top-left, top-right, bottom-left, bottom-right) |
-| `blur` | Integer | 0 | Blur radius (0-50px) |
-| `sharpen` | Boolean | false | Enable image sharpening |
-| `brightness` | Float | 1.0 | Brightness multiplier (0.0-2.0) |
-| `contrast` | Float | 1.0 | Contrast multiplier (0.0-2.0) |
-| `saturation` | Float | 1.0 | Saturation multiplier (0.0-2.0) |
-| `progressive` | Boolean | true | Enable progressive JPEG |
-| `stripMetadata` | Boolean | true | Remove EXIF metadata |
-| `cacheTtl` | Integer | 31536000 | Cache TTL in seconds |
-
-#### Premium Parameters (Requires Payment)
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `watermark` | Boolean | false | Add watermark to image |
-| `watermarkText` | String | - | Watermark text content |
-| `watermarkOpacity` | Integer | 50 | Watermark opacity (10-100) |
-| `watermarkPosition` | String | bottom-right | Watermark position |
-| `autoBackup` | Boolean | false | Enable automatic backup |
-| `encryption` | Boolean | false | End-to-end encryption |
-| `expiryDate` | String | - | Image expiry date (ISO format) |
-| `downloadLimit` | Integer | - | Maximum download count |
-| `geoRestriction` | String | - | Country codes (US,CA,IN) |
-
-#### Security & Access Control
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `accessLevel` | String | public | Access level (public, private, restricted) |
-| `password` | String | - | Password protection for image |
-| `allowedDomains` | String | - | Comma-separated allowed domains |
-| `hotlinkProtection` | Boolean | false | Enable hotlink protection |
-| `viewTracking` | Boolean | true | Track image views and analytics |
+| `override` | Boolean | No | Override existing file with same name |
 
 #### Example Request
 ```bash
-curl -X POST https://your-domain.replit.app/api/v1/images/upload \
+curl -X POST http://0.0.0.0:5000/api/v1/images/upload \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -F "image=@/path/to/image.jpg" \
+  -F "customFilename=my-product-image" \
   -F "title=Professional Product Photo" \
   -F "description=High-quality product showcase image" \
-  -F "altText=Professional product photo on white background" \
-  -F "tags=product,hero,marketing,professional" \
   -F "folder=products/2024" \
-  -F "quality=95" \
-  -F "format=webp" \
-  -F "width=1920" \
-  -F "height=1080" \
-  -F "fit=cover" \
-  -F "progressive=true" \
-  -F "watermark=true" \
-  -F "watermarkText=© Your Brand 2024" \
-  -F "watermarkOpacity=30" \
-  -F "encryption=true" \
-  -F "viewTracking=true"
+  -F "isPublic=true"
 ```
 
 #### Response
@@ -111,52 +125,31 @@ curl -X POST https://your-domain.replit.app/api/v1/images/upload \
   "success": true,
   "image": {
     "id": "123e4567-e89b-12d3-a456-426614174000",
-    "filename": "a1b2c3d4-professional-product.webp",
+    "filename": "my-product-image.jpg",
     "originalFilename": "product.jpg",
+    "customFilename": "my-product-image",
     "title": "Professional Product Photo",
     "description": "High-quality product showcase image",
-    "altText": "Professional product photo on white background",
-    "mimeType": "image/webp",
+    "mimeType": "image/jpeg",
     "size": 245760,
     "width": 1920,
     "height": 1080,
     "isPublic": true,
-    "tags": ["product", "hero", "marketing", "professional"],
     "folder": "products/2024",
-    "cdnUrl": "https://f005.backblazeb2.com/file/bucket/a1b2c3d4-professional-product.webp",
-    "thumbnailUrl": "https://f005.backblazeb2.com/file/bucket/thumb_a1b2c3d4-professional-product.webp",
+    "url": "https://yourdomain.com/my-product-image.jpg",
+    "cdnUrl": "https://f005.backblazeb2.com/file/bucket/my-product-image.jpg",
+    "thumbnailUrl": "https://yourdomain.com/thumb_my-product-image.jpg",
     "views": 0,
     "downloads": 0,
-    "encrypted": true,
-    "watermarked": true,
-    "cdnOptions": {
-      "quality": 95,
-      "format": "webp",
-      "width": 1920,
-      "height": 1080,
-      "fit": "cover",
-      "progressive": true,
-      "watermark": true
-    },
-    "analytics": {
-      "uploadTime": "2024-01-15T14:32:15.000Z",
-      "processingTime": 1250,
-      "compressionRatio": 0.65
-    },
     "createdAt": "2024-01-15T14:32:15.000Z",
-    "updatedAt": "2024-01-15T14:32:15.000Z",
-    "expiresAt": null
+    "updatedAt": "2024-01-15T14:32:15.000Z"
   },
-  "message": "Image uploaded and processed successfully",
-  "processingTime": 1250,
-  "originalSize": 1024000,
-  "optimizedSize": 245760,
-  "compressionRatio": 0.76
+  "message": "Image uploaded successfully"
 }
 ```
 
 ### List Images
-Retrieve your uploaded images with advanced filtering and pagination.
+Retrieve your uploaded images with filtering and pagination.
 
 **Endpoint:** `GET /images`
 
@@ -166,97 +159,195 @@ Retrieve your uploaded images with advanced filtering and pagination.
 | `page` | Integer | Page number (default: 1) |
 | `limit` | Integer | Results per page (default: 20, max: 100) |
 | `folder` | String | Filter by folder path |
-| `tags` | String | Comma-separated tags to filter |
 | `search` | String | Search in title, description, and filename |
-| `format` | String | Filter by image format |
 | `sortBy` | String | Sort field (createdAt, size, views, title) |
 | `sortOrder` | String | Sort direction (asc, desc) |
-| `dateFrom` | String | Filter from date (ISO format) |
-| `dateTo` | String | Filter to date (ISO format) |
-| `minSize` | Integer | Minimum file size in bytes |
-| `maxSize` | Integer | Maximum file size in bytes |
-| `encrypted` | Boolean | Filter encrypted images only |
-| `public` | Boolean | Filter public/private images |
 
 #### Example Request
 ```bash
-curl -X GET "https://your-domain.replit.app/api/v1/images?page=1&limit=20&tags=product,hero&sortBy=createdAt&sortOrder=desc" \
+curl -X GET "http://0.0.0.0:5000/api/v1/images?page=1&limit=20&folder=products&sortBy=createdAt&sortOrder=desc" \
   -H "Authorization: Bearer YOUR_API_KEY"
 ```
-
-### Image Analytics
-Get detailed analytics for your images.
-
-**Endpoint:** `GET /images/{imageId}/analytics`
 
 #### Response
 ```json
 {
-  "imageId": "123e4567-e89b-12d3-a456-426614174000",
-  "totalViews": 1247,
-  "totalDownloads": 89,
-  "uniqueViews": 892,
-  "viewsByCountry": {
-    "US": 456,
-    "IN": 234,
-    "CA": 123,
-    "UK": 89
-  },
-  "viewsByDevice": {
-    "desktop": 756,
-    "mobile": 401,
-    "tablet": 90
-  },
-  "bandwidth": {
-    "total": 156789123,
-    "thisMonth": 23456789
-  },
-  "topReferrers": [
-    "google.com",
-    "facebook.com",
-    "direct"
+  "images": [
+    {
+      "id": "123e4567-e89b-12d3-a456-426614174000",
+      "filename": "my-product-image.jpg",
+      "customFilename": "my-product-image",
+      "title": "Professional Product Photo",
+      "url": "https://yourdomain.com/my-product-image.jpg",
+      "thumbnailUrl": "https://yourdomain.com/thumb_my-product-image.jpg",
+      "size": 245760,
+      "folder": "products/2024",
+      "createdAt": "2024-01-15T14:32:15.000Z"
+    }
   ],
-  "averageLoadTime": 234,
-  "cacheHitRate": 94.5
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 150,
+    "pages": 8
+  }
 }
 ```
 
-### Payment Integration
+### Update Image
+**Endpoint:** `PUT /images/{imageId}`
 
-#### Create Payment
-**Endpoint:** `POST /payment/create`
-
+**Body Parameters:**
 ```json
 {
-  "provider": "payu|paypal|stripe",
-  "amount": 100,
-  "currency": "USD|INR",
-  "description": "Premium image upload",
+  "title": "Updated Title",
+  "description": "Updated description",
+  "folder": "new-folder",
+  "isPublic": false
+}
+```
+
+### Delete Image
+**Endpoint:** `DELETE /images/{imageId}`
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Image deleted successfully"
+}
+```
+
+## User Profile Endpoints
+
+### Get Profile
+**Endpoint:** `GET /user/profile`
+
+### Update Profile
+**Endpoint:** `PUT /user/profile`
+
+**Body Parameters:**
+```json
+{
+  "name": "Updated Name",
+  "email": "newemail@example.com",
+  "bio": "Updated bio"
+}
+```
+
+### Change Password
+**Endpoint:** `POST /user/change-password`
+
+**Body Parameters:**
+```json
+{
+  "currentPassword": "oldpassword",
+  "newPassword": "newpassword123"
+}
+```
+
+## Collections Endpoints
+
+### Create Collection
+**Endpoint:** `POST /collections`
+
+**Body Parameters:**
+```json
+{
+  "name": "My Collection",
+  "description": "Collection description",
+  "isPublic": true
+}
+```
+
+### List Collections
+**Endpoint:** `GET /collections`
+
+### Delete Collection
+**Endpoint:** `DELETE /collections/{collectionId}`
+
+## API Keys Endpoints
+
+### Create API Key
+**Endpoint:** `POST /api-keys`
+
+**Body Parameters:**
+```json
+{
+  "name": "My API Key",
+  "permissions": ["read", "write", "delete"]
+}
+```
+
+### List API Keys
+**Endpoint:** `GET /api-keys`
+
+### Delete API Key
+**Endpoint:** `DELETE /api-keys/{keyId}`
+
+## Payment Endpoints
+
+### Get Plans
+**Endpoint:** `GET /payment/plans`
+
+### Create Payment
+**Endpoint:** `POST /payment/create`
+
+**Body Parameters:**
+```json
+{
+  "planId": "pro",
+  "provider": "payu|paypal",
   "returnUrl": "https://your-site.com/success",
   "cancelUrl": "https://your-site.com/cancel"
 }
 ```
 
-#### Verify Payment
+### Verify Payment
 **Endpoint:** `POST /payment/verify`
 
+**Body Parameters:**
 ```json
 {
   "paymentId": "payment_123",
-  "provider": "payu|paypal|stripe",
+  "provider": "payu|paypal",
   "transactionId": "txn_456"
 }
 ```
 
-### Rate Limits & Quotas
-| Plan | Requests/Hour | Storage | Bandwidth | Premium Features |
-|------|---------------|---------|-----------|------------------|
-| Free | 100 | 1GB | 10GB/month | No |
-| Starter | 1,000 | 10GB | 100GB/month | Limited |
-| Pro | 10,000 | 100GB | 1TB/month | Yes |
-| Enterprise | Unlimited | Unlimited | Unlimited | Yes |
+## Admin Endpoints (Admin Only)
 
-### Error Responses
+### Get System Stats
+**Endpoint:** `GET /admin/stats`
+
+### Manage Users
+**Endpoint:** `GET /admin/users`
+
+### Update Settings
+**Endpoint:** `POST /admin/settings`
+
+**Body Parameters:**
+```json
+{
+  "settingKey": "max_upload_size",
+  "value": "10MB"
+}
+```
+
+### Manage Notifications
+**Endpoint:** `POST /admin/notifications`
+
+**Body Parameters:**
+```json
+{
+  "title": "System Maintenance",
+  "message": "Scheduled maintenance tonight",
+  "type": "info",
+  "targetUsers": "all"
+}
+```
+
+## Error Responses
 All errors follow a consistent format:
 
 ```json
@@ -266,8 +357,7 @@ All errors follow a consistent format:
   "details": {
     "field": "Additional error details"
   },
-  "timestamp": "2024-01-15T14:32:15.000Z",
-  "requestId": "req_123456789"
+  "timestamp": "2024-01-15T14:32:15.000Z"
 }
 ```
 
@@ -281,146 +371,52 @@ All errors follow a consistent format:
 - `422` - Validation Error (parameter validation failed)
 - `429` - Rate Limit Exceeded
 - `500` - Internal Server Error
-- `503` - Service Unavailable
 
-### Payment Error Codes
-- `PAYMENT_REQUIRED` - Premium feature requires payment
-- `PAYMENT_FAILED` - Payment processing failed
-- `INVALID_PAYMENT` - Invalid payment details
-- `PAYMENT_CANCELLED` - Payment was cancelled by user
+## Rate Limits & Quotas
+| Plan | Requests/Hour | Storage | Features |
+|------|---------------|---------|----------|
+| Free | 100 | 1GB | Basic upload |
+| Starter | 1,000 | 10GB | API access |
+| Pro | 10,000 | 100GB | Premium features |
+| Enterprise | Unlimited | Unlimited | All features |
+
+## Custom Domain Support
+When custom domains are configured, image URLs will use your domain instead of the default CDN URL:
+
+```
+With custom domain: https://yourdomain.com/filename.jpg
+Without custom domain: https://f005.backblazeb2.com/file/bucket/filename.jpg
+```
 
 ## Best Practices
 
-### Optimization for Web Performance
-```bash
-# For web thumbnails (fast loading)
--F "width=400" -F "height=300" -F "quality=80" -F "format=webp" -F "progressive=true"
+### Security
+- Keep your API keys secure and rotate them regularly
+- Use HTTPS for all API requests
+- Validate file types on the client side
+- Implement proper error handling
 
-# For hero images (balanced quality/size)
--F "width=1920" -F "height=1080" -F "quality=85" -F "format=auto" -F "progressive=true"
+### Performance
+- Use appropriate file sizes for your use case
+- Implement pagination for large datasets
+- Cache responses when appropriate
+- Use CDN URLs for faster image delivery
 
-# For product galleries (high quality)
--F "width=800" -F "height=600" -F "quality=90" -F "stripMetadata=true"
-
-# For mobile optimization
--F "width=800" -F "format=webp" -F "quality=75" -F "progressive=true"
-```
-
-### SEO Optimization
-```bash
-# Always include descriptive metadata
--F "title=Professional Business Headshot - John Doe CEO" \
--F "altText=Professional headshot of John Doe, CEO, wearing business suit against white background" \
--F "description=High-quality professional headshot for corporate website and marketing materials" \
--F "tags=headshot,professional,business,corporate,ceo"
-```
-
-### Security Best Practices
-```bash
-# For sensitive content
--F "encryption=true" -F "accessLevel=private" -F "downloadLimit=10" -F "expiryDate=2024-12-31"
-
-# For brand protection
--F "watermark=true" -F "watermarkText=© Your Brand 2024" -F "hotlinkProtection=true"
-
-# For geo-restricted content
--F "geoRestriction=US,CA,UK" -F "allowedDomains=yourdomain.com,partner.com"
-```
-
-### Performance Optimization
-- Use `format=auto` for automatic format selection based on browser support
-- Enable `progressive=true` for faster perceived loading
-- Set appropriate `cacheTtl` based on content update frequency
-- Use `stripMetadata=true` to reduce file size
-- Implement responsive images with different sizes for different viewports
-
-## SDKs and Integration
-
-### JavaScript/Node.js
-```javascript
-const ImageVault = require('@imagevault/sdk');
-
-const client = new ImageVault({
-  apiKey: 'YOUR_API_KEY',
-  baseUrl: 'https://your-domain.replit.app/api/v1'
-});
-
-// Upload with advanced options
-const result = await client.upload({
-  file: imageFile,
-  title: 'Product Image',
-  quality: 90,
-  format: 'webp',
-  watermark: true,
-  encryption: true
-});
-```
-
-### Python
-```python
-from imagevault import ImageVaultClient
-
-client = ImageVaultClient(api_key='YOUR_API_KEY')
-
-result = client.upload(
-    file_path='image.jpg',
-    title='Product Image',
-    quality=90,
-    format='webp',
-    watermark=True,
-    encryption=True
-)
-```
-
-### cURL Examples
-```bash
-# Basic upload
-curl -X POST https://your-domain.replit.app/api/v1/images/upload \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "image=@image.jpg" \
-  -F "title=My Image"
-
-# Advanced upload with optimization
-curl -X POST https://your-domain.replit.app/api/v1/images/upload \
-  -H "Authorization: Bearer YOUR_API_KEY" \
-  -F "image=@image.jpg" \
-  -F "quality=90" \
-  -F "format=webp" \
-  -F "width=1200" \
-  -F "watermark=true" \
-  -F "encryption=true"
-```
-
-## Webhooks
-Configure webhooks to receive real-time notifications:
-
-### Supported Events
-- `image.uploaded` - New image uploaded
-- `image.processed` - Image processing completed
-- `image.deleted` - Image deleted
-- `image.viewed` - Image viewed (if tracking enabled)
-- `payment.completed` - Payment successful
-- `payment.failed` - Payment failed
-- `quota.warning` - Approaching usage limits
-- `quota.exceeded` - Usage limits exceeded
-
-### Webhook Payload Example
-```json
-{
-  "event": "image.uploaded",
-  "timestamp": "2024-01-15T14:32:15.000Z",
-  "data": {
-    "imageId": "123e4567-e89b-12d3-a456-426614174000",
-    "userId": "user_123",
-    "filename": "product.jpg",
-    "size": 245760,
-    "cdnUrl": "https://cdn.example.com/image.webp"
-  }
-}
-```
+### Organization
+- Use consistent folder structures
+- Add descriptive titles and alt text
+- Use tags for better searchability
+- Implement proper filename conventions
 
 ## Support and Resources
-- API Status Page: https://status.imagevault.com
-- Developer Forum: https://forum.imagevault.com
-- GitHub Issues: https://github.com/imagevault/api-issues
-- Email Support: api-support@imagevault.com
+- API Status: Check admin dashboard
+- Documentation: /docs endpoint
+- Support: Contact through admin panel
+- GitHub: Report issues and feature requests
+
+## Version History
+- **v1.0.0** - Initial API release
+- Core image management functionality
+- Authentication and user management
+- Payment integration
+- Custom domain support

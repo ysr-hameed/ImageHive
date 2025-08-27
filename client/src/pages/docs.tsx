@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,10 +23,24 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Import Prism for syntax highlighting
+import Prism from 'prismjs';
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-typescript';
+
 export default function Docs() {
   const [searchQuery, setSearchQuery] = useState("");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Initialize Prism syntax highlighting
+  useEffect(() => {
+    Prism.highlightAll();
+  }, []);
+
 
   const copyToClipboard = (code: string, id: string) => {
     navigator.clipboard.writeText(code);
@@ -57,7 +70,7 @@ export default function Docs() {
         </Button>
       </div>
       <pre className="bg-gray-50 dark:bg-slate-900 p-4 rounded-b-lg overflow-x-auto text-sm">
-        <code className="text-gray-800 dark:text-gray-200">{code}</code>
+        <code className={`language-${language}`}>{code}</code>
       </pre>
     </div>
   );
@@ -579,22 +592,22 @@ X-RateLimit-Reset: 1640995200`}
 <body>
     <input type="file" id="fileInput" accept="image/*">
     <button onclick="uploadImage()">Upload</button>
-    
+
     <div id="result"></div>
 
     <script>
     async function uploadImage() {
         const fileInput = document.getElementById('fileInput');
         const resultDiv = document.getElementById('result');
-        
+
         if (!fileInput.files[0]) {
             alert('Please select a file');
             return;
         }
-        
+
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
-        
+
         try {
             const response = await fetch('https://api.imagevault.io/v1/upload', {
                 method: 'POST',
@@ -603,9 +616,9 @@ X-RateLimit-Reset: 1640995200`}
                 },
                 body: formData
             });
-            
+
             const result = await response.json();
-            
+
             if (result.success) {
                 resultDiv.innerHTML = \`
                     <h3>Upload Successful!</h3>
@@ -643,7 +656,7 @@ X-RateLimit-Reset: 1640995200`}
         this.container = document.getElementById(containerId);
         this.baseUrl = 'https://api.imagevault.io/v1';
     }
-    
+
     async loadImages(page = 1, limit = 12) {
         try {
             const response = await fetch(\`\${this.baseUrl}/images?page=\${page}&limit=\${limit}\`, {
@@ -651,17 +664,17 @@ X-RateLimit-Reset: 1640995200`}
                     'Authorization': \`Bearer \${this.apiKey}\`
                 }
             });
-            
+
             const data = await response.json();
             this.renderImages(data.images);
         } catch (error) {
             console.error('Failed to load images:', error);
         }
     }
-    
+
     renderImages(images) {
         this.container.innerHTML = '';
-        
+
         images.forEach(image => {
             const imageElement = document.createElement('div');
             imageElement.className = 'gallery-item';
@@ -671,11 +684,11 @@ X-RateLimit-Reset: 1640995200`}
                 <h4>\${image.title}</h4>
                 <p>\${image.description}</p>
             \`;
-            
+
             this.container.appendChild(imageElement);
         });
     }
-    
+
     openImage(url) {
         window.open(url, '_blank');
     }

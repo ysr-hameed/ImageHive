@@ -1,36 +1,41 @@
 
 # ImageVault - Professional Image Management Platform
 
-A full-stack image management platform built with React, TypeScript, Express.js, and PostgreSQL. Features include image upload, processing, organization, user authentication, admin panel, and microservices architecture.
+A full-stack image management platform built with React, TypeScript, Express.js, and PostgreSQL. Features include image upload, processing, organization, user authentication, admin panel, and comprehensive API.
 
 ## 🚀 Features
 
 - **Modern Tech Stack**: React 18, TypeScript, Tailwind CSS, Express.js, PostgreSQL
-- **Microservices Architecture**: Separate services for auth, uploads, images, and admin
-- **Advanced Image Processing**: Upload, resize, optimize, and transform images
-- **User Authentication**: JWT-based auth with OAuth (Google, GitHub)
-- **Admin Dashboard**: User management, system monitoring, analytics
-- **Real-time Notifications**: In-app and email notifications
+- **Advanced Image Processing**: Upload, resize, optimize, and transform images with Sharp
+- **User Authentication**: JWT-based auth with secure session management
+- **Admin Dashboard**: User management, system monitoring, analytics, and settings
+- **Real-time Notifications**: In-app notification system
 - **API-First Design**: RESTful APIs with comprehensive documentation
-- **Cloud Storage**: Backblaze B2 integration for scalable storage
+- **Cloud Storage**: Backblaze B2 integration for scalable storage with custom domain support
 - **Responsive Design**: Mobile-first responsive UI with dark mode
+- **Payment Integration**: PayU, PayPal payment processing for premium features
+- **Custom Domains**: Support for user custom domains with CNAME setup
+- **Advanced Upload**: Filename customization, folder organization, metadata handling
 
 ## 🏗️ Architecture
 
-### Microservices
-- **Gateway Server** (Port 5000): Main entry point and frontend serving
-- **Auth Server** (Port 5001): Authentication and user management
-- **Upload Server** (Port 5002): File upload and processing
-- **Images Server** (Port 5003): Image metadata and retrieval
-- **Admin Server** (Port 5004): Admin panel and system management
+### Single Application with Multiple Services
+- **Main Server** (Port 5000): Complete application with all features integrated
+- Authentication and user management
+- File upload and processing
+- Image metadata and retrieval
+- Admin panel and system management
+- Payment processing
 
 ### Database Schema
-- Users with role-based access control
-- Images with metadata and transformations
-- Folders for organization
+- Users with role-based access control and plan management
+- Images with metadata, custom filenames, and folder organization
+- API keys with scoped permissions
+- Collections for image organization
 - Notifications system
-- System logs and analytics
-- Email campaigns and tracking
+- System settings and configurations
+- Activity logs and analytics
+- Payment transactions and billing
 
 ## 🛠️ Local Development Setup
 
@@ -48,14 +53,9 @@ DATABASE_URL="postgresql://username:password@localhost:5432/imagevault"
 
 # Authentication
 JWT_SECRET="your-super-secret-jwt-key-change-in-production"
+SESSION_SECRET="your-session-secret-key"
 
-# OAuth (Optional)
-GOOGLE_CLIENT_ID="your-google-client-id"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-GITHUB_CLIENT_ID="your-github-client-id"
-GITHUB_CLIENT_SECRET="your-github-client-secret"
-
-# Backblaze B2 Storage (Optional)
+# Backblaze B2 Storage
 BACKBLAZE_APPLICATION_KEY_ID="your-key-id"
 BACKBLAZE_APPLICATION_KEY="your-application-key"
 BACKBLAZE_BUCKET_ID="your-bucket-id"
@@ -67,22 +67,23 @@ SMTP_PORT="587"
 SMTP_USER="your-email@gmail.com"
 SMTP_PASS="your-app-password"
 
-# Service Ports
-PORT="5000"
-AUTH_PORT="5001"
-UPLOAD_PORT="5002"
-IMAGES_PORT="5003"
-ADMIN_PORT="5004"
+# Payment Processing
+PAYU_MERCHANT_KEY="your-payu-merchant-key"
+PAYU_SALT="your-payu-salt"
+PAYPAL_CLIENT_ID="your-paypal-client-id"
+PAYPAL_CLIENT_SECRET="your-paypal-client-secret"
 
-# Environment
+# Application Settings
+PORT="5000"
 NODE_ENV="development"
-BASE_URL="http://localhost:5000"
+BASE_URL="http://0.0.0.0:5000"
+CUSTOM_DOMAIN_ENABLED="false"
+PLATFORM_DOMAIN="yourdomain.com"
 ```
 
 ### Installation
 
 1. **Fork or import the project** to your Replit account
-   - Or clone locally: `git clone <your-repo-url> && cd imagevault`
 
 2. **Install dependencies**
 ```bash
@@ -95,38 +96,14 @@ npm install
 npm run db:push
 ```
 
-4. **Start development servers**
-
-Run all services:
+4. **Start development server**
 ```bash
 npm run dev
 ```
 
-Or run individual services:
-```bash
-# Gateway + Frontend
-npm run gateway
-
-# Authentication service
-npm run auth-server
-
-# Upload service  
-npm run upload-server
-
-# Images service
-npm run images-server
-
-# Admin service
-npm run admin-server
-```
-
 5. **Access the application**
-- Frontend: http://localhost:5000
-- API Gateway: http://localhost:5000/api/v1
-- Auth Service: http://localhost:5001
-- Upload Service: http://localhost:5002
-- Images Service: http://localhost:5003
-- Admin Service: http://localhost:5004
+- Frontend: http://0.0.0.0:5000
+- API: http://0.0.0.0:5000/api/v1
 
 ## 📦 Production Deployment
 
@@ -139,27 +116,20 @@ npm run admin-server
    DATABASE_URL=postgresql://username:password@host:port/database
    JWT_SECRET=your-super-secure-jwt-secret-key
    SESSION_SECRET=your-session-secret-key
-   BACKBLAZE_KEY_ID=your-backblaze-key-id
+   BACKBLAZE_APPLICATION_KEY_ID=your-backblaze-key-id
    BACKBLAZE_APPLICATION_KEY=your-backblaze-application-key
    BACKBLAZE_BUCKET_ID=your-bucket-id
    BACKBLAZE_BUCKET_NAME=your-bucket-name
+   PAYU_MERCHANT_KEY=your-payu-merchant-key
+   PAYU_SALT=your-payu-salt
+   CUSTOM_DOMAIN_ENABLED=true
+   PLATFORM_DOMAIN=yourdomain.com
    ```
 
-3. **Choose your deployment strategy**:
-
-   **Option A: All Services Together (Recommended)**
-   - Use the "All Services" workflow (already configured)
-   - Click the Run button to start all microservices
-
-   **Option B: Individual Service Deployment**
-   - Create separate Replit projects for each service
-   - Deploy gateway, auth, upload, images, and admin servers separately
-   - Update service URLs in environment variables
-
-4. **Deploy** using Replit's deployment feature:
+3. **Deploy** using Replit's deployment feature:
    - Go to the Deployments tab
    - Click "Create deployment" 
-   - Choose Autoscale deployment for microservices
+   - Choose Autoscale deployment
    - Configure custom domain if needed
 
 ### Build Commands
@@ -175,33 +145,11 @@ npm start
 npm run build && npm start
 ```
 
-### Production Environment Setup
-
-1. **Database**: Use a managed PostgreSQL service
-   - Replit PostgreSQL (recommended)
-   - Neon, Supabase, or AWS RDS
-
-2. **Environment Variables**:
-   - Set `NODE_ENV=production`
-   - Use strong JWT secrets
-   - Configure OAuth applications with production URLs
-   - Set up Backblaze B2 for file storage
-
-3. **Domain Configuration**:
-   - Update `BASE_URL` to your production domain
-   - Configure OAuth redirect URLs
-   - Set up CORS origins
-
 ## 🔧 Available Scripts
 
 ```bash
 # Development
-npm run dev              # Start all services in development
-npm run gateway          # Gateway server only
-npm run auth-server      # Auth service only
-npm run upload-server    # Upload service only
-npm run images-server    # Images service only
-npm run admin-server     # Admin service only
+npm run dev              # Start main application server
 
 # Production
 npm run build           # Build for production
@@ -225,51 +173,126 @@ npm audit              # Security audit
 │   │   ├── components/    # Reusable UI components
 │   │   ├── pages/         # Page components
 │   │   ├── hooks/         # Custom React hooks
-│   │   └── lib/          # Utilities and configs
+│   │   ├── lib/          # Utilities and configs
+│   │   └── api/          # API client functions
 │   └── index.html
 ├── server/                # Backend services
 │   ├── services/         # Business logic services
-│   ├── auth-server.ts    # Authentication service
-│   ├── upload-server.ts  # File upload service
-│   ├── images-server.ts  # Image management service
-│   ├── admin-server.ts   # Admin panel service
-│   ├── gateway.ts        # API gateway
 │   ├── routes.ts         # API routes
 │   ├── db.ts            # Database connection
-│   └── storage.ts       # Storage utilities
+│   ├── storage.ts       # Storage utilities
+│   ├── sitemap.ts       # SEO sitemap generation
+│   └── index.ts         # Main server entry point
 ├── shared/               # Shared types and schemas
 │   └── schema.ts        # Database schema
-├── package.json         # Dependencies and scripts
-├── drizzle.config.ts    # Database configuration
-└── README.md           # Documentation
+├── docs/                # Documentation
+│   ├── API_DOCUMENTATION.md
+│   └── SDK_DOCUMENTATION.md
+└── package.json         # Dependencies and scripts
 ```
 
 ## 🔑 API Documentation
 
-### Authentication Endpoints
+### Core Features Available
+
+#### Authentication
+- User registration and login
+- Email verification
+- Password reset
+- JWT-based session management
+
+#### Image Management
+- Upload with custom filenames and folders
+- Image optimization and processing
+- Metadata management
+- Custom domain support for URLs
+- Copy URL, download, and view details
+
+#### User Management
+- Profile management
+- Password change
+- Plan upgrades and billing
+- API key generation with permissions
+
+#### Admin Features
+- Real-time system monitoring
+- User management
+- Settings configuration (20+ settings)
+- Analytics and activity logs
+- Payment tracking
+
+### API Endpoints
+
+#### Authentication
 - `POST /api/v1/auth/register` - User registration
 - `POST /api/v1/auth/login` - User login
-- `GET /api/v1/auth/google` - Google OAuth
-- `GET /api/v1/auth/github` - GitHub OAuth
+- `POST /api/v1/auth/logout` - User logout
 - `POST /api/v1/auth/forgot-password` - Password reset request
+- `POST /api/v1/auth/reset-password` - Password reset
 - `GET /api/v1/auth/verify-email` - Email verification
 
-### Image Management
-- `POST /api/v1/images/upload` - Upload images
-- `GET /api/v1/images` - Get user images
+#### Images
+- `POST /api/v1/images/upload` - Upload images with processing options
+- `GET /api/v1/images` - Get user images with filtering
 - `DELETE /api/v1/images/:id` - Delete image
-- `GET /api/v1/public/images` - Get public images
+- `PUT /api/v1/images/:id` - Update image metadata
 
-### Admin Endpoints
+#### Collections
+- `POST /api/v1/collections` - Create collection
+- `GET /api/v1/collections` - Get user collections
+- `DELETE /api/v1/collections/:id` - Delete collection
+
+#### User Profile
+- `GET /api/v1/user/profile` - Get profile
+- `PUT /api/v1/user/profile` - Update profile
+- `POST /api/v1/user/change-password` - Change password
+
+#### API Keys
+- `POST /api/v1/api-keys` - Create API key
+- `GET /api/v1/api-keys` - Get user API keys
+- `DELETE /api/v1/api-keys/:id` - Delete API key
+
+#### Admin (Admin only)
 - `GET /api/v1/admin/stats` - System statistics
 - `GET /api/v1/admin/users` - User management
-- `GET /api/v1/admin/logs` - System logs
-- `GET /api/v1/admin/system-health` - Health monitoring
+- `POST /api/v1/admin/settings` - Update system settings
+- `GET /api/v1/admin/notifications` - Manage notifications
 
-## 🚦 Health Checks
+#### Payment
+- `POST /api/v1/payment/create` - Create payment
+- `POST /api/v1/payment/verify` - Verify payment
+- `GET /api/v1/payment/plans` - Get available plans
 
-- `GET /api/v1/health` - Basic health check
-- `GET /api/v1/status` - Detailed system status
+## 🎨 Features
+
+### Image Upload & Processing
+- Custom filename support
+- Folder organization
+- Multiple file upload
+- Image optimization with Sharp
+- Metadata preservation/stripping
+- Custom domain URL generation
+
+### User Experience
+- Responsive sidebar navigation
+- Dark/light mode
+- Real-time notifications
+- Advanced search and filtering
+- Pagination support
+
+### Admin Panel
+- System monitoring dashboard
+- User management
+- Settings management (20+ configurable settings)
+- Payment tracking
+- Analytics and reporting
+
+### Payment Integration
+- PayU payment gateway
+- PayPal integration
+- Plan management
+- Trial system
+- Billing history
 
 ## 🔒 Security Features
 
@@ -277,25 +300,33 @@ npm audit              # Security audit
 - Password hashing with bcryptjs
 - Input validation with Zod
 - CORS protection
-- Rate limiting ready
 - SQL injection protection
 - XSS protection
+- API rate limiting
+- Secure file upload validation
 
-## 🎨 UI Components
+## 📊 Current Status
 
-Built with shadcn/ui components:
-- Responsive design system
-- Dark/light mode support
-- Accessible components
-- Customizable themes
+### Working Features
+✅ User authentication and registration  
+✅ Image upload with custom filenames  
+✅ Image management (copy URL, download, view details)  
+✅ Collections and folder organization  
+✅ API key management  
+✅ Admin panel with real settings  
+✅ Payment integration (PayU, PayPal)  
+✅ Custom domain support  
+✅ Real-time notifications  
+✅ Profile and password management  
+✅ Plan management and trials  
+✅ Activity logging  
+✅ SEO optimization with sitemap  
+✅ Responsive design  
 
-## 📊 Monitoring
-
-- System health monitoring
-- User activity tracking
-- Error logging
-- Performance metrics
-- Email campaign tracking
+### Known Issues
+- Sitemap generation error (require issue in TypeScript module)
+- Some sidebar navigation styling needs improvement
+- Prism syntax highlighting setup needed for docs
 
 ## 🤝 Contributing
 
@@ -311,15 +342,15 @@ This project is licensed under the MIT License.
 
 ## 🆘 Support
 
-- Check the [GitHub Issues](https://github.com/your-repo/issues)
+- Check the GitHub Issues
 - Review the API documentation at `/docs`
-- Join our community discussions
+- Contact support through the admin panel
 
 ## 🔄 Version History
 
-- **v1.0.0** - Initial release with full microservices architecture
-- Features include image upload, user auth, admin panel, and cloud storage
+- **v1.0.0** - Initial release with complete image management platform
+- Features include image upload, user auth, admin panel, payment integration, and custom domains
 
 ---
 
-Built with ❤️ using modern web technologies
+Built with ❤️ using modern web technologies on Replit

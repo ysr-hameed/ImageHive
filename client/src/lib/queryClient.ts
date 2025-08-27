@@ -1,138 +1,70 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-// Assuming API_BASE_URL is defined elsewhere, e.g., in an environment variable or config file
-// const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || '/api/v1';
-// For the purpose of this example, let's define a placeholder:
 const API_BASE_URL = '/api/v1';
 
-
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    let errorMessage = res.statusText;
-    try {
-      const errorData = await res.json();
-      errorMessage = errorData.error || errorData.message || errorMessage;
-    } catch {
-      // If response is not JSON, use statusText
-      const text = await res.text();
-      errorMessage = text || errorMessage;
-    }
-    throw new Error(`${res.status}: ${errorMessage}`);
-  }
-}
-
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<any> {
+// Create a default query function
+const defaultQueryFn: QueryFunction = async ({ queryKey }) => {
+  const url = `${API_BASE_URL}${queryKey[0]}`;
   const token = localStorage.getItem('token');
 
-  // Ensure URL starts with API base URL if it's a relative path
-  const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url.startsWith('/api/v1') ? url.slice(7) : (url.startsWith('/') ? url : '/' + url)}`;
-
-  const config: RequestInit = {
-    method,
+  const response = await fetch(url, {
     headers: {
+      'Authorization': token ? `Bearer ${token}` : '',
       'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
     },
-    credentials: 'include',
-  };
+  });
 
-  if (data && method !== 'GET') {
-    config.body = JSON.stringify(data);
+  if (!response.ok) {
+    throw new Error(`Network response was not ok: ${response.status}`);
   }
 
-  const response = await fetch(fullUrl, config);
-
-  await throwIfResNotOk(response);
-
-  // Handle empty responses
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    return await response.json();
-  }
-
-  return null;
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    // Construct the URL using the queryKey, assuming it's an array of path segments.
-    // The queryKey might look like ['users', '123', 'profile'] which should become '/api/v1/users/123/profile'
-    // Or it could be ['api', 'v1', 'images'] which should become '/api/v1/images'
-    // We need to ensure it's correctly joined with the API_BASE_URL.
-
-    // If queryKey could be like ['users'], we need to ensure it becomes '/users' before joining with API_BASE_URL.
-    // A safer approach might be to always join the base URL correctly.
-    const path = queryKey.join("/");
-    let fullUrl = path;
-    if (!path.startsWith('http')) {
-      // Remove /api/v1 prefix if it exists since API_BASE_URL already includes it
-      const cleanPath = path.startsWith('/api/v1') ? path.slice(7) : path;
-      // Ensure the path starts with /
-      const finalPath = cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath;
-      fullUrl = `${API_BASE_URL}${finalPath}`;
-    }
-
-    try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(fullUrl, {
-        credentials: "include",
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-      });
-
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        return null;
-      }
-
-      await throwIfResNotOk(res);
-
-      // Handle empty responses
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        return await res.json();
-      }
-
-      return null;
-    } catch (error) {
-      console.error('Query Error:', error);
-      throw error;
-    }
-  };
+  return response.json();
+};
 
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
+      queryFn: defaultQueryFn,
       staleTime: 5 * 60 * 1000, // 5 minutes
-      retry: (failureCount, error) => {
-        // Don't retry on 401, 403, 404
-        if (error.message.includes('401') || error.message.includes('403') || error.message.includes('404')) {
-          return false;
-        }
-        return failureCount < 3;
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    },
-    mutations: {
-      retry: (failureCount, error) => {
-        // Don't retry mutations on client errors
-        if (error.message.includes('4')) {
-          return false;
-        }
-        return failureCount < 2;
-      },
+      retry: 1,
     },
   },
 });
+
+// Helper function for authenticated requests
+export const apiRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('token');
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+
+  const config: RequestInit = {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...options.headers,
+    },
+  };
+
+  const response = await fetch(url, config);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'Network error' }));
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
+
+// Helper to get query function with auth handling
+export const getQueryFn = (options: { on401?: "returnNull" | "throw" } = {}) => {
+  return async ({ queryKey }: { queryKey: readonly unknown[] }) => {
+    try {
+      return await apiRequest(queryKey[0] as string);
+    } catch (error: any) {
+      if (error.message.includes('401') && options.on401 === "returnNull") {
+        return null;
+      }
+      throw error;
+    }
+  };
+};

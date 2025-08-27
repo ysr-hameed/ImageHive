@@ -20,7 +20,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, login, loginWithGoogle, loginWithGitHub } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -36,25 +36,18 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await loginUser(formData.email, formData.password);
-      if (response.token) {
-        localStorage.setItem('token', response.token);
-        toast({
-          title: 'Welcome back!',
-          description: 'You have been signed in successfully.',
-        });
-        // Force a small delay to ensure token is set
-        setTimeout(() => {
-          setLocation('/dashboard');
-        }, 100);
-      } else {
-        throw new Error('No authentication token received');
-      }
+      await login(formData.email, formData.password);
+      toast({
+        title: 'Welcome back!',
+        description: 'You have been signed in successfully.',
+      });
+      // Force a small delay to ensure token is set
+      setTimeout(() => {
+        setLocation('/dashboard');
+      }, 100);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Sign in failed. Please try again.');
-      // Clear any existing invalid token
-      localStorage.removeItem('token');
     } finally {
       setIsLoading(false);
     }
@@ -62,8 +55,7 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      // Redirect to Google OAuth endpoint
-      window.location.href = '/api/v1/auth/google';
+      await loginWithGoogle();
     } catch (err: any) {
       toast({
         title: 'Google Sign In Failed',
@@ -75,8 +67,7 @@ export default function Login() {
 
   const handleGitHubLogin = async () => {
     try {
-      // Redirect to GitHub OAuth endpoint
-      window.location.href = '/api/v1/auth/github';
+      await loginWithGitHub();
     } catch (err: any) {
       toast({
         title: 'GitHub Sign In Failed',

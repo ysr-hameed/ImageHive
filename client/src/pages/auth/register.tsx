@@ -68,27 +68,14 @@ export default function Register() {
     }
 
     try {
-      const response = await fetch('/api/v1/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          acceptTerms: formData.acceptTerms,
-          subscribeNewsletter: formData.subscribeNewsletter,
-        }),
+      await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        acceptTerms: formData.acceptTerms,
+        subscribeNewsletter: formData.subscribeNewsletter,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed');
-      }
-
-      const result = await response.json();
       
       toast({
         title: 'Account created successfully!',
@@ -106,7 +93,6 @@ export default function Register() {
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
-      setLocation('/dashboard');
     } catch (err: any) {
       toast({
         title: 'Google Sign Up Failed',
@@ -119,7 +105,6 @@ export default function Register() {
   const handleGitHubLogin = async () => {
     try {
       await loginWithGitHub();
-      setLocation('/dashboard');
     } catch (err: any) {
       toast({
         title: 'GitHub Sign Up Failed',

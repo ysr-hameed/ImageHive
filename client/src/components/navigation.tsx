@@ -9,23 +9,29 @@ import { useAuth } from '@/hooks/useAuth';
 
 // Mocking auth state for demonstration purposes
 // In a real app, you would use a context or hook to get this state
-const isAuthenticated = true; // Change to false to test logged out state
-const user = { firstName: "Alex" }; // Example user object
+// const isAuthenticated = true; // Change to false to test logged out state
+// const user = { firstName: "Alex" }; // Example user object
 
-const handleLogout = () => {
-  console.log("Logging out...");
-  // Implement actual logout logic here
-};
-
-const navItems = [
-  { name: "Features", href: "#features", icon: Zap },
-  { name: "Security", href: "#security", icon: Shield },
-  { name: "API", href: "#api", icon: Globe },
-  { name: "Pricing", href: "#pricing", icon: Rocket },
-];
+// const handleLogout = () => {
+//   console.log("Logging out...");
+//   // Implement actual logout logic here
+// };
 
 export default function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = () => {
+    logout();
+  };
+
+  const navItems = [
+    { name: "Features", href: "/features", icon: Zap },
+    { name: "Pricing", href: "/plans", icon: Shield },
+    { name: "Docs", href: "/docs", icon: Globe },
+    { name: "About", href: "/about", icon: Rocket },
+  ];
+
 
   return (
     <header className="fixed top-0 w-full z-50 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-gray-200/20 dark:border-slate-700/20">
@@ -82,11 +88,9 @@ export default function Navigation() {
                     Sign In
                   </Button>
                 </Link>
-                <Link href="/auth/register">
-                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200">
-                    Get Started Free
-                  </Button>
-                </Link>
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                  Get Started Free
+                </Button>
               </div>
             )}
           </div>

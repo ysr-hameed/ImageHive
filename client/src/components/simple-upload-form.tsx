@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
@@ -13,17 +12,20 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Upload, X, ImageIcon, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { Slider } from '@/components/ui/slider';
+
 
 interface UploadOptions {
   title: string;
   description: string;
   privacy: 'public' | 'private';
   quality: number;
-  format: 'auto' | 'webp' | 'jpeg' | 'png';
+  format: 'auto' | 'jpeg' | 'png' | 'webp' | 'avif';
   width?: number;
   height?: number;
   progressive: boolean;
   watermark: boolean;
+  autoOptimize: boolean;
 }
 
 interface UploadedFile {
@@ -46,6 +48,7 @@ const SimpleUploadForm: React.FC = () => {
     format: 'auto',
     progressive: false,
     watermark: false,
+    autoOptimize: false,
   });
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -56,14 +59,14 @@ const SimpleUploadForm: React.FC = () => {
       status: 'pending' as const,
       progress: 0,
     }));
-    
+
     setFiles(prev => [...prev, ...newFiles]);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.bmp', '.tiff']
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.avif']
     },
     multiple: true,
     maxSize: 10 * 1024 * 1024, // 10MB
@@ -109,6 +112,7 @@ const SimpleUploadForm: React.FC = () => {
         if (uploadOptions.height) formData.append('height', uploadOptions.height.toString());
         formData.append('progressive', uploadOptions.progressive.toString());
         formData.append('watermark', uploadOptions.watermark.toString());
+        formData.append('autoOptimize', uploadOptions.autoOptimize.toString());
 
         const token = localStorage.getItem('token');
         const response = await fetch('/api/v1/images/upload', {
@@ -130,7 +134,8 @@ const SimpleUploadForm: React.FC = () => {
           );
           toast.success(`${fileData.file.name} uploaded successfully`);
         } else {
-          throw new Error('Upload failed');
+          const errorText = await response.text();
+          throw new Error(`Upload failed: ${errorText}`);
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Upload failed';
@@ -141,7 +146,7 @@ const SimpleUploadForm: React.FC = () => {
               : f
           )
         );
-        toast.error(`Failed to upload ${fileData.file.name}`);
+        toast.error(`Failed to upload ${fileData.file.name}: ${errorMessage}`);
       }
     }
   };
@@ -179,7 +184,7 @@ const SimpleUploadForm: React.FC = () => {
               <div>
                 <p className="text-lg mb-2">Drag & drop images here, or click to select</p>
                 <p className="text-sm text-gray-500">
-                  Supports: JPEG, PNG, GIF, WebP, BMP, TIFF (max 10MB each)
+                  Supports: JPEG, PNG, GIF, WebP, BMP, TIFF, AVIF (max 10MB each)
                 </p>
               </div>
             )}
@@ -194,7 +199,7 @@ const SimpleUploadForm: React.FC = () => {
                   Clear All
                 </Button>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {files.map((fileData) => (
                   <Card key={fileData.id} className="relative">
@@ -219,13 +224,13 @@ const SimpleUploadForm: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      
+
                       <div className="space-y-2">
                         <p className="text-sm font-medium truncate">{fileData.file.name}</p>
                         <p className="text-xs text-gray-500">
                           {(fileData.file.size / 1024 / 1024).toFixed(2)} MB
                         </p>
-                        
+
                         <Badge variant={
                           fileData.status === 'success' ? 'default' :
                           fileData.status === 'error' ? 'destructive' :
@@ -237,7 +242,7 @@ const SimpleUploadForm: React.FC = () => {
                         {fileData.status === 'uploading' && (
                           <Progress value={fileData.progress} className="w-full" />
                         )}
-                        
+
                         {fileData.error && (
                           <p className="text-xs text-red-500">{fileData.error}</p>
                         )}
@@ -298,57 +303,78 @@ const SimpleUploadForm: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="optimization" className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="quality">Quality ({uploadOptions.quality}%)</Label>
-                <input
-                  type="range"
-                  id="quality"
-                  min="10"
-                  max="100"
-                  step="5"
-                  value={uploadOptions.quality}
-                  onChange={(e) => setUploadOptions(prev => ({ ...prev, quality: parseInt(e.target.value) }))}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="format">Output Format</Label>
-                <Select 
-                  value={uploadOptions.format} 
-                  onValueChange={(value) => setUploadOptions(prev => ({ ...prev, format: value as any }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Auto</SelectItem>
-                    <SelectItem value="webp">WebP</SelectItem>
-                    <SelectItem value="jpeg">JPEG</SelectItem>
-                    <SelectItem value="png">PNG</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="width">Width (px)</Label>
-                  <Input
-                    id="width"
-                    type="number"
-                    value={uploadOptions.width || ''}
-                    onChange={(e) => setUploadOptions(prev => ({ ...prev, width: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    placeholder="Auto"
-                  />
+                  <Label htmlFor="format">Output Format</Label>
+                  <Select 
+                    value={uploadOptions.format} 
+                    onValueChange={(value) => setUploadOptions(prev => ({ ...prev, format: value as any }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">Auto (Keep Original)</SelectItem>
+                      <SelectItem value="jpeg">JPEG - Smaller size, good for photos</SelectItem>
+                      <SelectItem value="png">PNG - Lossless, supports transparency</SelectItem>
+                      <SelectItem value="webp">WebP - Modern, smaller size</SelectItem>
+                      <SelectItem value="avif">AVIF - Best compression</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="height">Height (px)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    value={uploadOptions.height || ''}
-                    onChange={(e) => setUploadOptions(prev => ({ ...prev, height: e.target.value ? parseInt(e.target.value) : undefined }))}
-                    placeholder="Auto"
+                  <Label htmlFor="quality">Quality ({uploadOptions.quality}%)</Label>
+                  <Slider
+                    id="quality"
+                    min={10}
+                    max={100}
+                    step={5}
+                    value={[uploadOptions.quality]}
+                    onValueChange={([value]) => setUploadOptions(prev => ({ ...prev, quality: value }))}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>Smaller file</span>
+                    <span>Better quality</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="resize">Resize (Optional)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Width (px)"
+                      type="number"
+                      min="1"
+                      max="8192"
+                      value={uploadOptions.width || ''}
+                      onChange={(e) => setUploadOptions(prev => ({ ...prev, width: parseInt(e.target.value) || undefined }))}
+                      className="flex-1"
+                    />
+                    <Input
+                      placeholder="Height (px)"
+                      type="number" 
+                      min="1"
+                      max="8192"
+                      value={uploadOptions.height || ''}
+                      onChange={(e) => setUploadOptions(prev => ({ ...prev, height: parseInt(e.target.value) || undefined }))}
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Leave empty to maintain aspect ratio</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Auto Optimization</Label>
+                    <div className="text-sm text-gray-500">
+                      Automatically optimize images for web delivery
+                    </div>
+                  </div>
+                  <Switch
+                    checked={uploadOptions.autoOptimize}
+                    onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, autoOptimize: checked }))}
                   />
                 </div>
               </div>
@@ -381,7 +407,7 @@ const SimpleUploadForm: React.FC = () => {
           <div className="flex gap-4">
             <Button 
               onClick={uploadFiles} 
-              disabled={files.length === 0 || files.every(f => f.status !== 'pending')}
+              disabled={files.length === 0 || files.some(f => f.status === 'uploading')}
               className="flex-1"
             >
               <Upload className="mr-2 h-4 w-4" />

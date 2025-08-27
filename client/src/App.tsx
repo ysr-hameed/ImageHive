@@ -46,6 +46,7 @@ import Contact from "./pages/contact";
 import SDKs from "./pages/sdks";
 import ApiDocs from "./pages/docs";
 import NotFound from "./pages/not-found";
+import Payment from "./pages/payment"; // Assuming Payment component exists
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -140,6 +141,7 @@ function AppContent() {
         <Route path="/contact" component={Contact} />
         <Route path="/sdks" component={SDKs} />
         <Route path="/plans" component={Plans} />
+        <Route path="/payment" component={Payment} />
         <Route path="/" component={LandingPage} />
         <Route component={NotFound} />
       </Switch>

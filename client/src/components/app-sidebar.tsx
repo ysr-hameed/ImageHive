@@ -12,10 +12,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -137,6 +135,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
   const [location] = useLocation();
   const { toast } = useToast();
+  const { state, open, setOpen } = useSidebar();
 
   const handleLogout = async () => {
     try {
@@ -173,6 +172,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar
       variant="inset"
       className="bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 fixed md:relative z-50 md:z-auto"
+      data-state={state}
     >
       <SidebarHeader className="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <div className="flex items-center gap-2 px-4 py-2">
@@ -183,6 +183,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <span className="truncate font-semibold">ImageHost Pro</span>
             <span className="truncate text-xs">Cloud Storage</span>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto h-8 w-8 md:hidden"
+            onClick={() => setOpen(!open)}
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
         </div>
       </SidebarHeader>
 

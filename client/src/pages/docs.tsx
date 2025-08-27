@@ -1,22 +1,54 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
-import { BookOpen, Code, Database, Upload, Shield, Zap, ArrowRight, ExternalLink, Copy, CheckCircle, Server, User, Activity } from "lucide-react";
-import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Copy, Search, Code, Book, Key, Upload, Server, Shield, Database, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export default function Docs() {
-  const { toast } = useToast();
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+// Import Prism for syntax highlighting
+import Prism from 'prismjs';
+import 'prismjs/themes/prism-tomorrow.css';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-php';
 
-  const copyToClipboard = (text: string, id: string) => {
+export default function ApiDocs() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    Prism.highlightAll();
+  }, []);
+
+  const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
-    setCopiedCode(id);
     toast({
-      title: "Copied to clipboard",
-      description: "Code snippet copied successfully!",
+      title: "Copied!",
+      description: "Code snippet copied to clipboard",
     });
-    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const CodeBlock = ({ code, language = 'javascript' }: { code: string; language?: string }) => {
+    return (
+      <div className="relative">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="absolute top-2 right-2 z-10"
+          onClick={() => copyToClipboard(code)}
+        >
+          <Copy className="w-4 h-4" />
+        </Button>
+        <pre className={`language-${language} rounded-lg p-4 overflow-x-auto`}>
+          <code className={`language-${language}`}>{code}</code>
+        </pre>
+      </div>
+    );
   };
 
   const sections = [
@@ -25,10 +57,20 @@ export default function Docs() {
       description: "API authentication and user management",
       icon: Shield,
       items: [
-        { name: "Login", href: "#login", description: "User authentication" },
-        { name: "Register", href: "#register", description: "Create new account" },
-        { name: "API Keys", href: "#api-keys", description: "Generate API keys" },
-        { name: "User Profile", href: "#user-profile", description: "Get user information" },
+        { 
+          name: "Get API Key", 
+          href: "#get-api-key", 
+          method: "POST",
+          endpoint: "/api/v1/auth/api-keys",
+          description: "Generate new API key" 
+        },
+        { 
+          name: "User Profile", 
+          href: "#user-profile", 
+          method: "GET",
+          endpoint: "/api/v1/auth/profile",
+          description: "Get user information" 
+        },
       ]
     },
     {
@@ -36,10 +78,34 @@ export default function Docs() {
       description: "Upload, manage and serve images",
       icon: Upload,
       items: [
-        { name: "Upload Images", href: "#upload", description: "Upload single or multiple images" },
-        { name: "Get Images", href: "#get-images", description: "Retrieve user images" },
-        { name: "Delete Images", href: "#delete-images", description: "Remove images" },
-        { name: "Image Analytics", href: "#analytics", description: "View image statistics" },
+        { 
+          name: "Upload Image", 
+          href: "#upload-image", 
+          method: "POST",
+          endpoint: "/api/v1/images/upload",
+          description: "Upload single or multiple images" 
+        },
+        { 
+          name: "Get Images", 
+          href: "#get-images", 
+          method: "GET",
+          endpoint: "/api/v1/images",
+          description: "Retrieve user images with filters" 
+        },
+        { 
+          name: "Delete Image", 
+          href: "#delete-image", 
+          method: "DELETE",
+          endpoint: "/api/v1/images/{id}",
+          description: "Remove specific image" 
+        },
+        { 
+          name: "Get Image Details", 
+          href: "#image-details", 
+          method: "GET",
+          endpoint: "/api/v1/images/{id}",
+          description: "Get detailed image information" 
+        },
       ]
     },
     {
@@ -47,607 +113,464 @@ export default function Docs() {
       description: "Manage custom CDN domains",
       icon: Server,
       items: [
-        { name: "Add Domain", href: "#add-domain", description: "Connect custom domains" },
-        { name: "Verify Domain", href: "#verify-domain", description: "Verify DNS configuration" },
-        { name: "List Domains", href: "#list-domains", description: "Get all domains" },
+        { 
+          name: "Add Domain", 
+          href: "#add-domain", 
+          method: "POST",
+          endpoint: "/api/v1/domains",
+          description: "Connect custom domains" 
+        },
+        { 
+          name: "Verify Domain", 
+          href: "#verify-domain", 
+          method: "POST",
+          endpoint: "/api/v1/domains/{id}/verify",
+          description: "Verify DNS configuration" 
+        },
+        { 
+          name: "List Domains", 
+          href: "#list-domains", 
+          method: "GET",
+          endpoint: "/api/v1/domains",
+          description: "Get all domains" 
+        },
       ]
     },
     {
-      title: "System Endpoints",
-      description: "Health checks and admin features",
-      icon: Activity,
+      title: "Analytics",
+      description: "Usage statistics and analytics",
+      icon: Database,
       items: [
-        { name: "Health Check", href: "#health", description: "System status" },
-        { name: "Admin Stats", href: "#admin-stats", description: "System statistics" },
-        { name: "System Logs", href: "#system-logs", description: "Activity logs" },
+        { 
+          name: "Usage Stats", 
+          href: "#usage-stats", 
+          method: "GET",
+          endpoint: "/api/v1/analytics/usage",
+          description: "Get usage statistics" 
+        },
+        { 
+          name: "Image Analytics", 
+          href: "#image-analytics", 
+          method: "GET",
+          endpoint: "/api/v1/analytics/images",
+          description: "Get image view statistics" 
+        },
       ]
-    }
+    },
   ];
 
-  const baseUrl = window.location.origin;
-
-  const codeExamples = {
-    login: `// Login to get authentication token
-const loginUser = async (email, password) => {
-  const response = await fetch('${baseUrl}/api/v1/auth/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ email, password })
-  });
-
-  const result = await response.json();
-  
-  if (response.ok) {
-    // Store the token for future requests
-    localStorage.setItem('token', result.token);
-    return result.user;
-  } else {
-    throw new Error(result.error);
-  }
-};`,
-
-    register: `// Register a new user account
-const registerUser = async (userData) => {
-  const response = await fetch('${baseUrl}/api/v1/auth/register', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      email: userData.email,
-      password: userData.password,
-      acceptTerms: true
-    })
-  });
-
-  const result = await response.json();
-  return result;
-};`,
-
-    upload: `// Upload an image with processing options
-const uploadImage = async (file, options = {}) => {
-  const formData = new FormData();
-  formData.append('image', file);
-  formData.append('title', options.title || file.name);
-  formData.append('description', options.description || '');
-  formData.append('privacy', options.privacy || 'public');
-  formData.append('quality', options.quality || '85');
-  formData.append('format', options.format || 'auto');
-  
-  if (options.width) formData.append('width', options.width);
-  if (options.height) formData.append('height', options.height);
-
-  const token = localStorage.getItem('token');
-  const response = await fetch('${baseUrl}/api/v1/images/upload', {
-    method: 'POST',
-    headers: {
-      'Authorization': \`Bearer \${token}\`
-    },
-    body: formData
-  });
-
-  const result = await response.json();
-  return result.image; // Contains URL and metadata
-};`,
-
-    getImages: `// Get all user images with filtering
-const getUserImages = async (filters = {}) => {
-  const params = new URLSearchParams();
-  if (filters.search) params.append('search', filters.search);
-  if (filters.privacy) params.append('privacy', filters.privacy);
-  if (filters.sort) params.append('sort', filters.sort);
-
-  const token = localStorage.getItem('token');
-  const response = await fetch(\`${baseUrl}/api/v1/images?\${params}\`, {
-    method: 'GET',
-    headers: {
-      'Authorization': \`Bearer \${token}\`
-    }
-  });
-
-  const result = await response.json();
-  return result.images;
-};`,
-
-    apiKeys: `// Create a new API key
-const createApiKey = async (name, permissions = ['read']) => {
-  const token = localStorage.getItem('token');
-  const response = await fetch('${baseUrl}/api/v1/api-keys', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': \`Bearer \${token}\`
-    },
-    body: JSON.stringify({
-      name: name,
-      permissions: permissions
-    })
-  });
-
-  const result = await response.json();
-  return result.apiKey;
-};`,
-
-    customDomain: `// Add a custom domain
-const addCustomDomain = async (domain) => {
-  const token = localStorage.getItem('token');
-  const response = await fetch('${baseUrl}/api/v1/domains', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': \`Bearer \${token}\`
-    },
-    body: JSON.stringify({ domain })
-  });
-
-  const result = await response.json();
-  return result; // Returns domain with CNAME target
-};`,
-
-    health: `// Check system health
-const checkHealth = async () => {
-  const response = await fetch('${baseUrl}/api/v1/health');
-  const result = await response.json();
-  
-  console.log('System Status:', result.status);
-  console.log('Database:', result.database);
-  return result;
-};`
-  };
-
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       {/* Header */}
-      <div className="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center justify-between">
+      <div className="bg-white dark:bg-slate-800 border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="flex items-center gap-4 mb-6">
+            <Book className="w-12 h-12 text-blue-600" />
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">API Documentation</h1>
-              <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
-                Complete guide to ImageVault REST API endpoints
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+                API Documentation
+              </h1>
+              <p className="text-xl text-gray-600 dark:text-gray-400 mt-2">
+                Complete guide to ImageVault REST API
               </p>
             </div>
-            <Link href="/dashboard" className="inline-flex items-center">
-              <Button>
-                <ArrowRight className="w-4 h-4 mr-2" />
-                Back to Dashboard
-              </Button>
-            </Link>
+          </div>
+          
+          {/* Search */}
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Search API endpoints..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Quick Start */}
-        <div className="mb-12">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Zap className="w-5 h-5 mr-2" />
-                Quick Start
-              </CardTitle>
-              <CardDescription>
-                Get started with ImageVault API in minutes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="space-y-3">
-                  <h3 className="font-medium">1. Create Account</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Register for a free account to get started
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="font-medium">2. Generate API Key</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Create an API key for authentication
-                  </p>
-                </div>
-                <div className="space-y-3">
-                  <h3 className="font-medium">3. Upload Images</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Start uploading and serving images instantly
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Zap className="w-5 h-5" />
+              Quick Start
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="font-semibold mb-2">Base URL</h4>
+              <CodeBlock code="https://api.imagevault.io" language="bash" />
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-2">Authentication</h4>
+              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                Include your API key in the Authorization header:
+              </p>
+              <CodeBlock 
+                code="Authorization: Bearer YOUR_API_KEY" 
+                language="bash" 
+              />
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-2">Example Request</h4>
+              <CodeBlock 
+                code={`curl -X GET \\
+  https://api.imagevault.io/api/v1/images \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -H "Content-Type: application/json"`}
+                language="bash" 
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* API Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-12">
-          {sections.map((section) => (
-            <Card key={section.title} className="h-full">
+        <Tabs defaultValue="authentication" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="authentication">Authentication</TabsTrigger>
+            <TabsTrigger value="images">Images</TabsTrigger>
+            <TabsTrigger value="domains">Domains</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+          </TabsList>
+
+          {/* Authentication Tab */}
+          <TabsContent value="authentication" className="space-y-6">
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <section.icon className="w-5 h-5 mr-2" />
-                  {section.title}
-                </CardTitle>
-                <CardDescription>{section.description}</CardDescription>
+                <CardTitle id="get-api-key">Generate API Key</CardTitle>
+                <div className="flex gap-2">
+                  <Badge variant="outline">POST</Badge>
+                  <code className="text-sm">/api/v1/auth/api-keys</code>
+                </div>
               </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {section.items.map((item) => (
-                    <li key={item.name}>
-                      <a
-                        href={item.href}
-                        className="flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        <ArrowRight className="w-3 h-3 mr-2" />
-                        {item.name}
-                      </a>
-                      <p className="text-xs text-gray-500 ml-5 mt-1">
-                        {item.description}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
+              <CardContent className="space-y-4">
+                <p>Create a new API key for authentication.</p>
+                
+                <div>
+                  <h5 className="font-semibold mb-2">Request Body</h5>
+                  <CodeBlock 
+                    code={`{
+  "name": "My App Key",
+  "permissions": ["images:read", "images:write", "domains:read"]
+}`}
+                    language="json" 
+                  />
+                </div>
+
+                <div>
+                  <h5 className="font-semibold mb-2">Response</h5>
+                  <CodeBlock 
+                    code={`{
+  "success": true,
+  "data": {
+    "id": "key_123456",
+    "name": "My App Key",
+    "key": "iv_live_1234567890abcdef",
+    "permissions": ["images:read", "images:write", "domains:read"],
+    "createdAt": "2024-01-15T10:00:00Z"
+  }
+}`}
+                    language="json" 
+                  />
+                </div>
+
+                <div>
+                  <h5 className="font-semibold mb-2">JavaScript Example</h5>
+                  <CodeBlock 
+                    code={`const response = await fetch('/api/v1/auth/api-keys', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_TOKEN'
+  },
+  body: JSON.stringify({
+    name: 'My App Key',
+    permissions: ['images:read', 'images:write']
+  })
+});
+
+const data = await response.json();
+console.log('API Key:', data.data.key);`}
+                    language="javascript" 
+                  />
+                </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+          </TabsContent>
 
-        {/* Detailed API Reference */}
-        <div className="space-y-8">
-          {/* Authentication */}
-          <Card id="login">
-            <CardHeader>
-              <CardTitle>User Login</CardTitle>
-              <CardDescription>
-                <code className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-sm">
-                  POST /api/v1/auth/login
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
+          {/* Images Tab */}
+          <TabsContent value="images" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle id="upload-image">Upload Image</CardTitle>
+                <div className="flex gap-2">
+                  <Badge variant="outline">POST</Badge>
+                  <code className="text-sm">/api/v1/images/upload</code>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>Upload one or more images with optional transformations.</p>
+                
                 <div>
-                  <h4 className="font-medium mb-2">Request Body</h4>
-                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <pre className="text-sm">
-{`{
-  "email": "user@example.com",
-  "password": "your-password"
+                  <h5 className="font-semibold mb-2">Form Data</h5>
+                  <CodeBlock 
+                    code={`files: File[] (required)
+title: string (optional)
+description: string (optional)
+privacy: "public" | "private" (default: "public")
+quality: number 1-100 (default: 85)
+format: "auto" | "jpeg" | "png" | "webp" | "avif" (default: "auto")
+width: number (optional)
+height: number (optional)`}
+                    language="text" 
+                  />
+                </div>
+
+                <div>
+                  <h5 className="font-semibold mb-2">JavaScript Example</h5>
+                  <CodeBlock 
+                    code={`const formData = new FormData();
+formData.append('files', fileInput.files[0]);
+formData.append('title', 'My Image');
+formData.append('privacy', 'public');
+formData.append('quality', '90');
+
+const response = await fetch('/api/v1/images/upload', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY'
+  },
+  body: formData
+});
+
+const result = await response.json();`}
+                    language="javascript" 
+                  />
+                </div>
+
+                <div>
+                  <h5 className="font-semibold mb-2">Response</h5>
+                  <CodeBlock 
+                    code={`{
+  "success": true,
+  "data": [
+    {
+      "id": "img_123456",
+      "url": "https://cdn.imagevault.io/img_123456.jpg",
+      "originalName": "photo.jpg",
+      "size": 245760,
+      "width": 1920,
+      "height": 1080,
+      "format": "jpeg",
+      "createdAt": "2024-01-15T10:00:00Z"
+    }
+  ]
 }`}
-                    </pre>
-                  </div>
+                    language="json" 
+                  />
                 </div>
-                <div>
-                  <h4 className="font-medium mb-2">Example Code</h4>
-                  <div className="relative bg-slate-900 text-green-400 p-4 rounded-lg">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2 text-white hover:bg-slate-700"
-                      onClick={() => copyToClipboard(codeExamples.login, 'login')}
-                    >
-                      {copiedCode === 'login' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    <pre className="text-sm overflow-x-auto">
-                      <code>{codeExamples.login}</code>
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          <Card id="register">
-            <CardHeader>
-              <CardTitle>User Registration</CardTitle>
-              <CardDescription>
-                <code className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-sm">
-                  POST /api/v1/auth/register
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Request Body</h4>
-                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <pre className="text-sm">
-{`{
-  "firstName": "John",
-  "lastName": "Doe",
-  "email": "john@example.com",
-  "password": "securepassword123",
-  "acceptTerms": true
-}`}
-                    </pre>
-                  </div>
+            <Card>
+              <CardHeader>
+                <CardTitle id="get-images">Get Images</CardTitle>
+                <div className="flex gap-2">
+                  <Badge variant="outline">GET</Badge>
+                  <code className="text-sm">/api/v1/images</code>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>Retrieve your uploaded images with optional filters.</p>
+                
                 <div>
-                  <h4 className="font-medium mb-2">Example Code</h4>
-                  <div className="relative bg-slate-900 text-green-400 p-4 rounded-lg">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2 text-white hover:bg-slate-700"
-                      onClick={() => copyToClipboard(codeExamples.register, 'register')}
-                    >
-                      {copiedCode === 'register' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    <pre className="text-sm overflow-x-auto">
-                      <code>{codeExamples.register}</code>
-                    </pre>
-                  </div>
+                  <h5 className="font-semibold mb-2">Query Parameters</h5>
+                  <CodeBlock 
+                    code={`page: number (default: 1)
+limit: number (default: 20, max: 100)
+search: string (search in filename/title)
+privacy: "public" | "private" | "all" (default: "all")
+sort: "newest" | "oldest" | "name" | "size" (default: "newest")
+tags: string (comma-separated)`}
+                    language="text" 
+                  />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card id="upload">
-            <CardHeader>
-              <CardTitle>Image Upload</CardTitle>
-              <CardDescription>
-                <code className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-sm">
-                  POST /api/v1/images/upload
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">Form Data Parameters</h4>
-                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <div className="space-y-2 text-sm">
-                      <div><strong>image:</strong> File (required) - The image file</div>
-                      <div><strong>title:</strong> String - Image title</div>
-                      <div><strong>description:</strong> String - Image description</div>
-                      <div><strong>privacy:</strong> String - "public" or "private"</div>
-                      <div><strong>quality:</strong> Number - JPEG quality (1-100)</div>
-                      <div><strong>format:</strong> String - "auto", "webp", "jpeg", "png"</div>
-                      <div><strong>width:</strong> Number - Resize width</div>
-                      <div><strong>height:</strong> Number - Resize height</div>
-                    </div>
-                  </div>
+                  <h5 className="font-semibold mb-2">Example Request</h5>
+                  <CodeBlock 
+                    code={`curl -X GET \\
+  'https://api.imagevault.io/api/v1/images?page=1&limit=10&privacy=public' \\
+  -H 'Authorization: Bearer YOUR_API_KEY'`}
+                    language="bash" 
+                  />
                 </div>
-                <div>
-                  <h4 className="font-medium mb-2">Example Code</h4>
-                  <div className="relative bg-slate-900 text-green-400 p-4 rounded-lg">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2 text-white hover:bg-slate-700"
-                      onClick={() => copyToClipboard(codeExamples.upload, 'upload')}
-                    >
-                      {copiedCode === 'upload' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    <pre className="text-sm overflow-x-auto">
-                      <code>{codeExamples.upload}</code>
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
-          <Card id="get-images">
-            <CardHeader>
-              <CardTitle>Get User Images</CardTitle>
-              <CardDescription>
-                <code className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-sm">
-                  GET /api/v1/images
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Query Parameters</h4>
-                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <div className="space-y-2 text-sm">
-                      <div><strong>search:</strong> String - Search in titles and descriptions</div>
-                      <div><strong>privacy:</strong> String - Filter by "public" or "private"</div>
-                      <div><strong>sort:</strong> String - "newest", "oldest", "name", "size"</div>
-                      <div><strong>tags:</strong> String - Comma-separated list of tags</div>
-                    </div>
-                  </div>
+          {/* Domains Tab */}
+          <TabsContent value="domains" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle id="add-domain">Add Custom Domain</CardTitle>
+                <div className="flex gap-2">
+                  <Badge variant="outline">POST</Badge>
+                  <code className="text-sm">/api/v1/domains</code>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>Add a custom domain for serving your images.</p>
+                
                 <div>
-                  <h4 className="font-medium mb-2">Example Code</h4>
-                  <div className="relative bg-slate-900 text-green-400 p-4 rounded-lg">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2 text-white hover:bg-slate-700"
-                      onClick={() => copyToClipboard(codeExamples.getImages, 'getImages')}
-                    >
-                      {copiedCode === 'getImages' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    <pre className="text-sm overflow-x-auto">
-                      <code>{codeExamples.getImages}</code>
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card id="api-keys">
-            <CardHeader>
-              <CardTitle>Create API Key</CardTitle>
-              <CardDescription>
-                <code className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-sm">
-                  POST /api/v1/api-keys
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Request Body</h4>
-                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <pre className="text-sm">
-{`{
-  "name": "My API Key",
-  "permissions": ["read", "write", "delete"]
-}`}
-                    </pre>
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-2">Example Code</h4>
-                  <div className="relative bg-slate-900 text-green-400 p-4 rounded-lg">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2 text-white hover:bg-slate-700"
-                      onClick={() => copyToClipboard(codeExamples.apiKeys, 'apiKeys')}
-                    >
-                      {copiedCode === 'apiKeys' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    <pre className="text-sm overflow-x-auto">
-                      <code>{codeExamples.apiKeys}</code>
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card id="add-domain">
-            <CardHeader>
-              <CardTitle>Add Custom Domain</CardTitle>
-              <CardDescription>
-                <code className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-sm">
-                  POST /api/v1/domains
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Request Body</h4>
-                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <pre className="text-sm">
-{`{
+                  <h5 className="font-semibold mb-2">Request Body</h5>
+                  <CodeBlock 
+                    code={`{
   "domain": "images.yourdomain.com"
 }`}
-                    </pre>
-                  </div>
+                    language="json" 
+                  />
                 </div>
-                <div>
-                  <h4 className="font-medium mb-2">Example Code</h4>
-                  <div className="relative bg-slate-900 text-green-400 p-4 rounded-lg">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2 text-white hover:bg-slate-700"
-                      onClick={() => copyToClipboard(codeExamples.customDomain, 'customDomain')}
-                    >
-                      {copiedCode === 'customDomain' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    <pre className="text-sm overflow-x-auto">
-                      <code>{codeExamples.customDomain}</code>
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card id="health">
-            <CardHeader>
-              <CardTitle>Health Check</CardTitle>
-              <CardDescription>
-                <code className="bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded text-sm">
-                  GET /api/v1/health
-                </code>
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">Response</h4>
-                  <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-lg">
-                    <pre className="text-sm">
-{`{
-  "status": "OK",
-  "timestamp": "2024-01-15T10:30:00.000Z",
-  "database": "connected",
-  "version": "1.0.0"
+                  <h5 className="font-semibold mb-2">Python Example</h5>
+                  <CodeBlock 
+                    code={`import requests
+
+headers = {
+    'Authorization': 'Bearer YOUR_API_KEY',
+    'Content-Type': 'application/json'
+}
+
+data = {
+    'domain': 'images.yourdomain.com'
+}
+
+response = requests.post(
+    'https://api.imagevault.io/api/v1/domains',
+    headers=headers,
+    json=data
+)
+
+result = response.json()
+print(f"Domain ID: {result['data']['id']}")`}
+                    language="python" 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle id="usage-stats">Usage Statistics</CardTitle>
+                <div className="flex gap-2">
+                  <Badge variant="outline">GET</Badge>
+                  <code className="text-sm">/api/v1/analytics/usage</code>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p>Get your account usage statistics.</p>
+                
+                <div>
+                  <h5 className="font-semibold mb-2">Response</h5>
+                  <CodeBlock 
+                    code={`{
+  "success": true,
+  "data": {
+    "storage": {
+      "used": 2147483648,
+      "limit": 5368709120,
+      "percentage": 40
+    },
+    "bandwidth": {
+      "used": 1073741824,
+      "limit": 10737418240,
+      "percentage": 10
+    },
+    "images": {
+      "count": 1234,
+      "limit": 10000
+    },
+    "apiCalls": {
+      "used": 5000,
+      "limit": 100000
+    }
+  }
 }`}
-                    </pre>
-                  </div>
+                    language="json" 
+                  />
                 </div>
-                <div>
-                  <h4 className="font-medium mb-2">Example Code</h4>
-                  <div className="relative bg-slate-900 text-green-400 p-4 rounded-lg">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="absolute top-2 right-2 text-white hover:bg-slate-700"
-                      onClick={() => copyToClipboard(codeExamples.health, 'health')}
-                    >
-                      {copiedCode === 'health' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
-                    <pre className="text-sm overflow-x-auto">
-                      <code>{codeExamples.health}</code>
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-        {/* Response Codes */}
+        {/* SDKs Section */}
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>HTTP Response Codes</CardTitle>
+            <CardTitle>Official SDKs</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium mb-2 text-green-600">Success Codes</h4>
-                <div className="space-y-1 text-sm">
-                  <div><code>200</code> - Success</div>
-                  <div><code>201</code> - Created</div>
-                </div>
+                <h4 className="font-semibold mb-2">JavaScript/TypeScript</h4>
+                <CodeBlock 
+                  code={`npm install @imagevault/sdk
+
+import { ImageVault } from '@imagevault/sdk';
+
+const client = new ImageVault('your-api-key');
+const result = await client.upload(file);`}
+                  language="bash" 
+                />
               </div>
               <div>
-                <h4 className="font-medium mb-2 text-red-600">Error Codes</h4>
-                <div className="space-y-1 text-sm">
-                  <div><code>400</code> - Bad Request</div>
-                  <div><code>401</code> - Unauthorized</div>
-                  <div><code>403</code> - Forbidden</div>
-                  <div><code>404</code> - Not Found</div>
-                  <div><code>500</code> - Server Error</div>
-                </div>
+                <h4 className="font-semibold mb-2">Python</h4>
+                <CodeBlock 
+                  code={`pip install imagevault-python
+
+from imagevault import ImageVault
+
+client = ImageVault('your-api-key')
+result = client.upload('path/to/image.jpg')`}
+                  language="python" 
+                />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Rate Limits */}
-        <Card className="mt-6">
+        <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Rate Limiting</CardTitle>
+            <CardTitle>Rate Limits & Best Practices</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <CardContent className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <h4 className="font-medium mb-2">Free Plan</h4>
-                <div>100 requests per hour</div>
-                <div>10 MB max file size</div>
+                <h4 className="font-semibold mb-2">Rate Limits</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                  <li>Free Plan: 100 requests/hour</li>
+                  <li>Pro Plan: 1,000 requests/hour</li>
+                  <li>Enterprise: Custom limits</li>
+                  <li>Upload endpoints: Lower limits apply</li>
+                </ul>
               </div>
               <div>
-                <h4 className="font-medium mb-2">Pro Plan</h4>
-                <div>1000 requests per hour</div>
-                <div>50 MB max file size</div>
-              </div>
-              <div>
-                <h4 className="font-medium mb-2">Enterprise</h4>
-                <div>Unlimited requests</div>
-                <div>100 MB max file size</div>
+                <h4 className="font-semibold mb-2">Best Practices</h4>
+                <ul className="list-disc list-inside space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                  <li>Use pagination for large datasets</li>
+                  <li>Cache responses when possible</li>
+                  <li>Handle rate limit errors (429)</li>
+                  <li>Use webhooks for real-time updates</li>
+                </ul>
               </div>
             </div>
           </CardContent>

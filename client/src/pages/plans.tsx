@@ -39,7 +39,6 @@ export default function Plans() {
         "Priority support",
         "Advanced API features",
         "Custom domains",
-        "Analytics dashboard",
         "Webhook support"
       ],
       limitations: [],
@@ -149,14 +148,22 @@ export default function Plans() {
 
               <CardContent className="space-y-6">
                 <Button 
-                  className={`w-full ${getButtonClass(plan.color, plan.popular)}`}
-                  asChild
-                >
-                  <Link href={plan.name === 'Free' ? '/auth/register' : '/auth/register'}>
+                    className={`w-full ${getButtonClass(plan.color, plan.popular)}`}
+                    onClick={() => {
+                      if (plan.name === 'Free') {
+                        window.location.href = '/auth/register';
+                      } else if (plan.name === 'Enterprise') {
+                        window.location.href = '/contact?plan=enterprise';
+                      } else {
+                        // Redirect to payment page with plan info
+                        const paymentUrl = `/payment?plan=${plan.name.toLowerCase()}&price=${plan.price.replace('$', '')}`;
+                        window.location.href = paymentUrl;
+                      }
+                    }}
+                  >
                     {plan.buttonText}
                     <ArrowRight className="ml-2 w-4 h-4" />
-                  </Link>
-                </Button>
+                  </Button>
 
                 <div className="space-y-3">
                   <h4 className="font-semibold text-gray-900 dark:text-white">Features included:</h4>

@@ -325,6 +325,7 @@ export default function Images() {
                           window.open(image.url, '_blank');
                         }}
                         className="h-8 w-8 p-0"
+                        title="View Image"
                       >
                         <Eye className="w-3 h-3" />
                       </Button>
@@ -336,23 +337,38 @@ export default function Images() {
                           await copyUrlToClipboard(image.url);
                         }}
                         className="h-8 w-8 p-0"
+                        title="Copy URL"
                       >
                         <Copy className="w-3 h-3" />
                       </Button>
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
-                          const link = document.createElement('a');
-                          link.href = image.url;
-                          link.download = image.originalName;
-                          link.target = '_blank';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
+                          try {
+                            // First try to download directly
+                            const response = await fetch(image.url);
+                            const blob = await response.blob();
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = image.originalName || 'image';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(url);
+                            toast({
+                              title: "Download Started",
+                              description: "Image download has started.",
+                            });
+                          } catch (error) {
+                            // Fallback to opening in new tab
+                            window.open(image.url + '?download=true', '_blank');
+                          }
                         }}
                         className="h-8 w-8 p-0"
+                        title="Download Image"
                       >
                         <Download className="w-3 h-3" />
                       </Button>
@@ -423,6 +439,7 @@ export default function Images() {
                       size="sm"
                       variant="outline"
                       onClick={() => window.open(image.url, '_blank')}
+                      title="View Image"
                     >
                       <Eye className="w-4 h-4" />
                     </Button>
@@ -430,13 +447,34 @@ export default function Images() {
                       size="sm"
                       variant="outline"
                       onClick={() => copyUrlToClipboard(image.url)}
+                      title="Copy URL"
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(image.url + '?download=true', '_blank')}
+                      onClick={async () => {
+                        try {
+                          const response = await fetch(image.url);
+                          const blob = await response.blob();
+                          const url = window.URL.createObjectURL(blob);
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.download = image.originalName || 'image';
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          window.URL.revokeObjectURL(url);
+                          toast({
+                            title: "Download Started",
+                            description: "Image download has started.",
+                          });
+                        } catch (error) {
+                          window.open(image.url + '?download=true', '_blank');
+                        }
+                      }}
+                      title="Download Image"
                     >
                       <Download className="w-4 h-4" />
                     </Button>

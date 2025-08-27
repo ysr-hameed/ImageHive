@@ -54,6 +54,11 @@ export default function Settings() {
   // Create domain mutation
   const createDomainMutation = useMutation({
     mutationFn: async (domain: string) => {
+      // Validate domain format
+      const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}$/;
+      if (!domainRegex.test(domain)) {
+        throw new Error("Invalid domain format");
+      }
       return await apiRequest("POST", "/api/v1/domains", { domain });
     },
     onSuccess: (data) => {
@@ -65,9 +70,15 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/domains"] });
     },
     onError: (error: any) => {
+      let errorMessage = "Failed to add domain";
+      if (error.message.includes("already exists")) {
+        errorMessage = "Domain already exists";
+      } else if (error.message.includes("Invalid")) {
+        errorMessage = "Invalid domain format. Use format: subdomain.domain.com";
+      }
       toast({
         title: "Failed to add domain",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -86,8 +97,35 @@ export default function Settings() {
       queryClient.invalidateQueries({ queryKey: ["/api/v1/domains"] });
     },
     onError: (error: any) => {
+      let errorMessage = "Verification failed";
+      if (error.message.includes("DNS")) {
+        errorMessage = "DNS records not found. Please check your DNS configuration.";
+      } else if (error.message.includes("timeout")) {
+        errorMessage = "Verification timeout. DNS changes can take up to 48 hours.";
+      }
       toast({
         title: "Verification failed",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete domain mutation
+  const deleteDomainMutation = useMutation({
+    mutationFn: async (domainId: string) => {
+      return await apiRequest("DELETE", `/api/v1/domains/${domainId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Domain deleted",
+        description: "Custom domain has been removed successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/domains"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to delete domain",
         description: error.message,
         variant: "destructive",
       });
@@ -198,7 +236,16 @@ export default function Settings() {
                                 {domain.isVerified ? "Verified" : "Pending Verification"}
                               </Badge>
                             </div>
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                if (window.confirm('Are you sure you want to delete this domain? This action cannot be undone.')) {
+                                  deleteDomainMutation.mutate(domain.id);
+                                }
+                              }}
+                              disabled={deleteDomainMutation.isPending}
+                            >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>

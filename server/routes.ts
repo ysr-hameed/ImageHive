@@ -2042,32 +2042,36 @@ export function registerRoutes(app: Express) {
   });
 
   app.post('/api/v1/api-keys', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = req.user!;
-      const { name } = req.body;
+  try {
+    const user = req.user!;
+    const { name } = req.body;
 
-      if (!name) {
-        return res.status(400).json({ error: 'API key name is required' });
-      }
-
-      const apiKey = {
-        id: uuidv4(),
-        name,
-        key: 'sk_live_' + crypto.randomBytes(16).toString('hex'),
-        created: new Date().toISOString(),
-        lastUsed: null,
-        usage: 0
-      };
-
-      await logSystemEvent('info', `API key created: ${name}`, user.id);
-
-      res.json(apiKey);
-    } catch (error: any) {
-      await logSystemEvent('error', `API key creation error: ${error.message}`, req.user?.id);
-      console.error('API key creation error:', error);
-      res.status(500).json({ error: 'Failed to create API key' });
+    if (!name) {
+      return res.status(400).json({ error: 'API key name is required' });
     }
-  });
+
+    const newKey = {
+      id: uuidv4(),
+      name,
+      key: 'sk_live_' + crypto.randomBytes(16).toString('hex'),
+      userId: user.id,        // associate with user
+      createdAt: new Date(),
+      lastUsed: null,
+      usage: 0
+    };
+
+    // Insert into DB (example with Prisma)
+    const savedKey = await db.apiKey.create({ data: newKey });
+
+    await logSystemEvent('info', `API key created: ${name}`, user.id);
+
+    res.json(savedKey);
+  } catch (error: any) {
+    await logSystemEvent('error', `API key creation error: ${error.message}`, req.user?.id);
+    console.error('API key creation error:', error);
+    res.status(500).json({ error: 'Failed to create API key' });
+  }
+});
 
   app.delete('/api/v1/api-keys/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {

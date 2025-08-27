@@ -111,7 +111,7 @@ const SimpleUploadForm: React.FC = () => {
         formData.append('watermark', uploadOptions.watermark.toString());
 
         const token = localStorage.getItem('token');
-        const response = await fetch('/api/upload', {
+        const response = await fetch('/api/v1/images/upload', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

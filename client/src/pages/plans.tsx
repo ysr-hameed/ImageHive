@@ -155,18 +155,43 @@ export default function Plans() {
     }
   };
 
-  const handlePlanSelect = (plan: any) => {
+  const handlePlanSelect = async (plan: any) => {
     if (plan.name === 'Free') {
       window.location.href = '/auth/register';
-    } else if (plan.name === 'Enterprise') {
+      return;
+    } 
+    
+    if (plan.name === 'Enterprise') {
       window.location.href = '/contact?plan=enterprise';
-    } else if (plan.trial) {
-      // Start trial - redirect to dashboard
-      window.location.href = '/dashboard?trial=' + plan.id;
-    } else {
-      // Redirect to payment page with plan info
-      const paymentUrl = `/payment?plan=${plan.id}&price=${plan.price.replace('$', '')}`;
+      return;
+    }
+
+    try {
+      // Create payment session
+      const response = await fetch('/api/v1/payments/create-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          planId: plan.id,
+          planName: plan.name,
+          price: parseFloat(plan.price.replace('$', '')),
+          currency: 'USD'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment session');
+      }
+
+      const { paymentUrl } = await response.json();
       window.location.href = paymentUrl;
+    } catch (error) {
+      console.error('Payment error:', error);
+      // Fallback to payment page
+      window.location.href = `/payment?plan=${plan.id}&price=${plan.price.replace('$', '')}`;
     }
   };
 

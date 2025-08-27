@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import SimpleUploadForm  from "@/components/simple-upload-form";
+import { EnhancedUploadForm } from "@/components/enhanced-upload-form";
 import { PageLoader } from "@/components/futuristic-loader";
 import { useLocation } from "wouter";
 
@@ -37,8 +37,8 @@ export default function Upload() {
 
   return (
     <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-6">
-        {/* Upload Form */}
-        <SimpleUploadForm />
+        {/* Enhanced Upload Form */}
+        <EnhancedUploadForm />
     </div>
   );
 }

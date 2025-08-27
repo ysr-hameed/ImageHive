@@ -37,7 +37,249 @@ interface Notification {
   read: boolean; // Added 'read' property
 }
 
+import { useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { Bell, Trash2, Send } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+
 export function NotificationManagement() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [notificationForm, setNotificationForm] = useState({
+    title: '',
+    message: '',
+    type: 'info',
+    sendEmail: false,
+    isGlobal: true,
+    userIds: ''
+  });
+
+  // Fetch existing notifications
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ['/api/v1/admin/notifications'],
+    queryFn: () => apiRequest('GET', '/api/v1/admin/notifications'),
+    retry: false
+  });
+
+  // Send notification mutation
+  const sendNotificationMutation = useMutation({
+    mutationFn: async (data: typeof notificationForm) => {
+      const payload = {
+        ...data,
+        userIds: data.isGlobal ? [] : data.userIds.split(',').map(id => id.trim()).filter(Boolean)
+      };
+      return await apiRequest('POST', '/api/v1/admin/send-notification', payload);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Notification sent successfully'
+      });
+      setNotificationForm({
+        title: '',
+        message: '',
+        type: 'info',
+        sendEmail: false,
+        isGlobal: true,
+        userIds: ''
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/admin/notifications'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send notification',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  // Delete notification mutation
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest('DELETE', `/api/v1/admin/notifications/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Notification deleted successfully'
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/admin/notifications'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete notification',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const handleSendNotification = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!notificationForm.title || !notificationForm.message) {
+      toast({
+        title: 'Error',
+        description: 'Title and message are required',
+        variant: 'destructive'
+      });
+      return;
+    }
+    sendNotificationMutation.mutate(notificationForm);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Send Notification Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Send className="w-5 h-5" />
+            Send Notification
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSendNotification} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title">Title</Label>
+                <Input
+                  id="title"
+                  value={notificationForm.title}
+                  onChange={(e) => setNotificationForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Notification title"
+                />
+              </div>
+              <div>
+                <Label htmlFor="type">Type</Label>
+                <Select
+                  value={notificationForm.type}
+                  onValueChange={(value) => setNotificationForm(prev => ({ ...prev, type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="info">Info</SelectItem>
+                    <SelectItem value="success">Success</SelectItem>
+                    <SelectItem value="warning">Warning</SelectItem>
+                    <SelectItem value="error">Error</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="message">Message</Label>
+              <Textarea
+                id="message"
+                value={notificationForm.message}
+                onChange={(e) => setNotificationForm(prev => ({ ...prev, message: e.target.value }))}
+                placeholder="Notification message"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="sendEmail"
+                  checked={notificationForm.sendEmail}
+                  onCheckedChange={(checked) => setNotificationForm(prev => ({ ...prev, sendEmail: checked }))}
+                />
+                <Label htmlFor="sendEmail">Send Email</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="isGlobal"
+                  checked={notificationForm.isGlobal}
+                  onCheckedChange={(checked) => setNotificationForm(prev => ({ ...prev, isGlobal: checked }))}
+                />
+                <Label htmlFor="isGlobal">Send to All Users</Label>
+              </div>
+            </div>
+
+            {!notificationForm.isGlobal && (
+              <div>
+                <Label htmlFor="userIds">User IDs (comma-separated)</Label>
+                <Input
+                  id="userIds"
+                  value={notificationForm.userIds}
+                  onChange={(e) => setNotificationForm(prev => ({ ...prev, userIds: e.target.value }))}
+                  placeholder="user1,user2,user3"
+                />
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              disabled={sendNotificationMutation.isPending}
+              className="w-full"
+            >
+              {sendNotificationMutation.isPending ? 'Sending...' : 'Send Notification'}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Existing Notifications */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Notifications</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8">Loading notifications...</div>
+            ) : notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No notifications sent yet.</p>
+              </div>
+            ) : (
+              notifications.map((notification: any) => (
+                <div key={notification.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-medium">{notification.title}</h4>
+                      <Badge variant={notification.type === 'error' ? 'destructive' : 'default'}>
+                        {notification.type}
+                      </Badge>
+                      {notification.isGlobal && <Badge variant="outline">Global</Badge>}
+                      {notification.emailSent && <Badge variant="secondary">Email Sent</Badge>}
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{notification.message}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteNotificationMutation.mutate(notification.id)}
+                    disabled={deleteNotificationMutation.isPending}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isCreating, setIsCreating] = useState(false);

@@ -1316,7 +1316,7 @@ export function registerRoutes(app: Express) {
         .limit(1);
 
       const customDomain = userDomains[0];
-      
+
       // Determine base domain for URLs
       let baseUrl: string;
       if (customDomain) {
@@ -1324,8 +1324,8 @@ export function registerRoutes(app: Express) {
       } else if (process.env.PLATFORM_DOMAIN && process.env.USE_PLATFORM_DOMAIN === 'true') {
         baseUrl = `https://${process.env.PLATFORM_DOMAIN}`;
       } else {
-        const appDomain = process.env.REPL_SLUG ? 
-          `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
+        const appDomain = process.env.REPL_SLUG ?
+          `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` :
           'localhost:5000';
         baseUrl = `https://${appDomain}`;
       }
@@ -2532,7 +2532,7 @@ export function registerRoutes(app: Express) {
   app.get('/api/v1/api-keys', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
-      
+
       const userApiKeys = await db.select({
         id: apiKeys.id,
         name: apiKeys.name,
@@ -2565,7 +2565,7 @@ export function registerRoutes(app: Express) {
       }
 
       const apiKey = `iv_${crypto.randomBytes(32).toString('hex')}`;
-      
+
       const [newApiKey] = await db.insert(apiKeys).values({
         id: uuidv4(),
         userId: user.id,
@@ -2637,7 +2637,7 @@ export function registerRoutes(app: Express) {
 
       // Create folder as collection
       const collectionId = uuidv4();
-      
+
       // Log collection creation
       await logSystemEvent('info', `Collection created: ${name}`, user.id, {
         collectionId,

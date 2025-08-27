@@ -87,12 +87,19 @@ async function startServer() {
 
     console.log(`🎉 Server startup completed successfully!`);
 
-  // Generate sitemap and robots.txt on startup
+  // Generate sitemap on startup
   (async () => {
     try {
-      const { generateSitemap, generateRobotsTxt } = await import('./sitemap');
-      await generateSitemap();
-      await generateRobotsTxt();
+      const { generateSitemap } = await import('./sitemap');
+      generateSitemap().then((result) => {
+        if (result.success) {
+          console.log('✅ Sitemap generated successfully at:', result.path);
+        } else {
+          console.log('Failed to generate sitemap:', result.error);
+        }
+      }).catch(err => {
+        console.log('Failed to generate sitemap:', err.message);
+      });
     } catch (error) {
       console.error('Failed to generate sitemap:', error);
     }

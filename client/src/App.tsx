@@ -2,7 +2,6 @@
 import React from "react";
 import { Router, Routes, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { SidebarProvider } from "@/components/ui/sidebar";
@@ -94,7 +93,6 @@ export default function App() {
             </Router>
           </SidebarProvider>
           <Toaster />
-          <ReactQueryDevtools initialIsOpen={false} />
         </QueryClientProvider>
       </ThemeProvider>
     </ErrorBoundary>

@@ -115,8 +115,7 @@ export default function Dashboard() {
   return (
     <SidebarContentLoader showSidebar={true}>
       <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
-      {/* Notifications */}
-      <NotificationBanner />
+      
 
       {/* Email Verification Banner */}
       {user && !user.emailVerified && (

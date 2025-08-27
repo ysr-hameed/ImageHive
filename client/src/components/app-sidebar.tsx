@@ -157,8 +157,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   const handleNavigation = (url: string) => {
-    // Use window.location for proper navigation
-    window.location.href = url;
+    // Use wouter navigation for SPA routing
+    setLocation(url);
     // Close mobile sidebar after navigation
     if (isMobile) {
       setOpenMobile(false);

@@ -71,7 +71,7 @@ const initialUploadOptions = {
   encryption: false,
 };
 
-export function EnhancedUploadForm() {
+export default function EnhancedUploadForm() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -83,8 +82,6 @@ export default function Docs() {
     { id: "getting-started", title: "Getting Started", icon: BookOpen },
     { id: "upload-forms", title: "Upload Forms", icon: Upload },
     { id: "enhanced-upload", title: "Enhanced Upload", icon: Layers },
-    { id: "simple-upload", title: "Simple Upload", icon: Image },
-    { id: "basic-upload", title: "Basic Upload", icon: FileText },
     { id: "authentication", title: "Authentication", icon: Key },
     { id: "upload-api", title: "Upload API", icon: Upload },
     { id: "image-api", title: "Image Management", icon: Download },
@@ -213,7 +210,7 @@ export default function Docs() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        The most feature-rich upload component with advanced transformations, effects, and premium features.
+                        The complete upload component with advanced transformations, effects, and premium features.
                       </p>
                       <div className="grid grid-cols-2 gap-4 mb-4">
                         <div>
@@ -225,41 +222,6 @@ export default function Docs() {
                             <li>• Premium features</li>
                             <li>• Metadata management</li>
                             <li>• Real-time preview</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2">Use Cases:</h4>
-                          <ul className="text-xs space-y-1 text-gray-600">
-                            <li>• Professional workflows</li>
-                            <li>• Advanced image editing</li>
-                            <li>• Bulk uploads</li>
-                            <li>• Premium subscribers</li>
-                          </ul>
-                        </div>
-                      </div>
-                      <Button asChild size="sm">
-                        <a href="#enhanced-upload">View Details</a>
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Image className="w-5 h-5" />
-                        Simple Upload Form
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        A streamlined upload form with essential features and clean interface.
-                      </p>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2">Features:</h4>
-                          <ul className="text-xs space-y-1 text-gray-600">
-                            <li>• Drag & drop upload</li>
-                            <li>• Basic transformations</li>
                             <li>• Quality settings</li>
                             <li>• Format conversion</li>
                             <li>• Progress tracking</li>
@@ -268,53 +230,17 @@ export default function Docs() {
                         <div>
                           <h4 className="font-semibold text-sm mb-2">Use Cases:</h4>
                           <ul className="text-xs space-y-1 text-gray-600">
-                            <li>• General purpose uploads</li>
-                            <li>• Standard users</li>
-                            <li>• Quick image processing</li>
-                            <li>• Web integration</li>
+                            <li>• Professional workflows</li>
+                            <li>• Content creators</li>
+                            <li>• E-commerce</li>
+                            <li>• Advanced users</li>
+                            <li>• Bulk uploads</li>
+                            <li>• API integration</li>
                           </ul>
                         </div>
                       </div>
                       <Button asChild size="sm">
-                        <a href="#simple-upload">View Details</a>
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <FileText className="w-5 h-5" />
-                        Basic Upload Form
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        A minimal upload form with core functionality for simple use cases.
-                      </p>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2">Features:</h4>
-                          <ul className="text-xs space-y-1 text-gray-600">
-                            <li>• File selection</li>
-                            <li>• Basic metadata</li>
-                            <li>• Privacy settings</li>
-                            <li>• Upload progress</li>
-                            <li>• Error handling</li>
-                          </ul>
-                        </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2">Use Cases:</h4>
-                          <ul className="text-xs space-y-1 text-gray-600">
-                            <li>• Basic uploads</li>
-                            <li>• Free tier users</li>
-                            <li>• Minimal interfaces</li>
-                            <li>• Quick prototyping</li>
-                          </ul>
-                        </div>
-                      </div>
-                      <Button asChild size="sm">
-                        <a href="#basic-upload">View Details</a>
+                        <a href="#enhanced-upload">View Details</a>
                       </Button>
                     </CardContent>
                   </Card>
@@ -445,324 +371,6 @@ FormData includes:
 - watermark_*: Watermark settings (Pro/Enterprise)`}
                       language="http"
                       id="enhanced-api"
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Simple Upload Form */}
-            {activeSection === "simple-upload" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Simple Upload Form</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    A streamlined upload component with essential features and clean interface.
-                  </p>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Component Import</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CodeBlock 
-                      code={`import SimpleUploadForm from '@/components/simple-upload-form';
-
-function MyPage() {
-  return (
-    <div>
-      <SimpleUploadForm />
-    </div>
-  );
-}`}
-                      language="typescript"
-                      id="simple-import"
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Features & Configuration</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Basic Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Image title</li>
-                        <li>• Description</li>
-                        <li>• Privacy settings (public/private)</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Optimization Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Output format selection</li>
-                        <li>• Quality slider (10-100%)</li>
-                        <li>• Resize dimensions (optional)</li>
-                        <li>• Auto optimization toggle</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Effects Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Progressive JPEG</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Premium Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Watermark toggle</li>
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Upload Handling</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CodeBlock 
-                      code={`// File validation
-accept: 'image/*' with extensions: .jpeg, .jpg, .png, .gif, .webp, .bmp, .tiff, .avif
-maxSize: 10MB per file
-multiple: true
-
-// API endpoint
-POST /api/v1/images/upload
-
-// FormData structure
-formData.append('image', file);
-formData.append('title', title || file.name);
-formData.append('description', description);
-formData.append('privacy', privacy);
-formData.append('quality', quality.toString());
-formData.append('format', format);
-formData.append('width', width);
-formData.append('height', height);
-formData.append('progressive', progressive.toString());
-formData.append('watermark', watermark.toString());
-formData.append('autoOptimize', autoOptimize.toString());`}
-                      language="javascript"
-                      id="simple-handling"
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Basic Upload Form */}
-            {activeSection === "basic-upload" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Basic Upload Form</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    A minimal upload form with core functionality for simple use cases.
-                  </p>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Component Import</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CodeBlock 
-                      code={`import UploadForm from '@/components/upload-form';
-
-function MyPage() {
-  return (
-    <div>
-      <UploadForm />
-    </div>
-  );
-}`}
-                      language="typescript"
-                      id="basic-import"
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Features & Configuration</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Basic Settings Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Privacy setting (public/private)</li>
-                        <li>• Description</li>
-                        <li>• Alt text for accessibility</li>
-                        <li>• Tags (comma-separated)</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Transform Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Output format selection</li>
-                        <li>• Quality slider (10-100%)</li>
-                        <li>• Width and height (optional)</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Advanced Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Auto optimization</li>
-                        <li>• Generate thumbnails</li>
-                        <li>• Preserve EXIF data</li>
-                      </ul>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>File Handling</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CodeBlock 
-                      code={`// File validation
-accept: 'image/*' with extensions: .jpeg, .jpg, .png, .gif, .webp, .svg, .bmp, .tiff, .avif
-maxFiles: 10
-maxSize: 50MB per file
-multiple: true
-
-// Drag and drop support
-onDrop: Accepts multiple files
-onDropRejected: Shows error messages for invalid files
-
-// Upload status tracking
-- pending: File selected, waiting to upload
-- uploading: Currently uploading with progress
-- completed: Successfully uploaded
-- error: Upload failed with error message`}
-                      language="javascript"
-                      id="basic-handling"
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Image Transforms */}
-            {activeSection === "transforms" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Image Transforms</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    All upload forms support various image transformations and optimizations.
-                  </p>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Available Transformations</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Resize & Format</h3>
-                      <CodeBlock 
-                        code={`// Resize parameters
-width: number (1-4000px)
-height: number (1-4000px)
-fit: 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
-
-// Format conversion
-format: 'auto' | 'jpeg' | 'png' | 'webp' | 'avif'
-quality: number (1-100)
-
-// Example API call
-formData.append('width', '800');
-formData.append('height', '600');
-formData.append('format', 'webp');
-formData.append('quality', '85');`}
-                        language="javascript"
-                        id="resize-transforms"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Color & Effects</h3>
-                      <CodeBlock 
-                        code={`// Color adjustments
-brightness: number (0.1-3.0, default: 1.0)
-contrast: number (0.1-3.0, default: 1.0)
-saturation: number (0.0-3.0, default: 1.0)
-blur: number (0.3-1000, default: 0)
-
-// Effects
-grayscale: boolean
-sharpen: boolean
-rotate: number (0-360 degrees)
-
-// Example usage
-formData.append('brightness', '1.2');
-formData.append('contrast', '1.1');
-formData.append('saturation', '1.3');
-formData.append('blur', '2');
-formData.append('grayscale', 'true');`}
-                        language="javascript"
-                        id="effects-transforms"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Premium Features</h3>
-                      <CodeBlock 
-                        code={`// Watermark (Pro/Enterprise only)
-watermark: boolean
-watermark_text: string
-watermark_opacity: number (0-100)
-watermark_position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
-
-// Advanced options
-auto_backup: boolean
-encryption: boolean
-
-// Example usage
-formData.append('watermark', 'true');
-formData.append('watermark_text', 'My Company');
-formData.append('watermark_opacity', '50');
-formData.append('watermark_position', 'bottom-right');`}
-                        language="javascript"
-                        id="premium-transforms"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Transform URL API</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      You can also apply transformations via URL parameters after upload:
-                    </p>
-                    <CodeBlock 
-                      code={`// Base image URL
-https://cdn.imagevault.io/images/12345.jpg
-
-// Resize to 400x300
-https://cdn.imagevault.io/images/12345.jpg?w=400&h=300
-
-// Convert to WebP with 85% quality
-https://cdn.imagevault.io/images/12345.jpg?format=webp&quality=85
-
-// Apply blur and brightness
-https://cdn.imagevault.io/images/12345.jpg?blur=5&brightness=1.2
-
-// Combine multiple transforms
-https://cdn.imagevault.io/images/12345.jpg?w=600&h=400&format=webp&quality=90&fit=crop`}
-                      language="url"
-                      id="url-transforms"
                     />
                   </CardContent>
                 </Card>
@@ -986,6 +594,124 @@ const result = await response.json();`}
   -H "Authorization: Bearer YOUR_API_KEY"`}
                       language="bash"
                       id="delete-image"
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Image Transforms */}
+            {activeSection === "transforms" && (
+              <div className="space-y-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Image Transforms</h1>
+                  <p className="text-lg text-gray-600 dark:text-gray-400">
+                    All upload forms support various image transformations and optimizations.
+                  </p>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Available Transformations</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Resize & Format</h3>
+                      <CodeBlock 
+                        code={`// Resize parameters
+width: number (1-4000px)
+height: number (1-4000px)
+fit: 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
+
+// Format conversion
+format: 'auto' | 'jpeg' | 'png' | 'webp' | 'avif'
+quality: number (1-100)
+
+// Example API call
+formData.append('width', '800');
+formData.append('height', '600');
+formData.append('format', 'webp');
+formData.append('quality', '85');`}
+                        language="javascript"
+                        id="resize-transforms"
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Color & Effects</h3>
+                      <CodeBlock 
+                        code={`// Color adjustments
+brightness: number (0.1-3.0, default: 1.0)
+contrast: number (0.1-3.0, default: 1.0)
+saturation: number (0.0-3.0, default: 1.0)
+blur: number (0.3-1000, default: 0)
+
+// Effects
+grayscale: boolean
+sharpen: boolean
+rotate: number (0-360 degrees)
+
+// Example usage
+formData.append('brightness', '1.2');
+formData.append('contrast', '1.1');
+formData.append('saturation', '1.3');
+formData.append('blur', '2');
+formData.append('grayscale', 'true');`}
+                        language="javascript"
+                        id="effects-transforms"
+                      />
+                    </div>
+
+                    <div>
+                      <h3 className="text-lg font-semibold mb-2">Premium Features</h3>
+                      <CodeBlock 
+                        code={`// Watermark (Pro/Enterprise only)
+watermark: boolean
+watermark_text: string
+watermark_opacity: number (0-100)
+watermark_position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
+
+// Advanced options
+auto_backup: boolean
+encryption: boolean
+
+// Example usage
+formData.append('watermark', 'true');
+formData.append('watermark_text', 'My Company');
+formData.append('watermark_opacity', '50');
+formData.append('watermark_position', 'bottom-right');`}
+                        language="javascript"
+                        id="premium-transforms"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Transform URL API</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                      You can also apply transformations via URL parameters after upload:
+                    </p>
+                    <CodeBlock 
+                      code={`// Base image URL
+https://cdn.imagevault.io/images/12345.jpg
+
+// Resize to 400x300
+https://cdn.imagevault.io/images/12345.jpg?w=400&h=300
+
+// Convert to WebP with 85% quality
+https://cdn.imagevault.io/images/12345.jpg?format=webp&quality=85
+
+// Apply blur and brightness
+https://cdn.imagevault.io/images/12345.jpg?blur=5&brightness=1.2
+
+// Combine multiple transforms
+https://cdn.imagevault.io/images/12345.jpg?w=600&h=400&format=webp&quality=90&fit=crop`}
+                      language="url"
+                      id="url-transforms"
                     />
                   </CardContent>
                 </Card>

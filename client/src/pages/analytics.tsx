@@ -402,7 +402,7 @@ export default function Analytics() {
                 )}
               </div>
             </CardContent>
-          </div>
+          </Card>
         </div>
       </div>
     </SidebarContentLoader>

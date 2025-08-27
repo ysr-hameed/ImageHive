@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { SidebarContentLoader } from "@/components/sidebar-content-loader"; // ✅ only once
 import { ImageGrid } from "@/components/image-grid";
 import EmailVerificationBanner from "@/components/email-verification-banner";
-import { NotificationBanner } from '@/components/notification-banner';
+import { NotificationBanner } from "@/components/notification-banner";
 import { Upload, Image as ImageIcon, BarChart3, Key, Settings, LogOut } from "lucide-react";
 import { Link } from "wouter";
 import { useEffect } from "react";
@@ -23,52 +24,45 @@ export default function Dashboard() {
   // Handle OAuth redirect with token
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
+    const token = urlParams.get("token");
 
     if (token) {
-      localStorage.setItem('token', token);
-      // Remove token from URL
-      window.history.replaceState({}, document.title, '/dashboard');
-      // Trigger auth refresh without reload
-      window.dispatchEvent(new Event('auth-refresh'));
+      localStorage.setItem("token", token);
+      window.history.replaceState({}, document.title, "/dashboard");
+      window.location.reload();
     }
   }, []);
 
-  // Don't render dashboard if not authenticated
   if (!isAuthenticated && !authLoading) {
     window.location.href = "/auth/login";
     return null;
   }
 
-  // Show loading while checking auth
   if (authLoading) {
     return <PageLoader text="Loading dashboard..." />;
   }
 
-  // Fetch user analytics
+  // Queries...
   const { data: analytics = {}, isLoading: analyticsLoading, error: analyticsError } = useQuery({
     queryKey: ["/api/v1/analytics"],
     retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
-    enabled: !!user, // Only fetch when user is available
+    enabled: !!user,
   });
 
-  // Fetch user images
   const { data: imagesData = {}, isLoading: imagesLoading, error: imagesError } = useQuery({
     queryKey: ["/api/v1/images"],
     retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
-    enabled: !!user, // Only fetch when user is available
+    enabled: !!user,
   });
 
-  // Fetch user API keys
   const { data: apiKeysData = {}, isLoading: apiKeysLoading, error: apiKeysError } = useQuery({
     queryKey: ["/api/v1/api-keys"],
     retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
-    enabled: !!user, // Only fetch when user is available
+    enabled: !!user,
   });
 
   const apiKeys = (apiKeysData as any)?.apiKeys || [];
 
-  // Handle unauthorized errors
   useEffect(() => {
     const errors = [analyticsError, imagesError, apiKeysError].filter(Boolean);
     for (const error of errors) {
@@ -87,46 +81,40 @@ export default function Dashboard() {
   }, [analyticsError, imagesError, apiKeysError, toast]);
 
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(1) + 'K';
-    }
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
     return num.toString();
   };
 
   const getPlanColor = (plan: string) => {
     switch (plan) {
-      case 'free': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
-      case 'starter': return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
-      case 'pro': return 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200';
-      case 'enterprise': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200';
-      default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
+      case "free": return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+      case "starter": return "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200";
+      case "pro": return "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200";
+      case "enterprise": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
     }
   };
 
   const handleLogout = () => {
-    // Implement logout logic here (e.g., clear tokens, redirect to login)
     toast({
       title: "Logged out successfully",
       description: "You have been logged out.",
     });
-    // Assuming useAuth provides a logout function:
-    // logout();
     window.location.href = "/auth/login";
   };
 
   return (
-    <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
+    <SidebarContentLoader showSidebar={true}>
+      <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
       {/* Notifications */}
       <NotificationBanner />
 
@@ -159,8 +147,8 @@ export default function Dashboard() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                {user?.profileImageUrl ? (
-                  <img src={user.profileImageUrl} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
+                {user?.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
                 ) : (
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                     <span className="text-sm font-bold text-white">
@@ -411,14 +399,14 @@ export default function Dashboard() {
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-gray-600 dark:text-gray-400">API Requests (Monthly)</span>
                       <span className="text-gray-900 dark:text-white">
-                        {formatNumber((user as any)?.apiRequestsUsed || 0)} / {formatNumber((user as any)?.apiRequestsLimit || 0)}
+                        {formatNumber(user?.apiRequestsUsed || 0)} / {formatNumber(user?.apiRequestsLimit || 0)}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
                       <div
                         className="bg-emerald-600 h-2 rounded-full transition-all"
                         style={{
-                          width: `${Math.min(100, (((user as any)?.apiRequestsUsed || 0) / ((user as any)?.apiRequestsLimit || 1)) * 100)}%`
+                          width: `${Math.min(100, ((user?.apiRequestsUsed || 0) / (user?.apiRequestsLimit || 1)) * 100)}%`
                         }}
                         data-testid="api-requests-progress"
                       />
@@ -430,6 +418,7 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </SidebarContentLoader>
   );
 }

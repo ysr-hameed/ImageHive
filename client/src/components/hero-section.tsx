@@ -1,12 +1,16 @@
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { CheckCircle } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, ArrowRight, Rocket, BarChart3 } from 'lucide-react';
+import { Link } from 'wouter';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function HeroSection() {
+  const { isAuthenticated } = useAuth();
+
   return (
     <section className="relative py-8 sm:py-16 lg:py-24 xl:py-32 overflow-hidden min-h-[80vh] sm:min-h-[85vh] lg:min-h-[90vh]">
       <div className="absolute inset-0 bg-gray-50 dark:bg-slate-900"></div>
-      
+
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center h-full">
           <div className="animate-fade-in">
@@ -17,30 +21,36 @@ export default function HeroSection() {
               <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
               Live: Professional Image Hosting API
             </Badge>
-            
+
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 lg:mb-6 leading-tight">
               Professional Image Hosting for{" "}
               <span className="text-blue-600 dark:text-blue-400 block sm:inline">
                 Developers
               </span>
             </h1>
-            
+
             <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 lg:mb-8 leading-relaxed max-w-2xl">
               Scale your image hosting to millions of users with our lightning-fast API. 
               Built on Backblaze B2 with global CDN, custom domains, and enterprise-grade security.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
-              <Button 
-                size="lg" 
-                asChild 
-                className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-lg lg:text-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-xl hover:shadow-2xl bg-blue-600 hover:bg-blue-700"
-                data-testid="button-start-free-trial"
-              >
-                <a href="/auth/register">
-                  🚀 Get Started Free
-                </a>
-              </Button>
+              <Link href={isAuthenticated ? "/dashboard" : "/auth/register"}>
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
+                  {isAuthenticated ? (
+                    <>
+                      <BarChart3 className="mr-2 w-5 h-5" />
+                      Go to Dashboard
+                    </>
+                  ) : (
+                    <>
+                      <Rocket className="mr-2 w-5 h-5" />
+                      Start Free Trial
+                    </>
+                  )}
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Button>
+              </Link>
               <Button 
                 variant="outline" 
                 size="lg"
@@ -53,7 +63,7 @@ export default function HeroSection() {
                 </a>
               </Button>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center space-x-1">
                 <CheckCircle className="w-4 h-4 text-emerald-500" />
@@ -69,7 +79,7 @@ export default function HeroSection() {
               </div>
             </div>
           </div>
-          
+
           <div className="relative animate-fade-in mt-8 lg:mt-0">
             {/* Interactive API Demo Terminal */}
             <div className="bg-gray-900 dark:bg-slate-800 rounded-xl shadow-2xl p-3 sm:p-6 font-mono text-xs sm:text-sm overflow-x-auto border border-gray-700">

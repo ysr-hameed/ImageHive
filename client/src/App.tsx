@@ -118,7 +118,7 @@ function AppContent() {
 
   if (isLoading) {
     console.log('⏳ App Loading State - showing loader');
-    return <FuturisticLoader variant="quantum" text="Initializing ImageVault..." />;
+    return <FuturisticLoader variant="quantum" text="Initializing ImageVault..." />;lt..." />;
   }
 
   const currentPath = window.location.pathname;

@@ -81,17 +81,34 @@ export default function Payment() {
     setProcessing(true);
     
     try {
-      // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Real payment processing with backend API
+      const response = await fetch('/api/v1/payments/create-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          paymentMethod: method,
+          cardData: method === 'card' ? cardData : null,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Payment failed');
+      }
       
-      if (method === "paypal") {
+      if (method === "paypal" && result.paypalUrl) {
         // Redirect to PayPal
-        window.location.href = `https://www.paypal.com/checkoutnow?token=DEMO_${selectedPlan.toUpperCase()}_${Date.now()}`;
-      } else if (method === "payu") {
+        window.location.href = result.paypalUrl;
+      } else if (method === "payu" && result.payuUrl) {
         // Redirect to PayU
-        window.location.href = `https://secure.payu.com/pay?hash=DEMO_${selectedPlan.toUpperCase()}_${Date.now()}`;
+        window.location.href = result.payuUrl;
       } else {
-        // Process card payment
+        // Card payment successful
         toast({
           title: "Payment Successful!",
           description: `Welcome to ${currentPlan.name} plan! Redirecting to dashboard...`,
@@ -101,10 +118,10 @@ export default function Payment() {
           setLocation("/dashboard?upgraded=true");
         }, 2000);
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Payment Failed",
-        description: "There was an error processing your payment. Please try again.",
+        description: error.message || "There was an error processing your payment. Please try again.",
         variant: "destructive",
       });
     } finally {

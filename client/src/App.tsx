@@ -23,7 +23,7 @@ import ApiKeys from "./pages/api-keys";
 import Notifications from "./pages/notifications";
 import Collections from "./pages/collections";
 import Activity from "./pages/activity";
-import Admin from "./pages/admin";
+import Admin from "./pages/admin-simple";
 import ApiUsage from "./pages/api-usage";
 import Upgrade from "./pages/upgrade";
 import Login from "./pages/auth/login";

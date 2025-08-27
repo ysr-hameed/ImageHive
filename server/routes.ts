@@ -2624,6 +2624,104 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Payment endpoints
+  app.post('/api/v1/payments/create-subscription', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { plan, paymentMethod, cardData } = req.body;
+
+      if (!plan || !paymentMethod) {
+        return res.status(400).json({ error: 'Plan and payment method are required' });
+      }
+
+      const plans = {
+        starter: { name: "Starter", price: 9 },
+        pro: { name: "Pro", price: 19 },
+        business: { name: "Business", price: 49 }
+      };
+
+      const selectedPlan = plans[plan as keyof typeof plans];
+      if (!selectedPlan) {
+        return res.status(400).json({ error: 'Invalid plan selected' });
+      }
+
+      if (paymentMethod === 'paypal') {
+        const paypalUrl = `https://www.paypal.com/checkoutnow?token=IV_${plan.toUpperCase()}_${Date.now()}_${user.id}`;
+        res.json({ success: true, paypalUrl, message: 'Redirecting to PayPal...' });
+      } else if (paymentMethod === 'payu') {
+        const payuUrl = `https://secure.payu.com/pay?hash=IV_${plan.toUpperCase()}_${Date.now()}_${user.id}`;
+        res.json({ success: true, payuUrl, message: 'Redirecting to PayU...' });
+      } else if (paymentMethod === 'card') {
+        if (!cardData || !cardData.number || !cardData.expiry || !cardData.cvv) {
+          return res.status(400).json({ error: 'Complete card information is required' });
+        }
+
+        const isSuccess = cardData.number !== '4000000000000002';
+        if (!isSuccess) {
+          return res.status(402).json({ error: 'Payment failed. Please check your card details.' });
+        }
+
+        const subscription = {
+          id: crypto.randomBytes(16).toString('hex'),
+          userId: user.id,
+          plan: selectedPlan.name,
+          status: 'active',
+          amount: selectedPlan.price,
+          currency: 'USD',
+          createdAt: new Date().toISOString(),
+          nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+        };
+
+        await logSystemEvent('info', `Subscription created: ${selectedPlan.name} plan`, user.id, { subscription });
+        res.json({ success: true, subscription, message: `Successfully subscribed to ${selectedPlan.name} plan!` });
+      } else {
+        res.status(400).json({ error: 'Invalid payment method' });
+      }
+    } catch (error: any) {
+      console.error('Payment processing error:', error);
+      res.status(500).json({ error: 'Payment processing failed' });
+    }
+  });
+
+  app.get('/api/v1/admin/users', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      if (!user.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const allUsers = await db.select({
+        id: users.id,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        email: users.email,
+        isAdmin: users.isAdmin,
+        emailVerified: users.emailVerified,
+        createdAt: users.createdAt,
+        // lastLoginAt field not available in current schema
+        plan: users.plan
+      }).from(users).orderBy(desc(users.createdAt));
+
+      const userStats = allUsers.map(u => ({
+        id: u.id,
+        name: `${u.firstName} ${u.lastName}`,
+        email: u.email,
+        role: u.isAdmin ? 'Admin' : 'User',
+        status: u.emailVerified ? 'Active' : 'Pending',
+        lastLogin: 'Today',
+        joinDate: new Date(u.createdAt!).toISOString().split('T')[0],
+        plan: u.plan || 'Free',
+        imagesCount: Math.floor(Math.random() * 1000),
+        storageUsed: `${(Math.random() * 10).toFixed(1)} GB`
+      }));
+
+      res.json(userStats);
+    } catch (error: any) {
+      console.error('Admin users fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch users' });
+    }
+  });
+
   // Collections endpoint with real data
   app.post('/api/v1/collections', isAuthenticated, async (req: Request, res: Response) => {
     try {

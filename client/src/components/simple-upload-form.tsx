@@ -846,6 +846,13 @@ export function SimpleUploadForm() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+export default SimpleUploadForm;
           )}
 
           {/* Bulk Actions */}

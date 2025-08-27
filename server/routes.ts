@@ -1149,6 +1149,13 @@ export function registerRoutes(app: Express) {
         return res.status(404).json({ error: 'User not found' });
       }
 
+      // Track API usage based on plan
+      await logSystemEvent('info', `API call: image upload`, user.id, { 
+        endpoint: '/api/v1/images/upload',
+        plan: userData.plan || 'free',
+        source: 'platform'
+      });
+
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
       }
@@ -1249,6 +1256,14 @@ export function registerRoutes(app: Express) {
   app.get('/api/v1/images', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
+      const isExternal = req.headers['x-api-source'] === 'external';
+      
+      if (isExternal) {
+        await logSystemEvent('info', `External API call: list images`, user.id, { 
+          endpoint: '/api/v1/images',
+          source: 'external'
+        });
+      }
       const { folder, search, limit = 20, offset = 0 } = req.query;
 
       let query = db.select().from(images).where(eq(images.userId, user.id));

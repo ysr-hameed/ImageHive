@@ -186,7 +186,7 @@ export default function Plans() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 md:grid-cols-2 gap-6 lg:gap-8">
             {plans.map((plan) => {
               const Icon = plan.icon;
               const isCurrentPlan = currentPlan === plan.id;
@@ -293,7 +293,7 @@ export default function Plans() {
             <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
               Frequently Asked Questions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
               <Card>
                 <CardContent className="p-6">
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2">

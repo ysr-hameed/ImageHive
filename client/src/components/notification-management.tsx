@@ -292,6 +292,7 @@ export function NotificationManagement() {
 // Enhanced NotificationBell component for the header
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
+  const queryClient = useQueryClient();
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['/api/v1/notifications'],
     retry: false,
@@ -303,10 +304,20 @@ export function NotificationBell() {
 
   const markAsRead = useMutation({
     mutationFn: async (id: string) => {
-      await apiRequest('PATCH', `/notifications/${id}`, {});
+      const response = await fetch(`/api/v1/notifications/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ isActive: false }),
+      });
+      if (!response.ok) throw new Error('Failed to mark notification as read');
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
+    },
+    onError: (error) => {
+      console.error('Error marking notification as read:', error);
     },
   });
 

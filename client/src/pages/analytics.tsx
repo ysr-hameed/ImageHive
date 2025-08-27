@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SidebarContentLoader } from '@/components/sidebar-content-loader';
@@ -14,15 +14,22 @@ import {
   Calendar,
   Clock,
   Key,
+  Trash2,
+  X
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function Analytics() {
+  const queryClient = useQueryClient();
+
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['/api/v1/analytics'],
     retry: false,
   });
 
-  const { data: images } = useQuery({
+  const { data: images, isLoading: imagesLoading } = useQuery({
     queryKey: ['/api/v1/images'],
     retry: false,
   });
@@ -32,9 +39,38 @@ export default function Analytics() {
     retry: false,
   });
 
-  const { data: apiKeysData } = useQuery({
+  const { data: apiKeys, isLoading: apiKeysLoading } = useQuery({
     queryKey: ['/api/v1/api-keys'],
     retry: false,
+  });
+
+  const { data: usage, isLoading: usageLoading } = useQuery({
+    queryKey: ['/api/v1/usage'],
+    retry: false,
+  });
+
+  const deleteImageMutation = useMutation({
+    mutationFn: async (imageId: string) => {
+      const response = await fetch(`/api/images/${imageId}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete image');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/images'] });
+      toast. visitantes('Image deleted successfully.', {
+        description: new Date().toLocaleDateString(),
+      });
+    },
+    onError: (error) => {
+      toast.error('Error deleting image', {
+        description: error.message,
+      });
+    },
   });
 
   const formatNumber = (num: number) => {
@@ -55,15 +91,17 @@ export default function Analytics() {
   const totalImages = images?.images?.length || 0;
   const totalViews = images?.images?.reduce((sum: number, img: any) => sum + (img.views || 0), 0) || 0;
   const totalDownloads = images?.images?.reduce((sum: number, img: any) => sum + (img.downloads || 0), 0) || 0;
-  const totalApiKeys = apiKeysData?.apiKeys?.length || 0;
   const storageUsed = user?.storageUsed || 0;
   const storageLimit = user?.storageLimit || 1024 * 1024 * 1024;
+  const newImages = analytics?.newImages || 0;
+  const apiKeyCount = Array.isArray(apiKeys) ? apiKeys.length : 0;
+  const monthlyRequests = usage?.current?.requests || 0;
 
   // Get top performing images
   const topImages = images?.images?.sort((a: any, b: any) => (b.views || 0) - (a.views || 0)).slice(0, 5) || [];
 
   return (
-    <SidebarContentLoader isLoading={isLoading}>
+    <SidebarContentLoader isLoading={isLoading || imagesLoading || apiKeysLoading || usageLoading}>
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div className="max-w-7xl mx-auto">
           {/* Page Content Header */}
@@ -132,19 +170,28 @@ export default function Analytics() {
             </Card>
 
             <Card>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">API Keys</p>
-                    <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {formatNumber(totalApiKeys)}
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      Active keys
-                    </p>
-                  </div>
-                  <Key className="w-8 h-8 text-amber-500" />
-                </div>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Images</CardTitle>
+                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatNumber(totalImages)}</div>
+                <p className="text-xs text-muted-foreground">
+                  +{newImages} this month
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">API Keys</CardTitle>
+                <Key className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{apiKeyCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  {formatNumber(monthlyRequests)} requests this month
+                </p>
               </CardContent>
             </Card>
           </div>
@@ -190,6 +237,15 @@ export default function Analytics() {
                           </span>
                         </div>
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-auto h-8 w-8 p-0"
+                        onClick={() => deleteImageMutation.mutate(image.id)}
+                        disabled={deleteImageMutation.isPending}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
                     </div>
                   )) : (
                     <div className="text-center py-8 text-gray-500 dark:text-gray-400">
@@ -234,6 +290,34 @@ export default function Analytics() {
             </Card>
           </div>
 
+          {/* API Key Usage */}
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Key className="w-5 h-5" />
+                API Key Usage
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Active API Keys</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{apiKeyCount}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    You have {apiKeyCount} API keys active.
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">Monthly Requests</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(monthlyRequests)}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Total requests made this month.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Recent Activity */}
           <Card>
             <CardHeader>
@@ -264,6 +348,15 @@ export default function Analytics() {
                         {new Date(image.createdAt).toLocaleDateString()}
                       </p>
                     </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="ml-auto h-8 w-8 p-0"
+                      onClick={() => deleteImageMutation.mutate(image.id)}
+                      disabled={deleteImageMutation.isPending}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
                   </div>
                 )) || (
                   <div className="text-center py-8 text-gray-500 dark:text-gray-400">

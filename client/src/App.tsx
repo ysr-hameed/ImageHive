@@ -1,5 +1,4 @@
-
-import { Suspense } from "react";
+import { Suspense, lazy } from "react";
 import { Router, Route, Switch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -104,7 +103,7 @@ function AppContent() {
         <Route path="/auth/forgot-password" component={ForgotPassword} />
         <Route path="/auth/reset-password" component={ResetPassword} />
         <Route path="/auth/verify-email" component={VerifyEmail} />
-        <Route path="/docs" component={ApiDocs} />
+        <Route path="/docs" component={lazy(() => import("./pages/docs").then(m => ({ default: m.default })))} />
         <Route path="/documentation" component={ApiDocs} />
         <Route path="/api-docs" component={ApiDocs} />
         <Route path="/features" component={Features} />

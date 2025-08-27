@@ -1,6 +1,11 @@
-
-import { useAuth } from './useAuth';
-import { useToast } from './use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
+import { deleteNotification, getAllNotifications } from '@/api/notifications';
+import { getUserAnalytics } from '@/api/analytics';
+import { fetchPlans } from '@/api/plans';
+import { getCurrentUserUsage } from '@/api/usage';
 
 interface PlanLimits {
   storageLimit: number;
@@ -39,6 +44,7 @@ const PLAN_LIMITS: Record<string, PlanLimits> = {
 export function usePlanLimits() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const getUserLimits = (): PlanLimits => {
     const plan = user?.plan || 'free';
@@ -48,7 +54,7 @@ export function usePlanLimits() {
   const checkStorageLimit = (newFileSize: number, currentUsage: number = 0): boolean => {
     const limits = getUserLimits();
     const totalUsage = currentUsage + newFileSize;
-    
+
     if (totalUsage > limits.storageLimit) {
       toast({
         title: 'Storage Limit Exceeded',
@@ -62,7 +68,7 @@ export function usePlanLimits() {
 
   const checkImagesLimit = (currentCount: number): boolean => {
     const limits = getUserLimits();
-    
+
     if (currentCount >= limits.imagesLimit) {
       toast({
         title: 'Images Limit Reached',
@@ -76,7 +82,7 @@ export function usePlanLimits() {
 
   const checkApiRequestsLimit = (currentUsage: number): boolean => {
     const limits = getUserLimits();
-    
+
     if (currentUsage >= limits.apiRequestsLimit) {
       toast({
         title: 'API Requests Limit Reached',
@@ -90,7 +96,7 @@ export function usePlanLimits() {
 
   const checkFoldersLimit = (currentCount: number): boolean => {
     const limits = getUserLimits();
-    
+
     if (currentCount >= limits.foldersLimit) {
       toast({
         title: 'Folders Limit Reached',
@@ -126,6 +132,44 @@ export function usePlanLimits() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const deleteNotificationMutation = useMutation({
+    mutationFn: (id: string) => deleteNotification(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      toast({
+        title: 'Notification Deleted',
+        description: 'The notification has been successfully deleted.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error Deleting Notification',
+        description: error.message || 'An unknown error occurred.',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const invalidateNotifications = () => {
+    queryClient.invalidateQueries({ queryKey: ['notifications'] });
+  };
+
+  const fetchNotifications = () => {
+    return getAllNotifications();
+  };
+
+  const fetchAnalytics = () => {
+    return getUserAnalytics();
+  };
+
+  const fetchPlans = () => {
+    return fetchPlans();
+  };
+
+  const fetchUserUsage = () => {
+    return getCurrentUserUsage();
+  };
+
   return {
     getUserLimits,
     checkStorageLimit,
@@ -134,6 +178,12 @@ export function usePlanLimits() {
     checkFoldersLimit,
     getUsagePercentage,
     formatBytes,
-    currentPlan: user?.plan || 'free'
+    currentPlan: user?.plan || 'free',
+    deleteNotificationMutation,
+    invalidateNotifications,
+    fetchNotifications,
+    fetchAnalytics,
+    fetchPlans,
+    fetchUserUsage,
   };
 }

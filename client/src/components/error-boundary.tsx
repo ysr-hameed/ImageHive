@@ -30,7 +30,7 @@ class ErrorBoundary extends Component<Props, State> {
       timestamp: new Date().toISOString(),
       url: window.location.href
     });
-    
+
     // Additional debugging info in development
     if (process.env.NODE_ENV === 'development') {
       console.group('🔍 ErrorBoundary Debug Info');
@@ -43,33 +43,41 @@ class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
+      console.log('🚨 Error Boundary activated, rendering fallback UI');
+
+      // Enhanced fallback UI with more debugging info
       return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-600">
-                <AlertTriangle className="w-5 h-5" />
-                Something went wrong
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">
-                An unexpected error occurred. Please try refreshing the page.
-              </p>
-              {this.state.error && (
-                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
+          <div className="text-center p-8 max-w-2xl">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
+              Application Error
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              ImageVault encountered an unexpected error. Please check the console for details.
+            </p>
+            {this.state.error && (
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-6 text-left">
+                <p className="text-sm text-red-800 dark:text-red-300 font-mono">
                   {this.state.error.message}
-                </pre>
-              )}
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="w-full"
+                </p>
+              </div>
+            )}
+            <div className="space-x-4">
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh Page
-              </Button>
-            </CardContent>
-          </Card>
+                🔄 Reload Page
+              </button>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                🏠 Go Home
+              </button>
+            </div>
+          </div>
         </div>
       );
     }

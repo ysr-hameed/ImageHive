@@ -14,6 +14,9 @@ import { ArrowRight, PlayCircle, Rocket, BarChart3, Sparkles, Shield, Zap } from
 export default function Landing() {
   const { isAuthenticated, user, isLoading } = useAuth();
 
+  console.log('🏠 Landing Page Rendering:', { user: !!user, isLoading });
+
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">

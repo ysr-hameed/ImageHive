@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from "react";
+import React from "react";
 import { Router, Route, Switch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
@@ -9,9 +9,9 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "@/lib/queryClient";
 import ErrorBoundary from "@/components/error-boundary";
-import { FuturisticLoader, PageLoader } from '@/components/futuristic-loader';
+import { PageLoader } from '@/components/futuristic-loader';
 
-// Import all page components
+// Import all page components directly (no lazy loading for now)
 import LandingPage from "./pages/landing";
 import Dashboard from "./pages/dashboard";
 import Upload from "./pages/upload";
@@ -44,88 +44,36 @@ import Privacy from "./pages/privacy";
 import Terms from "./pages/terms";
 import Contact from "./pages/contact";
 import SDKs from "./pages/sdks";
+import ApiDocs from "./pages/docs";
 import NotFound from "./pages/not-found";
-
-const ApiDocs = lazy(() => import("./pages/docs").then(m => ({ default: m.default })));
 
 function AppContent() {
   const { user, isLoading } = useAuth();
 
-  // Enhanced debugging and error logging
-  React.useEffect(() => {
-    // Enhanced Global error handler with more debugging info
-    const handleError = (event: ErrorEvent) => {
-      console.error('🚨 Global Error Details:', {
-        message: event.message,
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-        error: event.error,
-        stack: event.error?.stack,
-        timestamp: new Date().toISOString(),
-        userAgent: navigator.userAgent,
-        url: window.location.href,
-        currentPath: window.location.pathname,
-        authState: { isLoading, hasUser: !!user, userId: user?.id },
-        localStorage: {
-          token: !!localStorage.getItem('token'),
-          tokenLength: localStorage.getItem('token')?.length || 0
-        }
-      });
-
-      // Also show user-friendly error in development
-      if (process.env.NODE_ENV === 'development') {
-        console.group('🔍 Debug Information');
-        console.log('User:', user);
-        console.log('Auth Loading:', isLoading);
-        console.log('Current Location:', window.location.href);
-        console.log('Local Storage Token:', !!localStorage.getItem('token'));
-        console.groupEnd();
-      }
-    };
-
-    // Global unhandled promise rejection handler
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error('🚨 Unhandled Promise Rejection:', {
-        reason: event.reason,
-        promise: event.promise,
-        timestamp: new Date().toISOString(),
-        url: window.location.href
-      });
-    };
-
-    // Add global listeners
-    window.addEventListener('error', handleError);
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
-    // Enhanced auth state debugging
-    if (process.env.NODE_ENV === 'development') {
-      console.group('🔐 Auth State Debug');
-      console.log('Loading:', isLoading);
-      console.log('User:', user ? { id: user.id, email: user.email, plan: user.plan, isAdmin: user.isAdmin } : null);
-      console.log('Token exists:', !!localStorage.getItem('token'));
-      console.log('Current path:', window.location.pathname);
-      console.log('Timestamp:', new Date().toISOString());
-      console.log('Window location:', window.location.href);
-      console.groupEnd();
-    }
-
-    return () => {
-      window.removeEventListener('error', handleError);
-      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
-    };
-  }, [user, isLoading]);
+  console.log('🔐 Auth State Debug');
+  console.log('Loading:', isLoading);
+  console.log('User:', user ? { id: user.id, email: user.email } : null);
+  console.log('Token exists:', !!localStorage.getItem('token'));
+  console.log('Current path:', window.location.pathname);
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Window location:', window.location.href);
 
   if (isLoading) {
     console.log('⏳ App Loading State - showing loader');
-    // Using PageLoader for initial app loading
     return <PageLoader text="Initializing ImageVault..." />;
   }
 
   const currentPath = window.location.pathname;
   const isAuthPage = currentPath.startsWith('/auth/');
-  const publicPaths = ['/', '/docs', '/documentation', '/api-docs', '/features', '/about', '/blog', '/careers', '/press', '/contact', '/help', '/community', '/guides', '/privacy', '/terms', '/status', '/sdks'];
+  const publicPaths = [
+    '/', '/docs', '/documentation', '/api-docs', '/features',
+    '/about', '/blog', '/careers', '/press', '/contact',
+    '/help', '/community', '/guides', '/privacy', '/terms',
+    '/status', '/sdks', '/plans'
+  ];
   const isPublicPage = publicPaths.includes(currentPath) || currentPath.startsWith('/docs');
+
+  console.log('Route Debug:', { currentPath, isAuthPage, isPublicPage, hasUser: !!user });
 
   // Authenticated pages with sidebar
   if (user && !isAuthPage && !isPublicPage) {
@@ -152,7 +100,6 @@ function AppContent() {
                 <Route path="/api-keys" component={ApiKeys} />
                 <Route path="/settings" component={Settings} />
                 <Route path="/api-usage" component={ApiUsage} />
-                <Route path="/plans" component={Plans} />
                 <Route path="/notifications" component={Notifications} />
                 <Route path="/admin" component={Admin} />
                 <Route path="/collections" component={Collections} />
@@ -167,37 +114,52 @@ function AppContent() {
     );
   }
 
-
   // Public pages without sidebar (including auth pages)
   return (
-    <div className="min-h-screen">
-      <Suspense fallback={<FuturisticLoader variant="default" text="Loading..." />}>
-        <Switch>
-          <Route path="/auth/login" component={Login} />
-          <Route path="/auth/register" component={Register} />
-          <Route path="/auth/forgot-password" component={ForgotPassword} />
-          <Route path="/auth/reset-password" component={ResetPassword} />
-          <Route path="/auth/verify-email" component={VerifyEmail} />
-          <Route path="/docs" component={ApiDocs} />
-          <Route path="/documentation" component={ApiDocs} />
-          <Route path="/api-docs" component={ApiDocs} />
-          <Route path="/features" component={Features} />
-          <Route path="/about" component={About} />
-          <Route path="/blog" component={Blog} />
-          <Route path="/careers" component={Careers} />
-          <Route path="/community" component={Community} />
-          <Route path="/guides" component={Guides} />
-          <Route path="/help" component={Help} />
-          <Route path="/press" component={Press} />
-          <Route path="/status" component={Status} />
-          <Route path="/privacy" component={Privacy} />
-          <Route path="/terms" component={Terms} />
-          <Route path="/contact" component={Contact} />
-          <Route path="/sdks" component={SDKs} />
-          <Route path="/" component={LandingPage} />
-          <Route component={NotFound} />
-        </Switch>
-      </Suspense>
+    <div className="min-h-screen w-full">
+      <Switch>
+        <Route path="/auth/login" component={Login} />
+        <Route path="/auth/register" component={Register} />
+        <Route path="/auth/forgot-password" component={ForgotPassword} />
+        <Route path="/auth/reset-password" component={ResetPassword} />
+        <Route path="/auth/verify-email" component={VerifyEmail} />
+        <Route path="/docs" component={ApiDocs} />
+        <Route path="/documentation" component={ApiDocs} />
+        <Route path="/api-docs" component={ApiDocs} />
+        <Route path="/features" component={Features} />
+        <Route path="/about" component={About} />
+        <Route path="/blog" component={Blog} />
+        <Route path="/careers" component={Careers} />
+        <Route path="/community" component={Community} />
+        <Route path="/guides" component={Guides} />
+        <Route path="/help" component={Help} />
+        <Route path="/press" component={Press} />
+        <Route path="/status" component={Status} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/contact" component={Contact} />
+        <Route path="/sdks" component={SDKs} />
+        <Route path="/plans" component={Plans} />
+        <Route path="/" component={LandingPage} />
+        <Route component={NotFound} />
+      </Switch>
     </div>
   );
 }
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="light" storageKey="imagevault-theme">
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <AppContent />
+          </Router>
+          <Toaster />
+        </QueryClientProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
+  );
+}
+
+export default App;

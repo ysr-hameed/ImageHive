@@ -56,7 +56,9 @@ import {
   TrendingUp,
   Menu,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Settings2,
+  LifeBuoy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logoutUser } from "@/lib/authUtils";
@@ -101,7 +103,7 @@ const data = {
     },
     {
       title: "Activity",
-      url: "/activity", 
+      url: "/activity",
       icon: Activity,
     },
     {
@@ -118,8 +120,8 @@ const data = {
 };
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { user, logout } = useAuth();
-  const [location] = useLocation();
+  const { user } = useAuth();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const { toggleSidebar } = useSidebar();
@@ -169,8 +171,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             {data.navMain.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
-                  asChild 
+                <SidebarMenuButton
+                  asChild
                   isActive={location === item.url}
                   tooltip={item.title}
                 >
@@ -189,8 +191,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <SidebarMenu>
             {data.navSecondary.map((item) => (
               <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton 
-                  asChild 
+                <SidebarMenuButton
+                  asChild
                   isActive={location === item.url}
                   tooltip={item.title}
                 >

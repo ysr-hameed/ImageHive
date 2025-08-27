@@ -1,13 +1,59 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User } from "@shared/schema";
 import { getQueryFn } from "@/lib/queryClient";
+import { useCallback, useState } from "react";
 
 export function useAuth() {
   const queryClient = useQueryClient();
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const checkAuth = useCallback(async () => {
+    console.log('🔐 Starting auth check...');
+    setIsLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.log('❌ No token found');
+        setUser(null);
+        return;
+      }
+
+      console.log('📡 Fetching user profile...');
+      const response = await fetch('/api/v1/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        timeout: 10000, // 10 second timeout
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        console.log('✅ User authenticated:', { id: userData.id, email: userData.email });
+        setUser(userData);
+      } else {
+        console.log('❌ Auth failed:', response.status, response.statusText);
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+        }
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('❌ Auth check error:', error);
+      // Don't remove token on network errors, might be temporary
+      setUser(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+
   // Check if token exists in localStorage
   const hasToken = !!localStorage.getItem('token');
-  
-  const { data: user, isLoading, error } = useQuery<User>({
+
+  const { data: queryUser, isLoading: isQueryLoading, error } = useQuery<User>({
     queryKey: ["/api/v1/auth/user"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     retry: (failureCount, error) => {
@@ -81,6 +127,8 @@ export function useAuth() {
       localStorage.setItem('token', result.token);
       // Invalidate queries to refetch user data
       queryClient.invalidateQueries({ queryKey: ["/api/v1/auth/user"] });
+      // Also update local user state
+      setUser(queryUser || null);
     }
     return result;
   };
@@ -102,8 +150,8 @@ export function useAuth() {
   };
 
   return {
-    user,
-    isLoading: hasToken ? isLoading : false,
+    user: queryUser || user, // Prioritize queryUser if available
+    isLoading: isQueryLoading || isLoading,
     isAuthenticated,
     error,
     register,
@@ -111,5 +159,6 @@ export function useAuth() {
     logout,
     loginWithGoogle,
     loginWithGitHub,
+    checkAuth,
   };
 }

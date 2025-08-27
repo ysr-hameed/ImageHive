@@ -1,10 +1,10 @@
-
 import express from 'express';
 import cors from 'cors';
 import { createServer } from "http";
 import { setupVite, serveStatic } from "./vite";
 import { initializeDatabase } from "./db";
 import dotenv from 'dotenv';
+import path from 'path'; // Import path module
 
 dotenv.config();
 
@@ -55,7 +55,7 @@ const createProxy = (targetPort: string) => {
   return async (req: express.Request, res: express.Response) => {
     try {
       const targetUrl = `http://localhost:${targetPort}${req.originalUrl}`;
-      
+
       const response = await fetch(targetUrl, {
         method: req.method,
         headers: {
@@ -67,10 +67,10 @@ const createProxy = (targetPort: string) => {
       });
 
       const data = await response.text();
-      
+
       res.status(response.status);
       res.set(Object.fromEntries(response.headers.entries()));
-      
+
       try {
         res.json(JSON.parse(data));
       } catch {

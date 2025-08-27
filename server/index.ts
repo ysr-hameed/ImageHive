@@ -70,7 +70,7 @@ async function startServer() {
     console.error('❌ Database initialization failed, but continuing:', error);
   }
 
-  app.listen(PORT, HOST, () => {
+  const server = app.listen(PORT, HOST, () => {
     console.log(`🚀 Server running on http://${HOST}:${PORT}`);
     // Determine if email and backblaze are configured for logging
     const emailConfigured = process.env.GMAIL_USER && process.env.GMAIL_PASS && process.env.GMAIL_HOST && process.env.GMAIL_PORT;
@@ -86,6 +86,32 @@ async function startServer() {
     }
 
     console.log('🎉 Server startup completed successfully!');
+  });
+
+  server.on('error', (error: any) => {
+    if (error.code === 'EADDRINUSE') {
+      console.log(`❌ Port ${PORT} is already in use`);
+      process.exit(1);
+    } else {
+      console.log(`❌ Server error: ${error.message}`);
+      process.exit(1);
+    }
+  });
+
+  process.on('SIGTERM', () => {
+    console.log('👋 Received SIGTERM, shutting down gracefully');
+    server.close(() => {
+      console.log('✅ Server closed');
+      process.exit(0);
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('👋 Received SIGINT, shutting down gracefully');
+    server.close(() => {
+      console.log('✅ Server closed');
+      process.exit(0);
+    });
   });
 }
 

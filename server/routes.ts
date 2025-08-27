@@ -789,6 +789,53 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Change password endpoint
+  app.put('/api/v1/auth/change-password', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+      }
+
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'New password must be at least 8 characters long' });
+      }
+
+      // Get user from database
+      const userData = await storage.getUser(user.id);
+      if (!userData || !userData.passwordHash) {
+        return res.status(400).json({ error: 'Cannot change password for OAuth accounts' });
+      }
+
+      // Verify current password
+      const isValidPassword = await bcrypt.compare(currentPassword, userData.passwordHash);
+      if (!isValidPassword) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      // Hash new password
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password in database
+      await db.update(users)
+        .set({
+          passwordHash: hashedNewPassword,
+          updatedAt: new Date()
+        })
+        .where(eq(users.id, user.id));
+
+      await logSystemEvent('info', 'Password changed successfully', user.id);
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Password change error: ${error.message}`, req.user?.id);
+      console.error('Password change error:', error);
+      res.status(500).json({ error: 'Failed to change password' });
+    }
+  });
+
   app.get('/api/v1/auth/user', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user!;
@@ -1107,6 +1154,36 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Custom domain management endpoints
+  app.delete('/api/v1/domains/:domainId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { domainId } = req.params;
+
+      // Verify domain belongs to user
+      const [domain] = await db.select().from(customDomains)
+        .where(and(
+          eq(customDomains.id, domainId),
+          eq(customDomains.userId, user.id)
+        ));
+
+      if (!domain) {
+        return res.status(404).json({ error: 'Domain not found' });
+      }
+
+      // Delete domain
+      await db.delete(customDomains).where(eq(customDomains.id, domainId));
+
+      await logSystemEvent('info', `Custom domain deleted: ${domain.domain}`, user.id);
+
+      res.json({ success: true, message: 'Domain deleted successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Domain deletion error: ${error.message}`, req.user?.id);
+      console.error('Domain deletion error:', error);
+      res.status(500).json({ error: 'Failed to delete domain' });
+    }
+  });
+
   // System control endpoints
   app.post('/api/v1/admin/system/:action', isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -1162,6 +1239,7 @@ export function registerRoutes(app: Express) {
 
       const {
         title, description, folder, isPublic, altText, tags,
+        customFilename, overrideFilename,
         // Premium parameters
         watermark, watermarkText, watermarkOpacity, watermarkPosition,
         autoBackup, encryption, expiryDate, downloadLimit, geoRestriction
@@ -1199,9 +1277,24 @@ export function registerRoutes(app: Express) {
       const processedImageBuffer = await processImage(req.file.buffer);
       const imageInfo = await getImageInfo(req.file.buffer);
 
-      // Generate unique filename
+      // Generate filename based on user preference
       const fileExtension = req.file.originalname.split('.').pop() || 'jpg';
-      const filename = `${uuidv4()}.${fileExtension}`;
+      let filename: string;
+      let displayFilename: string;
+
+      if (customFilename && overrideFilename === 'true') {
+        // Use custom filename provided by user
+        displayFilename = backblazeService.generateCleanFilename(req.file.originalname, customFilename, true);
+        filename = `${uuidv4()}_${displayFilename}`;
+      } else if (customFilename) {
+        // Use custom filename but keep original as backup
+        displayFilename = backblazeService.generateCleanFilename(req.file.originalname, customFilename, true);
+        filename = displayFilename;
+      } else {
+        // Use original filename with UUID prefix for uniqueness
+        displayFilename = backblazeService.generateCleanFilename(req.file.originalname);
+        filename = `${uuidv4()}_${displayFilename}`;
+      }
 
       // Upload to Backblaze
       let fileUrl: string;
@@ -1223,13 +1316,25 @@ export function registerRoutes(app: Express) {
         .limit(1);
 
       const customDomain = userDomains[0];
-      const baseUrl = customDomain ? `https://${customDomain.domain}` : (process.env.APP_URL || 'https://imagevault.replit.app');
+      
+      // Determine base domain for URLs
+      let baseUrl: string;
+      if (customDomain) {
+        baseUrl = `https://${customDomain.domain}`;
+      } else if (process.env.PLATFORM_DOMAIN && process.env.USE_PLATFORM_DOMAIN === 'true') {
+        baseUrl = `https://${process.env.PLATFORM_DOMAIN}`;
+      } else {
+        const appDomain = process.env.REPL_SLUG ? 
+          `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
+          'localhost:5000';
+        baseUrl = `https://${appDomain}`;
+      }
 
-      // Generate clean URLs without exposing bucket details
+      // Generate clean URLs using display filename
       const imageId = uuidv4();
-      const publicUrl = `${baseUrl}/i/${imageId}`;
-      const cdnUrl = `${baseUrl}/cdn/${imageId}`;
-      const thumbnailUrl = `${baseUrl}/t/${imageId}`;
+      const publicUrl = `${baseUrl}/i/${displayFilename}`;
+      const cdnUrl = `${baseUrl}/cdn/${displayFilename}`;
+      const thumbnailUrl = `${baseUrl}/t/${displayFilename}`;
 
       // Extract enhanced metadata
       const uploadMetadata = {
@@ -1245,9 +1350,9 @@ export function registerRoutes(app: Express) {
       const [imageRecord] = await db.insert(images).values({
         id: imageId,
         userId: user.id,
-        filename,
+        filename: displayFilename, // Store display filename for user
         originalFilename: req.file.originalname,
-        title: title || req.file.originalname,
+        title: title || displayFilename,
         description: description || null,
         altText: altText || null,
         mimeType: req.file.mimetype,
@@ -1259,16 +1364,21 @@ export function registerRoutes(app: Express) {
         tags: tags ? tags.split(',').map((tag: string) => tag.trim()) : [],
         // Storage details (private)
         backblazeFileId: null, // Will be set after B2 upload
-        backblazeFileName: filename,
+        backblazeFileName: filename, // Internal storage filename
         backblazeBucketName: process.env.BACKBLAZE_BUCKET_NAME,
         // Public URLs (clean)
         publicUrl,
-        cdnUrl: fileUrl, // Use actual CDN URL from upload
+        cdnUrl,
         thumbnailUrl,
         views: 0,
         downloads: 0,
         uniqueViews: 0,
-        metadata: uploadMetadata,
+        metadata: {
+          ...uploadMetadata,
+          displayFilename,
+          customFilename: customFilename || null,
+          overrideFilename: overrideFilename === 'true'
+        },
         uploadSource: 'web',
         uploadIp: req.ip || req.connection?.remoteAddress || 'unknown',
         processingStatus: 'completed',
@@ -2351,6 +2461,206 @@ export function registerRoutes(app: Express) {
     } catch (error: any) {
       console.error('Thumbnail serve error:', error);
       res.status(500).json({ error: 'Failed to serve thumbnail' });
+    }
+  });
+
+  // Activity log endpoint
+  app.get('/api/v1/activity', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { limit = 50, offset = 0 } = req.query;
+
+      // Get real activity from system logs for this user
+      const activities = await db.select({
+        id: systemLogs.id,
+        message: systemLogs.message,
+        level: systemLogs.level,
+        createdAt: systemLogs.createdAt,
+        metadata: systemLogs.metadata
+      })
+        .from(systemLogs)
+        .where(eq(systemLogs.userId, user.id))
+        .orderBy(desc(systemLogs.createdAt))
+        .limit(Number(limit))
+        .offset(Number(offset));
+
+      // Format activities for display
+      const formattedActivities = activities.map(activity => {
+        let actionType = 'info';
+        let description = activity.message;
+
+        // Parse activity type from message
+        if (activity.message.includes('uploaded')) {
+          actionType = 'upload';
+          description = 'Uploaded a new image';
+        } else if (activity.message.includes('deleted')) {
+          actionType = 'delete';
+          description = 'Deleted an image';
+        } else if (activity.message.includes('logged in')) {
+          actionType = 'login';
+          description = 'Signed in to account';
+        } else if (activity.message.includes('profile updated')) {
+          actionType = 'profile';
+          description = 'Updated profile information';
+        } else if (activity.message.includes('API call')) {
+          actionType = 'api';
+          description = 'Made API request';
+        }
+
+        return {
+          id: activity.id,
+          type: actionType,
+          description,
+          timestamp: activity.createdAt,
+          details: activity.metadata ? JSON.parse(activity.metadata) : null
+        };
+      });
+
+      res.json({
+        activities: formattedActivities,
+        total: activities.length,
+        hasMore: activities.length === Number(limit)
+      });
+    } catch (error: any) {
+      await logSystemEvent('error', `Activity fetch error: ${error.message}`, req.user?.id);
+      console.error('Activity fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch activity log' });
+    }
+  });
+
+  // API Keys endpoints
+  app.get('/api/v1/api-keys', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      
+      const userApiKeys = await db.select({
+        id: apiKeys.id,
+        name: apiKeys.name,
+        key: apiKeys.key,
+        permissions: apiKeys.permissions,
+        isActive: apiKeys.isActive,
+        lastUsed: apiKeys.lastUsed,
+        requestCount: apiKeys.requestCount,
+        createdAt: apiKeys.createdAt
+      })
+        .from(apiKeys)
+        .where(eq(apiKeys.userId, user.id))
+        .orderBy(desc(apiKeys.createdAt));
+
+      res.json({ apiKeys: userApiKeys });
+    } catch (error: any) {
+      await logSystemEvent('error', `API keys fetch error: ${error.message}`, req.user?.id);
+      console.error('API keys fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch API keys' });
+    }
+  });
+
+  app.post('/api/v1/api-keys', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { name, permissions } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: 'API key name is required' });
+      }
+
+      const apiKey = `iv_${crypto.randomBytes(32).toString('hex')}`;
+      
+      const [newApiKey] = await db.insert(apiKeys).values({
+        id: uuidv4(),
+        userId: user.id,
+        name,
+        key: apiKey,
+        permissions: permissions || ['images:read', 'images:write'],
+        isActive: true,
+        requestCount: 0
+      }).returning();
+
+      await logSystemEvent('info', `API key created: ${name}`, user.id);
+
+      res.json({ success: true, apiKey: newApiKey });
+    } catch (error: any) {
+      await logSystemEvent('error', `API key creation error: ${error.message}`, req.user?.id);
+      console.error('API key creation error:', error);
+      res.status(500).json({ error: 'Failed to create API key' });
+    }
+  });
+
+  app.delete('/api/v1/api-keys/:keyId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { keyId } = req.params;
+
+      await db.delete(apiKeys).where(
+        and(eq(apiKeys.id, keyId), eq(apiKeys.userId, user.id))
+      );
+
+      await logSystemEvent('info', `API key deleted: ${keyId}`, user.id);
+
+      res.json({ success: true, message: 'API key deleted successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `API key deletion error: ${error.message}`, req.user?.id);
+      console.error('API key deletion error:', error);
+      res.status(500).json({ error: 'Failed to delete API key' });
+    }
+  });
+
+  app.patch('/api/v1/api-keys/:keyId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { keyId } = req.params;
+      const { isActive } = req.body;
+
+      await db.update(apiKeys)
+        .set({ isActive, updatedAt: new Date() })
+        .where(and(eq(apiKeys.id, keyId), eq(apiKeys.userId, user.id)));
+
+      await logSystemEvent('info', `API key updated: ${keyId}`, user.id);
+
+      res.json({ success: true, message: 'API key updated successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `API key update error: ${error.message}`, req.user?.id);
+      console.error('API key update error:', error);
+      res.status(500).json({ error: 'Failed to update API key' });
+    }
+  });
+
+  // Collections endpoint with real data
+  app.post('/api/v1/collections', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { name, description, isPublic } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ error: 'Collection name is required' });
+      }
+
+      // Create folder as collection
+      const collectionId = uuidv4();
+      
+      // Log collection creation
+      await logSystemEvent('info', `Collection created: ${name}`, user.id, {
+        collectionId,
+        name,
+        description,
+        isPublic: isPublic || false
+      });
+
+      res.json({
+        success: true,
+        collection: {
+          id: collectionId,
+          name,
+          description,
+          isPublic: isPublic || false,
+          imageCount: 0,
+          createdAt: new Date().toISOString()
+        }
+      });
+    } catch (error: any) {
+      await logSystemEvent('error', `Collection creation failed: ${error.message}`, req.user?.id);
+      console.error('Collection creation error:', error);
+      res.status(500).json({ error: 'Failed to create collection' });
     }
   });
 

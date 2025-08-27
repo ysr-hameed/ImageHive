@@ -248,7 +248,7 @@ export default function ApiKeys() {
                           <code className="text-sm bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded font-mono">
                             {visibleKeys.includes(apiKey.id) 
                               ? apiKey.key 
-                              : `${apiKey.key.substring(0, 20)}${'•'.repeat(20)}`
+                              : `${(apiKey.key || '').substring(0, 20)}${'•'.repeat(20)}`
                             }
                           </code>
                           <Button

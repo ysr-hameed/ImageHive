@@ -216,16 +216,19 @@ export class BackblazeB2Service {
     }
   }
 
-  getFileUrl(fileName: string, customDomain?: string, platformDomain?: string): string {
-    // If custom domain is provided, use it directly
+  getFileUrl(fileName: string, customDomain?: string, platformDomain?: string, originalFilename?: string): string {
+    // Use original filename if provided, otherwise use stored filename
+    const displayName = originalFilename || fileName;
+    
+    // If custom domain is provided, use it directly without bucket path
     if (customDomain) {
-      return `https://${customDomain}/${fileName}`;
+      return `https://${customDomain}/${displayName}`;
     }
 
     // If platform domain is set in environment, use it
     if (platformDomain || process.env.PLATFORM_DOMAIN) {
       const domain = platformDomain || process.env.PLATFORM_DOMAIN;
-      return `https://${domain}/${fileName}`;
+      return `https://${domain}/${displayName}`;
     }
 
     // Use current app domain as fallback
@@ -233,7 +236,21 @@ export class BackblazeB2Service {
       `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
       'localhost:5000';
     
-    return `https://${appDomain}/cdn/${fileName}`;
+    return `https://${appDomain}/cdn/${displayName}`;
+  }
+
+  // Generate clean filename from original name or custom name
+  generateCleanFilename(originalName: string, customName?: string, preserveExtension: boolean = true): string {
+    const baseName = customName || originalName;
+    const extension = preserveExtension ? originalName.split('.').pop() : '';
+    
+    // Clean the filename - remove special characters, spaces, etc.
+    const cleanName = baseName
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_|_$/g, '');
+    
+    return extension ? `${cleanName}.${extension}` : cleanName;
   }
 
   async getFileInfo(fileId: string): Promise<any> {

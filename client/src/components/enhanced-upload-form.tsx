@@ -34,7 +34,7 @@ interface UploadFile extends File {
   progress?: number; // Added progress for visual feedback
 }
 
-// Placeholder for upload options state
+// Initialize uploadOptions with default values
 const initialUploadOptions = {
   privacy: 'public',
   quality: 85,
@@ -81,14 +81,15 @@ export function EnhancedUploadForm() {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Simplified form state - only essential fields
-  const [metadata, setMetadata] = useState({
-    title: '',
-    description: '',
-    tags: '',
-    folder: '',
-    isPublic: true,
-  });
+  // Initialize form state with new variables
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [folder, setFolder] = useState('');
+  const [altText, setAltText] = useState('');
+  const [tags, setTags] = useState('');
+  const [isPublic, setIsPublic] = useState(false);
+  const [customFilename, setCustomFilename] = useState('');
+  const [overrideFilename, setOverrideFilename] = useState(false);
 
   const [transforms, setTransforms] = useState({
     width: '',
@@ -106,7 +107,6 @@ export function EnhancedUploadForm() {
     rotate: 0,
   });
 
-  // Initialize uploadOptions with default values
   const [uploadOptions, setUploadOptions] = useState(initialUploadOptions);
 
 
@@ -281,28 +281,29 @@ export function EnhancedUploadForm() {
 
         const formData = new FormData();
         formData.append('image', file);
-        formData.append('title', metadata.title || file.name);
-        formData.append('description', metadata.description);
-        formData.append('tags', metadata.tags);
-        formData.append('folder', metadata.folder);
-        formData.append('isPublic', 'true'); // Always public
+        formData.append('title', title || file.name); // Use state variable
+        formData.append('description', description);
+        formData.append('folder', folder);
+        formData.append('altText', altText);
+        formData.append('tags', tags);
+        formData.append('isPublic', isPublic.toString());
+        if (customFilename) {
+          formData.append('customFilename', customFilename);
+          formData.append('overrideFilename', overrideFilename.toString());
+        }
 
         // Add transform options
         Object.entries(transforms).forEach(([key, value]) => {
-          // Ensure we only append if the value is not the default or empty/zero/false
           if (value !== '' && value !== 0 && value !== false && value !== 1 && value !== 'auto' && value !== 'cover') {
-            // Specific check for blur to allow 0
             if (key === 'blur' && value === 0) {
-              // Do not append if blur is 0 unless it's explicitly set to 0.
-              // The initial check handles non-zero values.
             } else {
                formData.append(`transform_${key}`, value.toString());
             }
-          } else if (key === 'grayscale' && value === true) { // Explicitly handle boolean true
+          } else if (key === 'grayscale' && value === true) {
             formData.append(`transform_${key}`, 'true');
-          } else if (key === 'sharpen' && value === true) { // Explicitly handle boolean true
+          } else if (key === 'sharpen' && value === true) {
             formData.append(`transform_${key}`, 'true');
-          } else if (key === 'watermark' && value === true) { // Explicitly handle boolean true
+          } else if (key === 'watermark' && value === true) {
             formData.append(`transform_${key}`, 'true');
           }
         });
@@ -322,7 +323,6 @@ export function EnhancedUploadForm() {
         if (uploadOptions.watermark) {
           formData.append('watermark', 'true');
         }
-        // Add other uploadOptions to formData if they are relevant and not already covered
         if (uploadOptions.compression !== 'balanced') {
           formData.append('compression', uploadOptions.compression);
         }
@@ -478,53 +478,80 @@ export function EnhancedUploadForm() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={metadata.title}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Image title (optional)"
-                  />
+                {/* Updated Metadata Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="Enter image title"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="customFilename">Custom Filename (Optional)</Label>
+                    <div className="space-y-2">
+                      <Input
+                        id="customFilename"
+                        value={customFilename}
+                        onChange={(e) => setCustomFilename(e.target.value)}
+                        placeholder="my-custom-name"
+                      />
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="overrideFilename"
+                          checked={overrideFilename}
+                          onChange={(e) => setOverrideFilename(e.target.checked)}
+                          className="rounded"
+                        />
+                        <Label htmlFor="overrideFilename" className="text-sm">
+                          Override original filename
+                        </Label>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={metadata.description}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Image description (optional)"
-                    rows={3}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="folder">Folder</Label>
+                    <Input
+                      id="folder"
+                      value={folder}
+                      onChange={(e) => setFolder(e.target.value)}
+                      placeholder="e.g., products/2024"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="altText">Alt Text</Label>
+                    <Input
+                      id="altText"
+                      value={altText}
+                      onChange={(e) => setAltText(e.target.value)}
+                      placeholder="Describe the image for accessibility"
+                    />
+                  </div>
                 </div>
+                {/* End of Updated Metadata Section */}
 
                 <div>
                   <Label htmlFor="tags">Tags</Label>
                   <Input
                     id="tags"
-                    value={metadata.tags}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, tags: e.target.value }))}
+                    value={tags}
+                    onChange={(e) => setTags(e.target.value)}
                     placeholder="nature, landscape, outdoor"
                   />
                   <p className="text-xs text-gray-500 mt-1">Separate tags with commas (max 10 tags, 50 chars each)</p>
                 </div>
 
-                <div>
-                  <Label htmlFor="folder">Folder</Label>
-                  <Input
-                    id="folder"
-                    value={metadata.folder}
-                    onChange={(e) => setMetadata(prev => ({ ...prev, folder: e.target.value }))}
-                    placeholder="Enter folder name (optional)"
-                  />
-                </div>
-
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="isPublic"
-                    checked={metadata.isPublic}
-                    onCheckedChange={(checked) => setMetadata(prev => ({ ...prev, isPublic: checked }))}
+                    checked={isPublic}
+                    onCheckedChange={(checked) => setIsPublic(checked)}
                   />
                   <Label htmlFor="isPublic">Make images publicly accessible</Label>
                 </div>

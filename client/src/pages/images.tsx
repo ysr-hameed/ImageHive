@@ -116,17 +116,94 @@ export default function Images() {
     },
   });
 
-  const copyUrlToClipboard = async (url: string) => {
+  const copyUrlToClipboard = async (image: ImageData) => {
     try {
-      await navigator.clipboard.writeText(url);
+      const urlToCopy = image.url || image.cdnUrl || '';
+      if (!urlToCopy) {
+        throw new Error('No URL available for this image');
+      }
+      
+      await navigator.clipboard.writeText(urlToCopy);
       toast({
         title: "URL Copied",
         description: "Image URL has been copied to clipboard.",
       });
     } catch (error) {
+      console.error('Copy URL error:', error);
       toast({
         title: "Copy Failed",
-        description: "Failed to copy URL to clipboard.",
+        description: error instanceof Error ? error.message : "Failed to copy URL to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const viewImageDetails = (image: ImageData) => {
+    const imageUrl = image.url || image.cdnUrl || '';
+    if (imageUrl) {
+      window.open(imageUrl, '_blank');
+    } else {
+      toast({
+        title: "View Failed",
+        description: "No URL available for this image.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadImage = async (image: ImageData) => {
+    try {
+      const imageUrl = image.url || image.cdnUrl || '';
+      if (!imageUrl) {
+        throw new Error('No URL available for download');
+      }
+
+      // Try to download directly first
+      try {
+        const response = await fetch(imageUrl, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = image.originalName || 'image';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        toast({
+          title: "Download Started",
+          description: "Image download has started.",
+        });
+      } catch (fetchError) {
+        // Fallback to opening in new tab with download attribute
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = image.originalName || 'image';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast({
+          title: "Download Started",
+          description: "Download opened in new tab.",
+        });
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download Failed",
+        description: error instanceof Error ? error.message : "Failed to download image.",
         variant: "destructive",
       });
     }
@@ -322,7 +399,7 @@ export default function Images() {
                         variant="secondary"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(image.url, '_blank');
+                          viewImageDetails(image);
                         }}
                         className="h-8 w-8 p-0"
                         title="View Image"
@@ -334,7 +411,7 @@ export default function Images() {
                         variant="secondary"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          await copyUrlToClipboard(image.url);
+                          await copyUrlToClipboard(image);
                         }}
                         className="h-8 w-8 p-0"
                         title="Copy URL"
@@ -346,26 +423,7 @@ export default function Images() {
                         variant="secondary"
                         onClick={async (e) => {
                           e.stopPropagation();
-                          try {
-                            // First try to download directly
-                            const response = await fetch(image.url);
-                            const blob = await response.blob();
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            link.download = image.originalName || 'image';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            window.URL.revokeObjectURL(url);
-                            toast({
-                              title: "Download Started",
-                              description: "Image download has started.",
-                            });
-                          } catch (error) {
-                            // Fallback to opening in new tab
-                            window.open(image.url + '?download=true', '_blank');
-                          }
+                          await downloadImage(image);
                         }}
                         className="h-8 w-8 p-0"
                         title="Download Image"
@@ -438,7 +496,7 @@ export default function Images() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(image.url, '_blank')}
+                      onClick={() => viewImageDetails(image)}
                       title="View Image"
                     >
                       <Eye className="w-4 h-4" />
@@ -446,7 +504,7 @@ export default function Images() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => copyUrlToClipboard(image.url)}
+                      onClick={() => copyUrlToClipboard(image)}
                       title="Copy URL"
                     >
                       <Copy className="w-4 h-4" />
@@ -454,26 +512,7 @@ export default function Images() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={async () => {
-                        try {
-                          const response = await fetch(image.url);
-                          const blob = await response.blob();
-                          const url = window.URL.createObjectURL(blob);
-                          const link = document.createElement('a');
-                          link.href = url;
-                          link.download = image.originalName || 'image';
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          window.URL.revokeObjectURL(url);
-                          toast({
-                            title: "Download Started",
-                            description: "Image download has started.",
-                          });
-                        } catch (error) {
-                          window.open(image.url + '?download=true', '_blank');
-                        }
-                      }}
+                      onClick={() => downloadImage(image)}
                       title="Download Image"
                     >
                       <Download className="w-4 h-4" />

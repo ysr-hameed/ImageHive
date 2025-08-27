@@ -28,7 +28,9 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubContent,
-  DropdownMenuSubTrigger
+  DropdownMenuSubTrigger,
+  DropdownMenuLabel,
+  DropdownMenuGroup
 } from "@/components/ui/dropdown-menu";
 import {
   Home,
@@ -51,7 +53,8 @@ import {
   Zap,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Camera
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logoutUser } from "@/lib/authUtils";
@@ -161,23 +164,21 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar
-      collapsible="icon"
-      className="bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700"
-      {...props}
+      variant="inset"
+      className="bg-background border-r fixed md:relative z-50 md:z-auto"
+      style={{
+        backgroundColor: 'hsl(var(--background))',
+      }}
     >
-      <SidebarHeader className="border-b border-gray-200 dark:border-slate-700">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link href="/dashboard">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-white font-bold text-sm">IV</span>
-              </div>
-              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                <span className="font-bold text-lg leading-none text-gray-900 dark:text-white">ImageVault</span>
-                <span className="text-xs text-gray-500 dark:text-gray-400">Professional</span>
-              </div>
-            </div>
-          </Link>
+      <SidebarHeader className="border-b bg-background">
+        <div className="flex items-center gap-2 px-4 py-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Camera className="h-4 w-4" />
+          </div>
+          <div className="grid flex-1 text-left text-sm leading-tight">
+            <span className="truncate font-semibold">ImageHost Pro</span>
+            <span className="truncate text-xs">Cloud Storage</span>
+          </div>
         </div>
       </SidebarHeader>
 

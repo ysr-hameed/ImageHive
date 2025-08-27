@@ -12,7 +12,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
-import { users, images, folders, notifications, systemLogs, seoSettings, emailCampaigns, emailLogs } from "../shared/schema";
+import { users, images, folders, notifications, systemLogs, seoSettings, emailCampaigns, emailLogs, customDomains } from "../shared/schema";
 const usersTable = users; // Alias for consistency
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
@@ -2382,6 +2382,152 @@ export function registerRoutes(app: Express) {
     } catch (error) {
       console.error('Stripe webhook error:', error);
       res.status(500).send('Error');
+    }
+  });
+
+  // Image operations
+  app.post('/api/v1/images/:id/delete', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = req.user!; // Assert user is present due to isAuthenticated middleware
+
+      const image = await db.select().from(images).where(
+        and(eq(images.id, id), eq(images.userId, user.id))
+      ).then(rows => rows[0]);
+
+      if (!image) {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+
+      // Delete from storage if using Backblaze
+      if (image.backblazeFileId) {
+        try {
+          await deleteFromBackblaze(image.filename, image.backblazeFileId);
+        } catch (deleteError) {
+          console.error('Failed to delete from Backblaze:', deleteError);
+          await logSystemEvent('warn', 'Failed to delete image from Backblaze', user.id, { imageFilename: image.filename, error: (deleteError as Error).message });
+        }
+      }
+
+      await db.delete(images).where(eq(images.id, id));
+
+      await logSystemEvent('info', `Image deleted: ${image.filename}`, user.id);
+
+      res.json({ success: true, message: 'Image deleted successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Image delete error: ${error.message}`, req.user?.id);
+      console.error('Delete image error:', error);
+      res.status(500).json({ error: 'Failed to delete image' });
+    }
+  });
+
+  // Save image URL
+  app.post('/api/v1/images/:id/save-url', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { url } = req.body;
+      const user = req.user!; // Assert user is present
+
+      if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+      }
+
+      await db.update(images)
+        .set({ 
+          url: url,
+          updatedAt: new Date()
+        })
+        .where(and(eq(images.id, id), eq(images.userId, user.id)));
+
+      await logSystemEvent('info', `Image URL saved for image: ${id}`, user.id, { url });
+
+      res.json({ success: true, message: 'Image URL saved successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Save URL error: ${error.message}`, req.user?.id);
+      console.error('Save URL error:', error);
+      res.status(500).json({ error: 'Failed to save URL' });
+    }
+  });
+
+  // Track image download
+  app.post('/api/v1/images/:id/download', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const user = req.user!; // Assert user is present
+
+      // Update download count
+      const [updatedImage] = await db.update(images)
+        .set({ 
+          downloadCount: sql`${images.downloadCount} + 1`,
+          updatedAt: new Date()
+        })
+        .where(and(eq(images.id, id), eq(images.userId, user.id)))
+        .returning();
+
+      if (!updatedImage) {
+        return res.status(404).json({ error: 'Image not found or not accessible by user' });
+      }
+
+      await logSystemEvent('info', `Image downloaded: ${id}`, user.id, { filename: updatedImage.filename });
+
+      res.json({ success: true, message: 'Download tracked successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Track download error: ${error.message}`, req.user?.id);
+      console.error('Track download error:', error);
+      res.status(500).json({ error: 'Failed to track download' });
+    }
+  });
+
+  // Custom domain management
+  app.get('/api/v1/custom-domains', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!; // Assert user is present
+
+      const userDomains = await db.select()
+        .from(customDomains)
+        .where(eq(customDomains.userId, user.id));
+
+      res.json({ domains: userDomains });
+    } catch (error: any) {
+      await logSystemEvent('error', `Get custom domains error: ${error.message}`, req.user?.id);
+      console.error('Get custom domains error:', error);
+      res.status(500).json({ error: 'Failed to fetch custom domains' });
+    }
+  });
+
+  app.post('/api/v1/custom-domains', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { domain } = req.body;
+      const user = req.user!; // Assert user is present
+
+      if (!domain) {
+        return res.status(400).json({ error: 'Domain name is required' });
+      }
+
+      // Check user plan allows custom domains
+      const userRecord = await db.select().from(users).where(eq(users.id, user.id)).then(rows => rows[0]);
+      if (!userRecord || userRecord.plan === 'free') {
+        return res.status(403).json({ error: 'Custom domains require a paid plan or higher tier' });
+      }
+
+      const [newDomain] = await db.insert(customDomains)
+        .values({
+          id: crypto.randomUUID(),
+          userId: user.id,
+          domain,
+          status: 'pending', // Default status, would be verified via DNS check
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        .returning();
+
+      await logSystemEvent('info', `Custom domain added: ${domain}`, user.id, { domainId: newDomain.id });
+
+      res.json({ domain: newDomain });
+    } catch (error: any) {
+      await logSystemEvent('error', `Add custom domain error: ${error.message}`, req.user?.id);
+      console.error('Add custom domain error:', error);
+      res.status(500).json({ error: 'Failed to add custom domain' });
     }
   });
 

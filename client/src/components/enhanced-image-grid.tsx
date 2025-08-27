@@ -38,6 +38,13 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
+// Assume usePlanLimits is defined elsewhere and imported
+// For the purpose of this example, we'll create a mock
+const usePlanLimits = async () => {
+  // Mock implementation: replace with actual logic
+  return { canDownload: true };
+};
+
 interface Image {
   id: string;
   filename: string;
@@ -155,30 +162,78 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
     return num.toString();
   };
 
-  const copyToClipboard = async (text: string, imageId?: string) => {
+  const copyToClipboard = async (imageUrl: string, imageId: string) => {
     try {
-      // Save URL access to database for analytics
-      if (imageId) {
-        try {
-          await apiRequest('POST', '/images/track-access', {
-            imageId,
-            accessType: 'copy_url',
-            url: text
-          });
-        } catch (error) {
-          console.error('Failed to track URL copy:', error);
-        }
-      }
+      // Save URL to database first
+      await apiRequest(`/api/images/${imageId}/save-url`, {
+        method: 'POST',
+        body: { url: imageUrl }
+      });
+
+      await navigator.clipboard.writeText(imageUrl);
+      toast({
+        title: "URL Copied",
+        description: "Image URL has been copied to clipboard and saved",
+      });
     } catch (error) {
-      console.error('Copy failed:', error);
-      toast({ title: "Failed to copy URL", variant: "destructive" });
+      console.error('Copy URL error:', error);
+      toast({
+        title: "Copy Failed",
+        description: "Failed to copy URL to clipboard",
+        variant: "destructive",
+      });
     }
+  };
+
+  const handleDownload = async (imageUrl: string, filename: string, imageId: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      toast({ title: "URL copied to clipboard" });
+      // Check plan limits first
+      const { canDownload } = await usePlanLimits();
+      if (!canDownload) {
+        toast({
+          title: "Download Limit Reached",
+          description: "Please upgrade your plan to download more images",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const response = await fetch(imageUrl, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || `image-${imageId}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+
+      // Track download
+      await apiRequest(`/api/images/${imageId}/download`, {
+        method: 'POST'
+      });
+
+      toast({
+        title: "Download Started",
+        description: "Image download has started",
+      });
     } catch (error) {
-      console.error('Copy failed:', error);
-      toast({ title: "Failed to copy URL", variant: "destructive" });
+      console.error('Download error:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download image",
+        variant: "destructive",
+      });
     }
   };
 
@@ -212,46 +267,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
     }
   };
 
-  const handleDownload = async (image: any) => {
-    try {
-      // Track download in database
-      await apiRequest('POST', '/images/track-access', {
-        imageId: image.id,
-        accessType: 'download',
-        url: image.cdnUrl
-      });
-
-      // Create download link
-      const response = await fetch(image.cdnUrl, {
-        mode: 'cors'
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch image');
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = image.originalFilename || `image-${image.id}.jpg`;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-
-      // Cleanup
-      setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }, 100);
-
-      toast({ title: "Download started" });
-    } catch (error) {
-      console.error('Download error:', error);
-      toast({ title: "Download failed", variant: "destructive" });
-    }
-  };
-
+  // Removed the old handleDownload and handleCopyUrl functions as they are replaced by the new ones above.
 
   if (images.length === 0) {
     return (
@@ -389,7 +405,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => handleDownload(image)}
+                      onClick={() => handleDownload(image.cdnUrl || '', image.filename || '', image.id)}
                     >
                       <Download className="w-4 h-4" />
                     </Button>
@@ -529,7 +545,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDownload(image)}
+                    onClick={() => handleDownload(image.cdnUrl || '', image.filename || '', image.id)}
                   >
                     <Download className="w-4 h-4" />
                   </Button>

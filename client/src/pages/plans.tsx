@@ -9,7 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Check, 
   X, 
+  Star, 
   Zap, 
+  Shield, 
+  Crown,
   CreditCard, 
   Lock,
   Unlock,

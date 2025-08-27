@@ -45,6 +45,7 @@ import Privacy from "@/pages/privacy";
 import Terms from "@/pages/terms";
 import Status from "@/pages/status";
 import SDKs from "@/pages/sdks";
+import Docs from "@/pages/docs";
 
 function AppContent() {
   const { user, isLoading } = useAuth();
@@ -113,14 +114,13 @@ function AppContent() {
         <Route path="/about" component={About} />
         <Route path="/blog" component={Blog} />
         <Route path="/careers" component={Careers} />
-        <Route path="/press" component={Press} />
-        <Route path="/contact" component={Contact} />
-        <Route path="/help" component={Help} />
         <Route path="/community" component={Community} />
         <Route path="/guides" component={Guides} />
+        <Route path="/help" component={Help} />
+        <Route path="/press" component={Press} />
+        <Route path="/status" component={Status} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
-        <Route path="/status" component={Status} />
         <Route path="/sdks" component={SDKs} />
         <Route path="/" component={LandingPage} />
         <Route component={NotFound} />

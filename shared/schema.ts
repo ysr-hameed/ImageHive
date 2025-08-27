@@ -44,6 +44,7 @@ export const images = pgTable('images', {
   folder: varchar('folder', { length: 500 }),
   altText: text('alt_text'),
   views: integer('views').default(0),
+  downloadCount: integer('download_count').default(0),
   // CDN optimization parameters
   cdnOptions: jsonb('cdn_options').default({}),
   createdAt: timestamp('created_at').defaultNow(),

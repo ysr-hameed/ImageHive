@@ -5,9 +5,6 @@ import { db } from './db';
 import { users, images, systemLogs } from '../shared/schema';
 import { eq, desc, count, sum, sql } from 'drizzle-orm';
 
-const router = express.Router();
-
-// Admin middleware
 import express, { Request, Response } from 'express';
 import { db } from './db';
 import { users, images, systemLogs } from '@shared/schema';
@@ -15,6 +12,7 @@ import { count, sum, sql, desc } from 'drizzle-orm';
 
 const router = express.Router();
 
+// Admin middleware
 const requireAdmin = (req: Request, res: Response, next: any) => {
   if (!req.user?.isAdmin) {
     return res.status(403).json({ error: 'Admin access required' });

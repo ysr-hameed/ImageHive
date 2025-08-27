@@ -5,7 +5,7 @@ import { CheckCircle } from "lucide-react";
 export default function HeroSection() {
   return (
     <section className="relative py-8 sm:py-16 lg:py-24 xl:py-32 overflow-hidden min-h-[80vh] sm:min-h-[85vh] lg:min-h-[90vh]">
-      <div className="absolute inset-0 bg-gradient-to-br from-brand-50 to-emerald-50 dark:from-slate-900 dark:to-slate-800"></div>
+      <div className="absolute inset-0 bg-gray-50 dark:bg-slate-900"></div>
       
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center h-full">
@@ -20,7 +20,7 @@ export default function HeroSection() {
             
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 lg:mb-6 leading-tight">
               Professional Image Hosting for{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-600 to-emerald-600 block sm:inline">
+              <span className="text-blue-600 dark:text-blue-400 block sm:inline">
                 Developers
               </span>
             </h1>
@@ -100,11 +100,6 @@ export default function HeroSection() {
               </div>
             </div>
             
-            {/* Floating elements */}
-            <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-r from-brand-500 to-emerald-500 rounded-full opacity-20 animate-pulse" 
-                 style={{ animationDuration: '3s' }}></div>
-            <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-gradient-to-r from-emerald-500 to-brand-500 rounded-full opacity-10 animate-pulse" 
-                 style={{ animationDuration: '3s', animationDelay: '1s' }}></div>
           </div>
         </div>
       </div>

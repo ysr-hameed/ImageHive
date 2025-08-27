@@ -53,9 +53,9 @@ function AppContent() {
 
   // Enhanced debugging and error logging
   React.useEffect(() => {
-    // Global error handler
+    // Enhanced Global error handler with more debugging info
     const handleError = (event: ErrorEvent) => {
-      console.error('🚨 Global Error:', {
+      console.error('🚨 Global Error Details:', {
         message: event.message,
         filename: event.filename,
         lineno: event.lineno,
@@ -64,8 +64,24 @@ function AppContent() {
         stack: event.error?.stack,
         timestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
-        url: window.location.href
+        url: window.location.href,
+        currentPath: window.location.pathname,
+        authState: { isLoading, hasUser: !!user, userId: user?.id },
+        localStorage: {
+          token: !!localStorage.getItem('token'),
+          tokenLength: localStorage.getItem('token')?.length || 0
+        }
       });
+      
+      // Also show user-friendly error in development
+      if (process.env.NODE_ENV === 'development') {
+        console.group('🔍 Debug Information');
+        console.log('User:', user);
+        console.log('Auth Loading:', isLoading);
+        console.log('Current Location:', window.location.href);
+        console.log('Local Storage Token:', !!localStorage.getItem('token'));
+        console.groupEnd();
+      }
     };
 
     // Global unhandled promise rejection handler
@@ -82,15 +98,17 @@ function AppContent() {
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
-    // Debug auth state changes
-    console.log('🔐 Auth State Debug:', {
-      isLoading,
-      hasUser: !!user,
-      userId: user?.id,
-      userEmail: user?.email,
-      currentPath: window.location.pathname,
-      timestamp: new Date().toISOString()
-    });
+    // Enhanced auth state debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.group('🔐 Auth State Debug');
+      console.log('Loading:', isLoading);
+      console.log('User:', user ? { id: user.id, email: user.email, plan: user.plan, isAdmin: user.isAdmin } : null);
+      console.log('Token exists:', !!localStorage.getItem('token'));
+      console.log('Current path:', window.location.pathname);
+      console.log('Timestamp:', new Date().toISOString());
+      console.log('Window location:', window.location.href);
+      console.groupEnd();
+    }
 
     return () => {
       window.removeEventListener('error', handleError);
@@ -115,10 +133,10 @@ function AppContent() {
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1 flex flex-col min-h-screen">
-            <header className="sticky top-0 z-40 border-b border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-4 py-3 transition-all duration-200">
+            <header className="sticky top-0 z-40 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 transition-all duration-200">
               <div className="flex items-center justify-between">
-                <SidebarTrigger className="md:hidden" />
-                <div className="flex items-center gap-4">
+                <SidebarTrigger className="" />
+                <div className="flex items-center gap-4 ml-auto">
                   <NotificationBell />
                   <ProfileMenu />
                 </div>
@@ -151,7 +169,7 @@ function AppContent() {
   // Public pages without sidebar (including auth pages)
   return (
     <div className="min-h-screen">
-      <Suspense fallback={<FuturisticLoader variant="quantum" text="Loading..." />}>
+      <Suspense fallback={<FuturisticLoader variant="default" text="Loading..." />}>
         <Switch>
           <Route path="/auth/login" component={Login} />
           <Route path="/auth/register" component={Register} />

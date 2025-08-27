@@ -43,7 +43,6 @@ export default function Login() {
         description: 'You have been signed in successfully.',
       });
       setLocation('/dashboard');
-      window.location.reload(); // Refresh to update auth state
     } catch (err: any) {
       setError(err.message || 'Sign in failed. Please try again.');
     } finally {
@@ -78,18 +77,13 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-blue-950 dark:to-purple-950 flex items-center justify-center p-4">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-40 -left-40 w-80 h-80 bg-purple-400/10 dark:bg-purple-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center p-4">
 
       <div className="w-full max-w-lg relative">
         {/* Header */}
         <div className="text-center mb-8">
           <Link href="/">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent cursor-pointer hover:from-blue-700 hover:to-purple-700 transition-all duration-200">
+            <h1 className="text-4xl font-bold text-gray-900 dark:text-white cursor-pointer transition-all duration-200">
               ImageVault
             </h1>
           </Link>
@@ -98,7 +92,7 @@ export default function Login() {
           </p>
         </div>
 
-        <Card className="shadow-2xl border-0 backdrop-blur-sm bg-white/95 dark:bg-slate-900/95">
+        <Card className="shadow-lg border bg-white dark:bg-slate-800">
           <CardHeader className="space-y-1 text-center pb-4">
             <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
             <CardDescription className="text-gray-600 dark:text-gray-400">
@@ -200,7 +194,7 @@ export default function Login() {
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200"
                 disabled={isLoading}
               >
                 {isLoading ? (

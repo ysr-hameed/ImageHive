@@ -165,12 +165,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       variant="inset"
-      className="bg-background border-r fixed md:relative z-50 md:z-auto"
-      style={{
-        backgroundColor: 'hsl(var(--background))',
-      }}
+      className="bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 fixed md:relative z-50 md:z-auto"
     >
-      <SidebarHeader className="border-b bg-background">
+      <SidebarHeader className="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <div className="flex items-center gap-2 px-4 py-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Camera className="h-4 w-4" />
@@ -285,7 +282,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                    <AvatarFallback className="rounded-lg bg-blue-600 text-white">
                       {user?.email ? getUserInitials(user.email) : 'U'}
                     </AvatarFallback>
                   </Avatar>
@@ -309,7 +306,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                      <AvatarFallback className="rounded-lg bg-blue-600 text-white">
                         {user?.email ? getUserInitials(user.email) : 'U'}
                       </AvatarFallback>
                     </Avatar>
@@ -391,7 +388,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
 // Simple ProfileMenu component for the header
 export function ProfileMenu() {
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
 
@@ -421,7 +418,7 @@ export function ProfileMenu() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
-            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs">
+            <AvatarFallback className="bg-blue-600 text-white text-xs">
               {user?.email ? getUserInitials(user.email) : 'U'}
             </AvatarFallback>
           </Avatar>

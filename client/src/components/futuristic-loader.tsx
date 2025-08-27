@@ -246,16 +246,16 @@ export function FuturisticLoader({
     );
   }
 
-  // Default variant
+  // Default variant - clean and simple
   return (
     <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
       <div className="relative">
         <div className={cn(
-          "rounded-full border-4 border-gray-200 dark:border-slate-700",
+          "rounded-full border-3 border-gray-200 dark:border-slate-700",
           sizeClasses[size]
         )}></div>
         <div className={cn(
-          "absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 animate-spin",
+          "absolute inset-0 rounded-full border-3 border-transparent border-t-blue-600 animate-spin",
           sizeClasses[size]
         )}></div>
       </div>
@@ -271,55 +271,35 @@ export function FuturisticLoader({
   );
 }
 
-export function PageLoader({ text = "Initializing ImageVault...", variant = "quantum" }: { text?: string; variant?: 'neural' | 'quantum' | 'matrix' | 'orbit' }) {
+export function PageLoader({ text = "Initializing ImageVault...", variant = "default" }: { text?: string; variant?: 'default' | 'orbit' }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-blue-950/30 dark:to-purple-950/30 flex items-center justify-center">
-      {/* Enhanced animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-r from-blue-400/10 to-cyan-400/10 dark:from-blue-600/10 dark:to-cyan-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute top-40 -left-40 w-80 h-80 bg-gradient-to-r from-purple-400/10 to-pink-400/10 dark:from-purple-600/10 dark:to-pink-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute bottom-40 right-20 w-60 h-60 bg-gradient-to-r from-emerald-400/10 to-teal-400/10 dark:from-emerald-600/10 dark:to-teal-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
-        {/* Floating particles */}
-        {[...Array(20)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-blue-400/30 rounded-full animate-bounce"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 2}s`
-            }}
-          />
-        ))}
-      </div>
-      
-      <div className="relative z-10 text-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+      <div className="text-center">
         <FuturisticLoader variant={variant} size="xl" text={text} />
         
-        {/* Enhanced loading progress indicators */}
+        {/* Simple loading progress indicators */}
         <div className="flex justify-center space-x-2 mt-8">
-          <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full animate-bounce shadow-lg shadow-blue-500/50"></div>
-          <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full animate-bounce shadow-lg shadow-purple-500/50" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-3 h-3 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full animate-bounce shadow-lg shadow-emerald-500/50" style={{ animationDelay: '0.2s' }}></div>
+          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
         </div>
         
         {/* Status indicators */}
         <div className="mt-6 space-y-2">
-          <div className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
-            Connecting to services...
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            {text}
           </div>
           <div className="flex justify-center space-x-4 text-xs text-gray-400 dark:text-gray-500">
             <span className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
               <span>Auth</span>
             </span>
             <span className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
               <span>Storage</span>
             </span>
             <span className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
               <span>CDN</span>
             </span>
           </div>

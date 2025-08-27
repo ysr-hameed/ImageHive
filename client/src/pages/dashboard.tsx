@@ -29,8 +29,8 @@ export default function Dashboard() {
       localStorage.setItem('token', token);
       // Remove token from URL
       window.history.replaceState({}, document.title, '/dashboard');
-      // Reload to refresh auth state
-      window.location.reload();
+      // Trigger auth refresh without reload
+      window.dispatchEvent(new Event('auth-refresh'));
     }
   }, []);
 

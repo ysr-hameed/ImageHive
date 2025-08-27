@@ -33,13 +33,10 @@ export default function Navigation() {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="relative">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-500 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-all duration-300 shadow-lg group-hover:shadow-blue-500/25">
-                <ImageIcon className="w-5 h-5 text-white" />
-              </div>
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-500 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-300"></div>
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-all duration-300 shadow-lg hover:shadow-blue-500/25">
+              <ImageIcon className="w-5 h-5 text-white" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+            <span className="text-2xl font-bold text-gray-900 dark:text-white">
               ImageVault
             </span>
           </Link>
@@ -86,7 +83,7 @@ export default function Navigation() {
                   </Button>
                 </Link>
                 <Link href="/auth/register">
-                  <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200">
+                  <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-200">
                     Get Started Free
                   </Button>
                 </Link>
@@ -103,14 +100,14 @@ export default function Navigation() {
                   <span className="sr-only">Open menu</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-gray-200/20 dark:border-slate-700/20">
+              <SheetContent side="right" className="w-80 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
                 <div className="flex flex-col h-full">
                   {/* Mobile Logo */}
                   <div className="flex items-center space-x-3 p-4 border-b border-gray-200/20 dark:border-slate-700/20">
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-500 rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                       <ImageIcon className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-300 dark:to-purple-300 bg-clip-text text-transparent">
+                    <span className="text-xl font-bold text-gray-900 dark:text-white">
                       ImageVault
                     </span>
                   </div>
@@ -155,8 +152,8 @@ export default function Navigation() {
                             Sign In
                           </Link>
                         </Button>
-                        <Button size="lg" asChild className="w-full justify-center bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium shadow-lg">
-                          <Link href="/auth/login" onClick={() => setIsOpen(false)}>
+                        <Button size="lg" asChild className="w-full justify-center bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg">
+                          <Link href="/auth/register" onClick={() => setIsOpen(false)}>
                             Get Started Free
                           </Link>
                         </Button>

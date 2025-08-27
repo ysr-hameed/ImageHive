@@ -1441,6 +1441,44 @@ export function registerRoutes(app: Express) {
     }
   });
 
+  // Image access tracking endpoint
+  app.post('/api/v1/images/track-access', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { imageId, accessType, url } = req.body;
+
+      if (!imageId || !accessType) {
+        return res.status(400).json({ error: 'Image ID and access type are required' });
+      }
+
+      // Verify image belongs to user or is public
+      const [image] = await db.select().from(images).where(
+        and(
+          eq(images.id, imageId),
+          sql`(${images.userId} = ${user.id} OR ${images.isPublic} = true)`
+        )
+      );
+
+      if (!image) {
+        return res.status(404).json({ error: 'Image not found or access denied' });
+      }
+
+      // Log the access event
+      await logSystemEvent('info', `Image ${accessType}: ${imageId}`, user.id, {
+        imageId,
+        accessType,
+        url,
+        imageTitle: image.title
+      });
+
+      res.json({ success: true, message: 'Access tracked successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Image access tracking error: ${error.message}`, req.user?.id);
+      console.error('Image access tracking error:', error);
+      res.status(500).json({ error: 'Failed to track image access' });
+    }
+  });
+
   // Example: Mark all notifications as read
   app.patch('/api/v1/notifications/mark-all-read', isAuthenticated, async (req: Request, res: Response) => {
     try {

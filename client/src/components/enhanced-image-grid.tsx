@@ -155,32 +155,26 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
     return num.toString();
   };
 
-  const copyToClipboard = async (text: string, label: string) => {
+  const copyToClipboard = async (text: string, imageId?: string) => {
     try {
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text);
-      } else {
-        // Fallback for non-secure contexts
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'absolute';
-        textArea.style.left = '-999999px';
-        document.body.prepend(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        textArea.remove();
+      await navigator.clipboard.writeText(text);
+      toast({ title: "URL copied to clipboard" });
+
+      // Save URL access to database for analytics
+      if (imageId) {
+        try {
+          await apiRequest('POST', '/images/track-access', {
+            imageId,
+            accessType: 'copy_url',
+            url: text
+          });
+        } catch (error) {
+          console.error('Failed to track URL copy:', error);
+        }
       }
-      toast({
-        title: "Copied!",
-        description: `${label} copied to clipboard`,
-      });
-    } catch (err) {
-      console.error('Copy failed:', err);
-      toast({
-        title: "Error",
-        description: "Failed to copy to clipboard",
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast({ title: "Failed to copy URL", variant: "destructive" });
     }
   };
 
@@ -216,12 +210,16 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
 
   const handleDownload = async (image: any) => {
     try {
-      // Track download in analytics
-      await apiRequest("POST", `/api/v1/images/${image.id}/download`, {});
+      // Track download in database
+      await apiRequest('POST', '/images/track-access', {
+        imageId: image.id,
+        accessType: 'download',
+        url: image.cdnUrl
+      });
 
-      const response = await fetch(image.url, {
-        mode: 'cors',
-        credentials: 'omit'
+      // Create download link
+      const response = await fetch(image.cdnUrl, {
+        mode: 'cors'
       });
 
       if (!response.ok) {
@@ -230,64 +228,26 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = image.title || `image-${image.id}`;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = image.originalFilename || `image-${image.id}.jpg`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
 
-      toast({
-        title: "Download completed",
-        description: "Your image has been downloaded successfully",
-      });
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+
+      toast({ title: "Download started" });
     } catch (error) {
       console.error('Download error:', error);
-      toast({
-        title: "Download failed",
-        description: "Failed to download the image. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Download failed", variant: "destructive" });
     }
   };
 
-  const handleCopyUrl = async (image: any) => {
-    try {
-      await navigator.clipboard.writeText(image.url);
-      toast({
-        title: "URL copied",
-        description: "Image URL has been copied to clipboard",
-      });
-    } catch (error) {
-      // Fallback for browsers that don't support clipboard API
-      const textArea = document.createElement('textarea');
-      textArea.value = image.url;
-      textArea.style.position = 'fixed';
-      textArea.style.left = '-999999px';
-      textArea.style.top = '-999999px';
-      document.body.appendChild(textArea);
-      textArea.focus();
-      textArea.select();
-
-      try {
-        document.execCommand('copy');
-        toast({
-          title: "URL copied",
-          description: "Image URL has been copied to clipboard",
-        });
-      } catch (err) {
-        toast({
-          title: "Copy failed",
-          description: "Failed to copy URL. Please try manually selecting and copying.",
-          variant: "destructive",
-        });
-      }
-
-      document.body.removeChild(textArea);
-    }
-  };
 
   if (images.length === 0) {
     return (
@@ -418,7 +378,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => handleCopyUrl(image)}
+                      onClick={() => copyToClipboard(image.cdnUrl || '', image.id)}
                     >
                       <Copy className="w-4 h-4" />
                     </Button>
@@ -565,7 +525,7 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleCopyUrl(image)}
+                    onClick={() => copyToClipboard(image.cdnUrl || '', image.id)}
                   >
                     <Copy className="w-4 h-4" />
                   </Button>

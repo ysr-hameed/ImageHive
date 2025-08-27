@@ -105,6 +105,8 @@ function AppContent() {
         <Route path="/auth/reset-password" component={ResetPassword} />
         <Route path="/auth/verify-email" component={VerifyEmail} />
         <Route path="/docs" component={ApiDocs} />
+        <Route path="/documentation" component={ApiDocs} />
+        <Route path="/api-docs" component={ApiDocs} />
         <Route path="/features" component={Features} />
         <Route path="/about" component={About} />
         <Route path="/blog" component={Blog} />

@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
@@ -63,7 +62,7 @@ const mainMenuData = {
     },
     {
       title: "Upload",
-      url: "/upload", 
+      url: "/upload",
       icon: Upload,
     },
     {
@@ -90,7 +89,7 @@ const mainMenuData = {
     },
     {
       title: "Activity",
-      url: "/activity", 
+      url: "/activity",
       icon: Activity,
     },
     {
@@ -155,8 +154,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   return (
-    <Sidebar 
-      collapsible="icon" 
+    <Sidebar
+      collapsible="icon"
       className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-r"
       {...props}
     >
@@ -183,7 +182,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {mainMenuData.navMain.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
                   >
@@ -204,7 +203,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {mainMenuData.navSecondary.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
                   >
@@ -225,7 +224,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarMenu>
               {mainMenuData.navSettings.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
                   >
@@ -246,7 +245,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton 
+                  <SidebarMenuButton
                     asChild
                     isActive={location === "/admin"}
                   >
@@ -362,7 +361,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   onSelect={handleLogout}
                   className="text-red-600 dark:text-red-400 cursor-pointer"
                 >
@@ -426,7 +425,7 @@ export function ProfileMenu() {
             Settings
           </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem 
+        <DropdownMenuItem
           onSelect={handleLogout}
           className="text-red-600 dark:text-red-400 cursor-pointer"
         >

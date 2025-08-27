@@ -1,6 +1,9 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'wouter';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { apiRequest } from '@/lib/queryClient';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -286,14 +289,90 @@ export function NotificationManagement() {
   );
 }
 
-// Simple NotificationBell component for the header
+// Enhanced NotificationBell component for the header
 export function NotificationBell() {
+  const [isOpen, setIsOpen] = useState(false);
+  const { data: notifications = [], isLoading } = useQuery({
+    queryKey: ['/api/v1/notifications'],
+    retry: false,
+  });
+
+  const unreadCount = Array.isArray(notifications) 
+    ? notifications.filter((n: any) => n.isActive).length 
+    : 0;
+
+  const markAsRead = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest('PATCH', `/notifications/${id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
+    },
+  });
+
   return (
-    <Button variant="ghost" size="sm" className="relative">
-      <Bell className="w-5 h-5" />
-      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-        3
-      </span>
-    </Button>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="sm" className="relative">
+          <Bell className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        <div className="p-4">
+          <h3 className="font-semibold mb-2">Notifications</h3>
+          {isLoading ? (
+            <div className="text-center py-4">Loading...</div>
+          ) : !Array.isArray(notifications) || notifications.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No notifications</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {notifications.slice(0, 10).map((notification: any) => (
+                <div
+                  key={notification.id}
+                  className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
+                    notification.isActive ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50 dark:bg-gray-800'
+                  }`}
+                  onClick={() => {
+                    if (notification.isActive) {
+                      markAsRead.mutate(notification.id);
+                    }
+                  }}
+                >
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">{notification.title}</h4>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {new Date(notification.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {notification.isActive && (
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {notifications.length > 10 && (
+                <div className="text-center pt-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <Link href="/notifications">View All</Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

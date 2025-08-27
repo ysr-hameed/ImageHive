@@ -19,6 +19,31 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
+// Mock payment handler
+const handlePayment = async (planId: string, amount: number) => {
+  try {
+    // This would integrate with actual payment providers
+    const paymentData = {
+      provider: 'stripe', // or 'paypal', 'razorpay', etc.
+      amount: amount,
+      currency: 'USD',
+      description: `ImageVault ${planId} Plan`,
+      returnUrl: `${window.location.origin}/dashboard?payment=success`,
+      cancelUrl: `${window.location.origin}/plans?payment=cancelled`
+    };
+
+    const result = await apiRequest('POST', '/payment/create', paymentData);
+
+    if (result.paymentUrl) {
+      // Redirect to payment provider
+      window.location.href = result.paymentUrl;
+    }
+  } catch (error) {
+    console.error('Payment error:', error);
+    alert('Payment initialization failed. Please try again.');
+  }
+};
+
 const plans = [
   {
     id: "free",
@@ -91,21 +116,27 @@ export default function Plans() {
 
   const upgradeMutation = useMutation({
     mutationFn: async (planId: string) => {
-      return await apiRequest("POST", "/api/v1/payments/create-checkout", { 
-        planId,
-        successUrl: `${window.location.origin}/dashboard?upgraded=true`,
-        cancelUrl: `${window.location.origin}/plans`
-      });
+      // This is a placeholder, the actual payment logic is handled by handlePayment
+      console.log(`Initiating upgrade for plan: ${planId}`);
+      // In a real scenario, you might fetch a payment URL or session ID here
+      return { checkoutUrl: null }; // Mock response
     },
     onSuccess: (data: any) => {
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
+      } else {
+        // If no checkoutUrl, it implies the payment was handled client-side or is a mock
+        toast({
+          title: "Upgrade Initiated",
+          description: "Your upgrade process has started.",
+        });
+        setIsUpgrading(null);
       }
     },
     onError: (error: any) => {
       toast({
-        title: "Payment Error",
-        description: error.message || "Failed to initiate payment",
+        title: "Upgrade Error",
+        description: error.message || "Failed to initiate upgrade",
         variant: "destructive",
       });
       setIsUpgrading(null);
@@ -122,8 +153,22 @@ export default function Plans() {
       return;
     }
 
+    const planDetails = plans.find(p => p.id === planId);
+    if (!planDetails) return;
+
     setIsUpgrading(planId);
-    upgradeMutation.mutate(planId);
+    // Use the mock handlePayment for direct client-side payment initiation
+    if (planId === 'free') { // Example for free plan, though it's not an upgrade
+      setIsUpgrading(null);
+      return;
+    }
+    if (planId === 'pro') {
+      await handlePayment(planId, 29);
+    } else if (planId === 'enterprise') {
+      await handlePayment(planId, 199);
+    } else { // Default to starter/free if not found, though this case should ideally not happen with static plans
+      await handlePayment('starter', 9); // Assuming a starter plan for the first button
+    }
   };
 
   const currentPlan = user?.plan?.toLowerCase() || 'free';
@@ -208,7 +253,8 @@ export default function Plans() {
                         </Button>
                       ) : canUpgrade ? (
                         <Button 
-                          className="w-full" 
+                          size="lg" 
+                          className="w-full"
                           onClick={() => handleUpgrade(plan.id)}
                           disabled={isUpgrading === plan.id}
                         >
@@ -226,8 +272,12 @@ export default function Plans() {
                           )}
                         </Button>
                       ) : (
-                        <Button variant="outline" className="w-full">
-                          <Unlock className="w-4 h-4 mr-2" />
+                        <Button 
+                          size="lg" 
+                          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                          onClick={() => handlePayment('starter', 9)}
+                        >
+                          <CreditCard className="w-4 h-4 mr-2" />
                           Get Started
                         </Button>
                       )}

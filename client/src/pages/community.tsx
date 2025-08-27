@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'wouter';
-import { ArrowLeft, Users, MessageSquare, Github, Twitter, Discord } from 'lucide-react';
+import { ArrowLeft, Users, MessageSquare, Github, Twitter, MessageCircle } from 'lucide-react';
 import Footer from '@/components/footer';
 
 const communityStats = [
@@ -16,7 +16,7 @@ const communityStats = [
 
 const channels = [
   {
-    icon: Discord,
+    icon: MessageCircle,
     title: "Discord Server",
     description: "Real-time chat with the community and our team",
     members: "5,000+ members",

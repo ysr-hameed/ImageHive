@@ -9,7 +9,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "@/lib/queryClient";
 import ErrorBoundary from "@/components/error-boundary";
-import { FuturisticLoader } from "@/components/futuristic-loader";
+import { FuturisticLoader, PageLoader } from '@/components/futuristic-loader';
 
 // Import all page components
 import LandingPage from "./pages/landing";
@@ -72,7 +72,7 @@ function AppContent() {
           tokenLength: localStorage.getItem('token')?.length || 0
         }
       });
-      
+
       // Also show user-friendly error in development
       if (process.env.NODE_ENV === 'development') {
         console.group('🔍 Debug Information');
@@ -118,7 +118,8 @@ function AppContent() {
 
   if (isLoading) {
     console.log('⏳ App Loading State - showing loader');
-    return <FuturisticLoader variant="quantum" text="Initializing ImageVault..." />;
+    // Using PageLoader for initial app loading
+    return <PageLoader text="Initializing ImageVault..." />;
   }
 
   const currentPath = window.location.pathname;
@@ -198,22 +199,5 @@ function AppContent() {
         </Switch>
       </Suspense>
     </div>
-  );
-}
-
-export default function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <QueryClientProvider client={queryClient}>
-          <Router>
-            <Suspense fallback={<FuturisticLoader />}>
-              <AppContent />
-            </Suspense>
-            <Toaster />
-          </Router>
-        </QueryClientProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
   );
 }

@@ -246,63 +246,75 @@ export function FuturisticLoader({
     );
   }
 
-  // Default variant - clean and simple
+  // Default variant - clean and simple with fixed centering
   return (
-    <div className={cn("flex flex-col items-center justify-center space-y-4 min-h-screen", className)}>
+    <div className={cn("fixed inset-0 bg-white dark:bg-slate-900 flex flex-col items-center justify-center space-y-6 z-50", className)}>
       <div className="relative">
         <div className={cn(
-          "rounded-full border-3 border-gray-200 dark:border-slate-700",
+          "rounded-full border-4 border-gray-200 dark:border-slate-700",
           sizeClasses[size]
         )}></div>
         <div className={cn(
-          "absolute inset-0 rounded-full border-3 border-transparent border-t-blue-600 animate-spin",
+          "absolute inset-0 rounded-full border-4 border-transparent border-t-blue-600 border-r-blue-500 animate-spin",
           sizeClasses[size]
         )}></div>
+        <div className={cn(
+          "absolute inset-2 rounded-full border-2 border-transparent border-t-purple-500 animate-spin",
+          sizeClasses[size]
+        )} style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
       </div>
       {text && (
         <div className={cn(
-          "font-medium text-gray-600 dark:text-gray-300",
+          "font-medium text-gray-700 dark:text-gray-200 text-center animate-pulse",
           textSizeClasses[size]
         )}>
           {text}
         </div>
       )}
+      <div className="flex space-x-2">
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+        <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+      </div>
     </div>
   );
 }
 
 export function PageLoader({ text = "Initializing ImageVault...", variant = "default" }: { text?: string; variant?: 'default' | 'orbit' }) {
   return (
-    <div className="fixed inset-0 bg-gray-50 dark:bg-slate-900 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-white dark:bg-slate-900 flex items-center justify-center z-50">
       <div className="text-center">
-        <FuturisticLoader variant={variant} size="xl" text={text} />
+        <div className="relative mb-8">
+          <div className="w-16 h-16 border-4 border-gray-200 dark:border-slate-700 rounded-full"></div>
+          <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-600 border-r-blue-500 rounded-full animate-spin"></div>
+          <div className="absolute inset-2 w-12 h-12 border-2 border-transparent border-t-purple-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+        </div>
+        
+        <div className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-4 animate-pulse">
+          {text}
+        </div>
         
         {/* Simple loading progress indicators */}
-        <div className="flex justify-center space-x-2 mt-8">
+        <div className="flex justify-center space-x-2 mb-6">
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
         </div>
         
         {/* Status indicators */}
-        <div className="mt-6 space-y-2">
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {text}
-          </div>
-          <div className="flex justify-center space-x-4 text-xs text-gray-400 dark:text-gray-500">
-            <span className="flex items-center space-x-1">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-              <span>Auth</span>
-            </span>
-            <span className="flex items-center space-x-1">
-              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-              <span>Storage</span>
-            </span>
-            <span className="flex items-center space-x-1">
-              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-              <span>CDN</span>
-            </span>
-          </div>
+        <div className="flex justify-center space-x-6 text-xs text-gray-400 dark:text-gray-500">
+          <span className="flex items-center space-x-1">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+            <span>Authentication</span>
+          </span>
+          <span className="flex items-center space-x-1">
+            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }}></div>
+            <span>Storage</span>
+          </span>
+          <span className="flex items-center space-x-1">
+            <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <span>CDN</span>
+          </span>
         </div>
       </div>
     </div>

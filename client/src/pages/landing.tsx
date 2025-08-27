@@ -18,8 +18,17 @@ export default function Landing() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading ImageVault...</p>
+          {/* Updated loader component */}
+          <div className="relative w-24 h-24">
+            <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-400 rounded-full animate-spin-slow"></div>
+            <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent rounded-full animate-spin-fast [animation-delay:-0.5s]"></div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Rocket className="w-8 h-8 text-blue-600" />
+            </div>
+          </div>
+          <p className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-300 animate-pulse">
+            Launching ImageVault...
+          </p>
         </div>
       </div>
     );
@@ -28,7 +37,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
       <Navigation />
-      
+
       {/* Welcome message for authenticated users */}
       {isAuthenticated && user && (
         <div className="bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800">

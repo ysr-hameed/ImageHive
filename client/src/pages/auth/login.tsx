@@ -37,14 +37,24 @@ export default function Login() {
 
     try {
       const response = await loginUser(formData.email, formData.password);
-      localStorage.setItem('token', response.token);
-      toast({
-        title: 'Welcome back!',
-        description: 'You have been signed in successfully.',
-      });
-      setLocation('/dashboard');
+      if (response.token) {
+        localStorage.setItem('token', response.token);
+        toast({
+          title: 'Welcome back!',
+          description: 'You have been signed in successfully.',
+        });
+        // Force a small delay to ensure token is set
+        setTimeout(() => {
+          setLocation('/dashboard');
+        }, 100);
+      } else {
+        throw new Error('No authentication token received');
+      }
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(err.message || 'Sign in failed. Please try again.');
+      // Clear any existing invalid token
+      localStorage.removeItem('token');
     } finally {
       setIsLoading(false);
     }

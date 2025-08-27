@@ -68,20 +68,35 @@ export default function Register() {
     }
 
     try {
-      await register(
-        formData.firstName,
-        formData.lastName,
-        formData.email,
-        formData.password,
-        formData.acceptTerms,
-        formData.subscribeNewsletter
-      );
+      const response = await fetch('/api/v1/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          acceptTerms: formData.acceptTerms,
+          subscribeNewsletter: formData.subscribeNewsletter,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed');
+      }
+
+      const result = await response.json();
+      
       toast({
         title: 'Account created successfully!',
         description: 'Please check your email to verify your account.',
       });
       setLocation('/auth/verify-email');
     } catch (err: any) {
+      console.error('Registration error:', err);
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setIsLoading(false);

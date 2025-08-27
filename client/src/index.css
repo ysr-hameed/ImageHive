@@ -170,7 +170,7 @@
   --ring: hsl(217, 91%, 60%);
   --chart-1: hsl(217, 91%, 60%);
   --chart-2: hsl(173, 58%, 39%);
-  --chart-3: hsl(197, 37%, 24%);
+  --chart-3: hsl(197, 37, 24%);
   --chart-4: hsl(43, 74%, 66%);
   --chart-5: hsl(27, 87%, 67%);
   --sidebar: hsl(224, 71%, 4%);
@@ -181,10 +181,30 @@
   --sidebar-accent-foreground: hsl(210, 40%, 98%);
   --sidebar-border: hsl(216, 34%, 17%);
   --sidebar-ring: hsl(217, 91%, 60%);
-  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
-  --font-serif: 'Georgia', serif;
-  --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
-  --font-display: 'Geist', 'Inter', system-ui, sans-serif;
+  
+  /* Dark mode brand colors */
+  --brand-50: hsl(224, 76%, 8%);
+  --brand-100: hsl(224, 71%, 15%);
+  --brand-200: hsl(225, 67%, 22%);
+  --brand-300: hsl(226, 63%, 30%);
+  --brand-400: hsl(226, 71%, 40%);
+  --brand-500: hsl(217, 91%, 60%);
+  --brand-600: hsl(213, 94%, 68%);
+  --brand-700: hsl(212, 96%, 78%);
+  --brand-800: hsl(213, 97%, 87%);
+  --brand-900: hsl(214, 95%, 93%);
+  
+  /* Dark mode emerald colors */
+  --emerald-50: hsl(164, 86%, 8%);
+  --emerald-100: hsl(163, 88%, 15%);
+  --emerald-200: hsl(163, 94%, 20%);
+  --emerald-300: hsl(163, 94%, 24%);
+  --emerald-400: hsl(161, 94%, 30%);
+  --emerald-500: hsl(160, 84%, 39%);
+  --emerald-600: hsl(158, 64%, 52%);
+  --emerald-700: hsl(156, 72%, 67%);
+  --emerald-800: hsl(152, 76%, 80%);
+  --emerald-900: hsl(149, 80%, 90%);
   --radius: 0.75rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(217, 91%, 60% / 0.00);
   --shadow-xs: 0px 2px 0px 0px hsl(217, 91%, 60% / 0.00);

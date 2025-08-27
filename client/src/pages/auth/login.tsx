@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { loginUser } from '@/lib/authUtils';
 import { Link, useLocation } from 'wouter';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, Github, Chrome, Shield, Zap, Users } from 'lucide-react';
 
@@ -19,7 +20,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login, loginWithGoogle, loginWithGitHub, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -35,12 +36,14 @@ export default function Login() {
     setError('');
 
     try {
-      await login(formData.email, formData.password);
+      const response = await loginUser(formData.email, formData.password);
+      localStorage.setItem('token', response.token);
       toast({
         title: 'Welcome back!',
         description: 'You have been signed in successfully.',
       });
       setLocation('/dashboard');
+      window.location.reload(); // Refresh to update auth state
     } catch (err: any) {
       setError(err.message || 'Sign in failed. Please try again.');
     } finally {
@@ -50,8 +53,8 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      await loginWithGoogle();
-      setLocation('/dashboard');
+      // Redirect to Google OAuth endpoint
+      window.location.href = '/api/v1/auth/google';
     } catch (err: any) {
       toast({
         title: 'Google Sign In Failed',
@@ -63,8 +66,8 @@ export default function Login() {
 
   const handleGitHubLogin = async () => {
     try {
-      await loginWithGitHub();
-      setLocation('/dashboard');
+      // Redirect to GitHub OAuth endpoint
+      window.location.href = '/api/v1/auth/github';
     } catch (err: any) {
       toast({
         title: 'GitHub Sign In Failed',

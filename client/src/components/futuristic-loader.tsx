@@ -150,13 +150,15 @@ export function FuturisticLoader({
             {text}
           </div>
         )}
-        <style jsx>{`
-          @keyframes quantumFloat {
-            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
-            33% { transform: translate(10px, -10px) scale(1.2); opacity: 1; }
-            66% { transform: translate(-5px, 10px) scale(0.8); opacity: 0.5; }
-          }
-        `}</style>
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            @keyframes quantumFloat {
+              0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
+              33% { transform: translate(10px, -10px) scale(1.2); opacity: 1; }
+              66% { transform: translate(-5px, 10px) scale(0.8); opacity: 0.5; }
+            }
+          `
+        }} />
       </div>
     );
   }
@@ -258,7 +260,7 @@ export function FuturisticLoader({
   );
 }
 
-export function PageLoader({ text = "Initializing ImageVault...", variant = "neural" }: { text?: string; variant?: 'neural' | 'quantum' | 'matrix' | 'orbit' }) {
+export function PageLoader({ text = "Initializing ImageVault...", variant = "quantum" }: { text?: string; variant?: 'neural' | 'quantum' | 'matrix' | 'orbit' }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-blue-950/30 dark:to-purple-950/30 flex items-center justify-center">
       {/* Enhanced animated background elements */}

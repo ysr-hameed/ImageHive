@@ -61,35 +61,37 @@ function AppContent() {
   if (user && !isAuthPage && !isPublicPage) {
     return (
       <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset className="min-h-screen">
-          <header className="sticky top-0 z-10 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3">
-            <div className="flex items-center justify-between">
-              <SidebarTrigger />
-              <div className="flex items-center gap-4">
-                <NotificationBell />
-                <ProfileMenu />
+        <div className="flex min-h-screen w-full">
+          <AppSidebar />
+          <SidebarInset className="flex-1 flex flex-col min-h-screen">
+            <header className="sticky top-0 z-40 border-b border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm px-4 py-3 transition-all duration-200">
+              <div className="flex items-center justify-between">
+                <SidebarTrigger className="md:hidden" />
+                <div className="flex items-center gap-4">
+                  <NotificationBell />
+                  <ProfileMenu />
+                </div>
               </div>
-            </div>
-          </header>
-          <div className="flex-1 w-full bg-gray-50 dark:bg-slate-900">
-            <Switch>
-              <Route path="/dashboard" component={Dashboard} />
-              <Route path="/images" component={Images} />
-              <Route path="/upload" component={Upload} />
-              <Route path="/analytics" component={Analytics} />
-              <Route path="/api-keys" component={ApiKeys} />
-              <Route path="/settings" component={Settings} />
-              <Route path="/api-usage" component={ApiUsage} />
-              <Route path="/plans" component={Plans} />
-              <Route path="/notifications" component={Notifications} />
-              <Route path="/admin" component={Admin} />
-              <Route path="/collections" component={Collections} />
-              <Route path="/activity" component={Activity} />
-              <Route component={NotFound} />
-            </Switch>
-          </div>
-        </SidebarInset>
+            </header>
+            <main className="flex-1 w-full bg-gray-50 dark:bg-slate-900 overflow-auto">
+              <Switch>
+                <Route path="/dashboard" component={Dashboard} />
+                <Route path="/images" component={Images} />
+                <Route path="/upload" component={Upload} />
+                <Route path="/analytics" component={Analytics} />
+                <Route path="/api-keys" component={ApiKeys} />
+                <Route path="/settings" component={Settings} />
+                <Route path="/api-usage" component={ApiUsage} />
+                <Route path="/plans" component={Plans} />
+                <Route path="/notifications" component={Notifications} />
+                <Route path="/admin" component={Admin} />
+                <Route path="/collections" component={Collections} />
+                <Route path="/activity" component={Activity} />
+                <Route component={NotFound} />
+              </Switch>
+            </main>
+          </SidebarInset>
+        </div>
       </SidebarProvider>
     );
   }

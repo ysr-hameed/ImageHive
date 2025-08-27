@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SidebarContentLoader } from '@/components/sidebar-content-loader';
-import { 
+import {
   BarChart3,
   TrendingUp,
   Eye,
@@ -17,12 +17,13 @@ import {
   Trash2,
   X
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
 export default function Analytics() {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: analytics, isLoading } = useQuery({
     queryKey: ['/api/v1/analytics'],
@@ -62,12 +63,14 @@ export default function Analytics() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/images'] });
-      toast. visitantes('Image deleted successfully.', {
+      toast({
+        title: 'Image deleted successfully.',
         description: new Date().toLocaleDateString(),
       });
     },
     onError: (error) => {
-      toast.error('Error deleting image', {
+      toast({
+        title: 'Error deleting image',
         description: error.message,
       });
     },

@@ -156,28 +156,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       collapsible="icon"
-      className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-r"
+      className="bg-white dark:bg-slate-900 border-r border-gray-200 dark:border-slate-700"
       {...props}
     >
-      <SidebarHeader className="bg-background/50 backdrop-blur-sm">
-        <div className="flex items-center justify-between px-4 py-2">
+      <SidebarHeader className="border-b border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-between px-4 py-3">
           <Link href="/dashboard">
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-bold text-sm">IV</span>
               </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-lg leading-none">ImageVault</span>
-                <span className="text-xs text-gray-500">Professional</span>
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <span className="font-bold text-lg leading-none text-gray-900 dark:text-white">ImageVault</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">Professional</span>
               </div>
             </div>
           </Link>
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="px-2">
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuData.navMain.map((item) => (
@@ -185,10 +185,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
+                    className="w-full justify-start"
                   >
                     <Link href={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -198,7 +199,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Analytics & Tools</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Analytics & Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuData.navSecondary.map((item) => (
@@ -206,10 +207,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
+                    className="w-full justify-start"
                   >
                     <Link href={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -219,7 +221,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Account</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuData.navSettings.map((item) => (
@@ -227,10 +229,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                   <SidebarMenuButton
                     asChild
                     isActive={location === item.url}
+                    className="w-full justify-start"
                   >
                     <Link href={item.url}>
-                      <item.icon className="w-4 h-4" />
-                      <span>{item.title}</span>
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -241,18 +244,19 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         {user?.isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     asChild
                     isActive={location === "/admin"}
+                    className="w-full justify-start"
                   >
                     <Link href="/admin">
-                      <Shield className="w-4 h-4" />
-                      <span>Admin Panel</span>
-                      <Badge className="ml-auto bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                      <Shield className="w-4 h-4 flex-shrink-0" />
+                      <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
+                      <Badge className="ml-auto bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 group-data-[collapsible=icon]:hidden">
                         Admin
                       </Badge>
                     </Link>
@@ -264,7 +268,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         )}
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-gray-200 dark:border-slate-700">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

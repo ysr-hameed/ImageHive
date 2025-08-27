@@ -16,7 +16,7 @@ import {
   Filter,
   MarkAsRead
 } from 'lucide-react';
-import Navigation from '@/components/navigation';
+
 import { apiRequest } from '@/lib/queryClient';
 
 interface Notification {
@@ -115,7 +115,7 @@ export default function Notifications() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-        <Navigation />
+
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
           <div className="max-w-4xl mx-auto">
             <div className="animate-pulse space-y-4">
@@ -136,7 +136,7 @@ export default function Notifications() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <Navigation />
+
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
         <div className="max-w-4xl mx-auto">
           {/* Header */}

@@ -1,11 +1,23 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, ArrowRight, Rocket, BarChart3 } from 'lucide-react';
-import { Link } from 'wouter';
 import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'wouter';
+import { 
+  Rocket, 
+  Shield, 
+  Zap, 
+  Globe, 
+  Star,
+  ArrowRight,
+  Play,
+  CheckCircle,
+  TrendingUp,
+  Users,
+  Award
+} from "lucide-react";
 
 export default function HeroSection() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   return (
     <section className="relative py-8 sm:py-16 lg:py-24 xl:py-32 overflow-hidden min-h-[80vh] sm:min-h-[85vh] lg:min-h-[90vh]">
@@ -35,22 +47,29 @@ export default function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
-              <Link href={isAuthenticated ? "/dashboard" : "/auth/register"}>
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105">
-                  {isAuthenticated ? (
-                    <>
-                      <BarChart3 className="mr-2 w-5 h-5" />
-                      Go to Dashboard
-                    </>
-                  ) : (
-                    <>
-                      <Rocket className="mr-2 w-5 h-5" />
-                      Start Free Trial
-                    </>
-                  )}
-                  <ArrowRight className="ml-2 w-5 h-5" />
+              {isAuthenticated && user ? (
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 hover:from-blue-700 hover:via-purple-700 hover:to-emerald-700 text-white border-0 px-8 py-6 text-lg font-semibold shadow-xl transform hover:scale-105 transition-all duration-300"
+                  asChild
+                >
+                  <Link href="/dashboard">
+                    <ArrowRight className="w-5 h-5 mr-2" />
+                    Go to Dashboard
+                  </Link>
                 </Button>
-              </Link>
+              ) : (
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 hover:from-blue-700 hover:via-purple-700 hover:to-emerald-700 text-white border-0 px-8 py-6 text-lg font-semibold shadow-xl transform hover:scale-105 transition-all duration-300"
+                  asChild
+                >
+                  <Link href="/auth/register">
+                    <Rocket className="w-5 h-5 mr-2" />
+                    Get Started Free
+                  </Link>
+                </Button>
+              )}
               <Button 
                 variant="outline" 
                 size="lg"

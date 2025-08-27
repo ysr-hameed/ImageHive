@@ -55,7 +55,8 @@ import {
   Moon,
   Monitor,
   Camera,
-  TrendingUp
+  TrendingUp,
+  Menu
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logoutUser } from "@/lib/authUtils";
@@ -285,22 +286,22 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-blue-600 text-white">
+                  <Avatar className="h-10 w-10 rounded-lg border-2 border-gray-200 dark:border-slate-600">
+                    <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
                       {user?.email ? getUserInitials(user.email) : 'U'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">
-                      {user?.email || 'User'}
+                    <span className="truncate font-semibold text-gray-900 dark:text-white">
+                      {user?.firstName || user?.email || 'User'}
                     </span>
                     <Badge className={`w-fit text-xs ${getPlanColor(user?.plan || 'free')}`}>
                       {(user?.plan || 'free').charAt(0).toUpperCase() + (user?.plan || 'free').slice(1)}
                     </Badge>
                   </div>
-                  <ChevronDown className="ml-auto size-4" />
+                  <ChevronDown className="ml-auto size-4 text-gray-500 dark:text-gray-400" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,10 +35,11 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiRequest } from '@/lib/queryClient';
+import { PageLoader } from "@/components/futuristic-loader";
 
 export default function Collections() {
+  const { user, isLoading: authLoading } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newCollection, setNewCollection] = useState({
@@ -45,9 +47,20 @@ export default function Collections() {
     description: '',
     isPublic: false,
   });
+  const queryClient = useQueryClient();
+
+  if (authLoading) {
+    return <PageLoader text="Loading collections..." />;
+  }
+
+  if (!user) {
+    window.location.href = "/auth/login";
+    return null;
+  }
 
   const { data: collections = [], isLoading } = useQuery({
     queryKey: ['/api/v1/collections'],
+    enabled: !!user,
     retry: false,
   });
 
@@ -106,6 +119,12 @@ export default function Collections() {
     collection.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleCreateCollection = () => {
+    if (!newCollection.name.trim()) return;
+
+    createCollectionMutation.mutate(newCollection);
+  };
+
   if (isLoading) {
     return (
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
@@ -136,7 +155,7 @@ export default function Collections() {
               </p>
             </div>
           </div>
-          
+
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
               <Button>
@@ -172,7 +191,7 @@ export default function Collections() {
                     Cancel
                   </Button>
                   <Button 
-                    onClick={() => createCollectionMutation.mutate(newCollection)}
+                    onClick={handleCreateCollection}
                     disabled={!newCollection.name || createCollectionMutation.isPending}
                   >
                     Create Collection
@@ -237,7 +256,7 @@ export default function Collections() {
                         </Badge>
                       </div>
                     </div>
-                    
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="opacity-0 group-hover:opacity-100">
@@ -268,13 +287,13 @@ export default function Collections() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  
+
                   {collection.description && (
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
                       {collection.description}
                     </p>
                   )}
-                  
+
                   <div className="space-y-3">
                     {/* Preview Images */}
                     <div className="grid grid-cols-3 gap-1 h-20">
@@ -294,7 +313,7 @@ export default function Collections() {
                         ))
                       )}
                     </div>
-                    
+
                     {/* Stats */}
                     <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
                       <div className="flex items-center gap-4">
@@ -310,7 +329,7 @@ export default function Collections() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                       <Calendar className="w-3 h-3" />
                       Created {formatDate(collection.createdAt)}

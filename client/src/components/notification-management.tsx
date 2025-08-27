@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'wouter';
@@ -13,7 +12,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Trash2, Edit, Bell } from 'lucide-react';
+import { 
+  Bell, 
+  Check, 
+  Trash2, 
+  AlertCircle, 
+  Info, 
+  CheckCircle, 
+  XCircle,
+  Settings,
+  MarkAsRead,
+  Eye,
+  EyeOff
+} from "lucide-react";
 
 interface Notification {
   id: string;
@@ -22,6 +33,7 @@ interface Notification {
   type: 'info' | 'warning' | 'success';
   isActive: boolean;
   createdAt: string;
+  read: boolean; // Added 'read' property
 }
 
 export function NotificationManagement() {
@@ -142,6 +154,66 @@ export function NotificationManagement() {
     }
   };
 
+  const markAsReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/v1/notifications/${id}/read`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to mark notification as read");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/notifications"] });
+      toast({
+        title: "Success",
+        description: "Notification marked as read",
+      });
+    },
+  });
+
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/v1/notifications/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete notification");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/notifications"] });
+      toast({
+        title: "Success",
+        description: "Notification deleted",
+      });
+    },
+  });
+
+  const markAsRead = (id: string) => {
+    markAsReadMutation.mutate(id);
+    setNotifications(notifications.map(n => 
+      n.id === id ? { ...n, read: true } : n
+    ));
+  };
+
+  const deleteNotification = (id: string) => {
+    deleteNotificationMutation.mutate(id);
+    setNotifications(notifications.filter(n => n.id !== id));
+  };
+
   return (
     <div className="space-y-6">
       {/* Create/Edit Form */}
@@ -185,7 +257,7 @@ export function NotificationManagement() {
                   </Select>
                 </div>
               </div>
-              
+
               <div>
                 <Label htmlFor="message">Message</Label>
                 <Textarea
@@ -247,6 +319,12 @@ export function NotificationManagement() {
                 <div key={notification.id} className="flex items-start gap-4 p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
+                      <div className="text-2xl mb-2">
+                        {notification.type === 'info' && <Info className="w-6 h-6 text-blue-500" />}
+                        {notification.type === 'warning' && <AlertCircle className="w-6 h-6 text-yellow-500" />}
+                        {notification.type === 'error' && <XCircle className="w-6 h-6 text-red-500" />}
+                        {notification.type === 'success' && <CheckCircle className="w-6 h-6 text-green-500" />}
+                      </div>
                       <h4 className="font-medium">{notification.title}</h4>
                       <Badge className={getTypeColor(notification.type)}>
                         {notification.type}
@@ -273,7 +351,7 @@ export function NotificationManagement() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => deleteMutation.mutate(notification.id)}
+                      onClick={() => deleteNotification(notification.id)}
                       disabled={deleteMutation.isPending}
                     >
                       <Trash2 className="w-4 h-4" />
@@ -299,27 +377,33 @@ export function NotificationBell() {
   });
 
   const unreadCount = Array.isArray(notifications) 
-    ? notifications.filter((n: any) => n.isActive).length 
+    ? notifications.filter((n: any) => n.isActive && n.read === false).length 
     : 0;
 
-  const markAsRead = useMutation({
+  const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
       const response = await fetch(`/api/v1/notifications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ isActive: false }),
+        body: JSON.stringify({ isActive: false }), // Assuming isActive is used to mark as read in this context
       });
       if (!response.ok) throw new Error('Failed to mark notification as read');
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
+      toast({ title: 'Notification marked as read' });
     },
     onError: (error) => {
       console.error('Error marking notification as read:', error);
+      toast({ title: 'Failed to mark notification as read', variant: 'destructive' });
     },
   });
+
+  const handleMarkAsRead = (id: string) => {
+    markAsReadMutation.mutate(id);
+  };
 
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -345,15 +429,15 @@ export function NotificationBell() {
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
-              {notifications.slice(0, 10).map((notification: any) => (
+              {notifications.slice(0, 10).map((notification: Notification) => (
                 <div
                   key={notification.id}
                   className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                    notification.isActive ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-gray-50 dark:bg-gray-800'
+                    notification.read ? 'bg-gray-50 dark:bg-gray-800' : 'bg-blue-50 dark:bg-blue-900/20'
                   }`}
                   onClick={() => {
-                    if (notification.isActive) {
-                      markAsRead.mutate(notification.id);
+                    if (!notification.read) {
+                      handleMarkAsRead(notification.id);
                     }
                   }}
                 >
@@ -367,7 +451,7 @@ export function NotificationBell() {
                         {new Date(notification.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    {notification.isActive && (
+                    {!notification.read && (
                       <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
                     )}
                   </div>

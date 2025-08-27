@@ -27,75 +27,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/hooks/useAuth'; // Assuming useAuth is in this path
+import PageLoader from '@/components/ui/page-loader'; // Assuming PageLoader is in this path
 
 export default function Activity() {
+  const { user, isLoading: authLoading } = useAuth();
+
+  // Fetch real activity data
+  const { data: activitiesData = {}, isLoading: activitiesLoading } = useQuery({
+    queryKey: ["/api/v1/activity"],
+    enabled: !!user,
+  });
+
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [timeRange, setTimeRange] = useState('7d');
 
-  const { data: activities = [], isLoading } = useQuery({
-    queryKey: ['/api/v1/activity', filterType, timeRange],
-    queryFn: async () => {
-      // Generate realistic activity data based on current date
-      const now = new Date();
-      const activities = [];
-      
-      // Generate activities for the last 7 days
-      for (let i = 0; i < 25; i++) {
-        const timestamp = new Date(now.getTime() - (i * 2 * 60 * 60 * 1000)); // Every 2 hours
-        const types = ['upload', 'view', 'download', 'share', 'delete', 'edit', 'api_key'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        
-        let description = '';
-        switch (type) {
-          case 'upload':
-            description = `Uploaded image ${['profile.jpg', 'screenshot.png', 'document.pdf', 'logo.svg'][Math.floor(Math.random() * 4)]} (${(Math.random() * 5 + 0.5).toFixed(1)} MB)`;
-            break;
-          case 'view':
-            description = `Image ${['sunset.jpg', 'team-photo.png', 'banner.jpg'][Math.floor(Math.random() * 3)]} was viewed ${Math.floor(Math.random() * 50 + 1)} times`;
-            break;
-          case 'download':
-            description = `Downloaded ${['report.pdf', 'presentation.pptx', 'data.xlsx'][Math.floor(Math.random() * 3)]} (${Math.floor(Math.random() * 20 + 1)} downloads)`;
-            break;
-          case 'share':
-            description = `Shared image collection "${['Portfolio', 'Team Photos', 'Product Images'][Math.floor(Math.random() * 3)]}" publicly`;
-            break;
-          case 'delete':
-            description = `Deleted ${Math.floor(Math.random() * 5 + 1)} images from storage`;
-            break;
-          case 'edit':
-            description = `Updated image metadata and tags for ${['vacation.jpg', 'project.png'][Math.floor(Math.random() * 2)]}`;
-            break;
-          case 'api_key':
-            description = `Created new API key "${['Development', 'Production', 'Mobile App'][Math.floor(Math.random() * 3)]}" with ${['read', 'write', 'admin'][Math.floor(Math.random() * 3)]} permissions`;
-            break;
-        }
-        
-        activities.push({
-          id: `activity_${i}`,
-          type,
-          title: type.charAt(0).toUpperCase() + type.slice(1).replace('_', ' '),
-          description,
-          timestamp: timestamp.toISOString(),
-          userId: 'user_123',
-          userEmail: 'user@example.com',
-          metadata: {
-            ip: `192.168.1.${Math.floor(Math.random() * 255)}`,
-            browser: ['Chrome', 'Firefox', 'Safari', 'Edge'][Math.floor(Math.random() * 4)],
-            location: ['New York, US', 'London, UK', 'Tokyo, JP', 'Sydney, AU'][Math.floor(Math.random() * 4)]
-          }
-        });
-      }
-      
-      // Filter by type if needed
-      if (filterType !== 'all') {
-        return activities.filter(a => a.type === filterType);
-      }
-      
-      return activities;
-    },
-    retry: false,
-  });
+  if (authLoading) {
+    return <PageLoader text="Loading activity..." />;
+  }
+
+  if (!user) {
+    window.location.href = "/auth/login";
+    return null;
+  }
+
+  // Use real data or fallback to empty array
+  const activities = (activitiesData as any)?.activities || [];
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -158,7 +116,7 @@ export default function Activity() {
   });
 
   const groupedActivities = filteredActivities.reduce((groups: any, activity: any) => {
-    const date = new Date(activity.createdAt).toDateString();
+    const date = new Date(activity.createdAt || activity.timestamp).toDateString(); // Use 'createdAt' or 'timestamp'
     if (!groups[date]) {
       groups[date] = [];
     }
@@ -166,7 +124,7 @@ export default function Activity() {
     return groups;
   }, {});
 
-  if (isLoading) {
+  if (activitiesLoading) {
     return (
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div className="max-w-4xl mx-auto">
@@ -209,7 +167,7 @@ export default function Activity() {
               />
             </div>
           </div>
-          
+
           <Select value={filterType} onValueChange={setFilterType}>
             <SelectTrigger className="w-48">
               <Filter className="w-4 h-4 mr-2" />
@@ -227,7 +185,7 @@ export default function Activity() {
               <SelectItem value="collection">Collections</SelectItem>
             </SelectContent>
           </Select>
-          
+
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-32">
               <Clock className="w-4 h-4 mr-2" />
@@ -277,7 +235,7 @@ export default function Activity() {
                     </h3>
                     <div className="flex-1 border-t border-gray-200 dark:border-gray-700" />
                   </div>
-                  
+
                   <div className="space-y-3">
                     {dayActivities.map((activity: any) => {
                       const Icon = getActivityIcon(activity.type);
@@ -288,7 +246,7 @@ export default function Activity() {
                               <div className={`p-2 rounded-full ${getActivityColor(activity.type)}`}>
                                 <Icon className="w-4 h-4" />
                               </div>
-                              
+
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
                                   <p className="text-sm font-medium text-gray-900 dark:text-white">
@@ -298,30 +256,30 @@ export default function Activity() {
                                     {activity.type.replace('_', ' ')}
                                   </Badge>
                                 </div>
-                                
+
                                 {activity.resource && (
                                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                                     Resource: {activity.resource}
                                   </p>
                                 )}
-                                
+
                                 <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                                   <span className="flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
-                                    {formatTime(activity.createdAt)}
+                                    {formatTime(activity.createdAt || activity.timestamp)} {/* Use 'createdAt' or 'timestamp' */}
                                   </span>
-                                  
+
                                   {activity.ipAddress && (
                                     <span>IP: {activity.ipAddress}</span>
                                   )}
-                                  
+
                                   {activity.userAgent && (
                                     <span className="truncate max-w-xs">
                                       {activity.userAgent.split(' ')[0]}
                                     </span>
                                   )}
                                 </div>
-                                
+
                                 {activity.metadata && Object.keys(activity.metadata).length > 0 && (
                                   <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                     <details className="cursor-pointer">

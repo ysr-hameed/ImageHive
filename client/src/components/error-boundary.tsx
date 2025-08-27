@@ -22,59 +22,55 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('🚨 ErrorBoundary caught error:', {
-      error: error.message,
-      stack: error.stack,
-      componentStack: errorInfo.componentStack,
-      errorBoundary: true,
-      timestamp: new Date().toISOString(),
-      url: window.location.href
-    });
+    const isDevelopment = process.env.NODE_ENV === 'development';
 
-    // Additional debugging info in development
-    if (process.env.NODE_ENV === 'development') {
-      console.group('🔍 ErrorBoundary Debug Info');
-      console.log('Error:', error);
-      console.log('Error Info:', errorInfo);
-      console.log('Component Stack:', errorInfo.componentStack);
-      console.groupEnd();
+    if (isDevelopment) {
+      console.error('Error caught by boundary:', error, errorInfo);
+      console.error('Component stack:', errorInfo.componentStack);
+      console.error('Error stack:', error.stack);
+    } else {
+      // In production, only log essential error info
+      console.error('Application error occurred');
     }
   }
 
   public render() {
     if (this.state.hasError) {
-      console.log('🚨 Error Boundary activated, rendering fallback UI');
+      const isDevelopment = process.env.NODE_ENV === 'development';
 
-      // Enhanced fallback UI with more debugging info
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 p-4">
-          <div className="text-center p-8 max-w-2xl">
-            <div className="text-6xl mb-4">⚠️</div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-              Application Error
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              ImageVault encountered an unexpected error. Please check the console for details.
-            </p>
-            {this.state.error && (
-              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg mb-6 text-left">
-                <p className="text-sm text-red-800 dark:text-red-300 font-mono">
-                  {this.state.error.message}
-                </p>
-              </div>
-            )}
-            <div className="space-x-4">
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900">
+          <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-lg shadow-lg p-6">
+            <div className="text-center">
+              <div className="text-red-500 text-6xl mb-4">⚠️</div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                Something went wrong
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                We're sorry, but something unexpected happened. Please try refreshing the page.
+              </p>
+
+              {isDevelopment && this.state.error && (
+                <div className="text-left bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4 mb-4">
+                  <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-2">
+                    Development Error Details:
+                  </h3>
+                  <pre className="text-xs text-red-700 dark:text-red-300 overflow-auto max-h-32">
+                    {this.state.error.message}
+                  </pre>
+                  {this.state.error.stack && (
+                    <pre className="text-xs text-red-600 dark:text-red-400 overflow-auto max-h-32 mt-2">
+                      {this.state.error.stack}
+                    </pre>
+                  )}
+                </div>
+              )}
+
               <button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors"
               >
-                🔄 Reload Page
-              </button>
-              <button
-                onClick={() => window.location.href = '/'}
-                className="inline-flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                🏠 Go Home
+                Refresh Page
               </button>
             </div>
           </div>

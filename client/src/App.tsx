@@ -79,7 +79,7 @@ function AppContent() {
           <SidebarInset className="flex-1 flex flex-col min-h-screen">
             <header className="sticky top-0 z-40 border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-3 transition-all duration-200">
               <div className="flex items-center justify-between">
-                <SidebarTrigger className="" />
+                <SidebarTrigger className="flex items-center justify-center w-8 h-8 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-md transition-colors" />
                 <div className="flex items-center gap-4 ml-auto">
                   <NotificationBell />
                   <ProfileMenu />

@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +19,31 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
+import { useAuth } from "@/context/AuthContext"; // Assuming useAuth is in this path
+import PageLoader from "@/components/ui/page-loader"; // Assuming PageLoader component
+
+// Define PLAN_LIMITS if not already defined elsewhere.
+// This is a placeholder; the actual limits should be fetched or defined based on your application's structure.
+const PLAN_LIMITS = {
+  free: {
+    uploads: 100,
+    storage: 1 * 1024 * 1024 * 1024, // 1GB
+    bandwidth: 2 * 1024 * 1024 * 1024, // 2GB
+    apiCalls: 1000,
+  },
+  pro: {
+    uploads: 1000,
+    storage: 5 * 1024 * 1024 * 1024, // 5GB
+    bandwidth: 10 * 1024 * 1024 * 1024, // 10GB
+    apiCalls: 10000,
+  },
+  enterprise: {
+    uploads: Infinity,
+    storage: Infinity,
+    bandwidth: Infinity,
+    apiCalls: Infinity,
+  },
+};
 
 interface UsageStats {
   currentPeriod: {
@@ -50,10 +74,40 @@ interface UsageStats {
 }
 
 export default function ApiUsage() {
+  const { user, isLoading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return <PageLoader text="Loading API usage..." />;
+  }
+
+  if (!user) {
+    window.location.href = "/auth/login";
+    return null;
+  }
+
+  const userPlan = user?.plan || 'free';
+  const currentPlan = PLAN_LIMITS[userPlan] || PLAN_LIMITS.free;
+
   const { data: usage, isLoading, error, refetch } = useQuery({
     queryKey: ["/api/v1/usage"],
     retry: 3,
     staleTime: 30000,
+    initialData: { // Provide initial data to prevent "undefined" errors before fetching
+      currentPeriod: {
+        uploads: 0,
+        storage: 0,
+        bandwidth: 0,
+        apiCalls: 0,
+      },
+      limits: currentPlan, // Use plan limits as initial limits
+      billing: {
+        plan: userPlan,
+        nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        amount: 0,
+        currency: 'USD',
+      },
+      recentActivity: [],
+    },
   });
 
   const formatBytes = (bytes: number) => {
@@ -130,12 +184,6 @@ export default function ApiUsage() {
             <Button onClick={() => refetch()} className="bg-blue-600 hover:bg-blue-700 text-white">
               Retry
             </Button>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Failed to load API usage statistics. Please try again.
-            </p>
-            <Button onClick={() => window.location.reload()}>
-              Retry
-            </Button>
           </div>
         </div>
       </div>
@@ -150,14 +198,9 @@ export default function ApiUsage() {
       bandwidth: 0,
       apiCalls: 0,
     },
-    limits: {
-      uploads: 1000,
-      storage: 5 * 1024 * 1024 * 1024, // 5GB
-      bandwidth: 10 * 1024 * 1024 * 1024, // 10GB
-      apiCalls: 10000,
-    },
+    limits: currentPlan, // Use plan limits as default limits
     billing: {
-      plan: 'Free',
+      plan: userPlan,
       nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       amount: 0,
       currency: 'USD',

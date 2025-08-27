@@ -50,11 +50,15 @@ export default function ApiKeys() {
     }
   }, [isAuthenticated, authLoading, toast, setLocation]);
 
-  const { data: apiKeys = [], isLoading } = useQuery({
+  const { data: apiKeysResponse, isLoading } = useQuery({
     queryKey: ['/api/v1/api-keys'],
+    queryFn: () => apiRequest('GET', '/api/v1/api-keys'),
     retry: false,
     enabled: isAuthenticated,
   });
+
+  const apiKeys = Array.isArray(apiKeysResponse?.apiKeys) ? apiKeysResponse.apiKeys : 
+                  Array.isArray(apiKeysResponse) ? apiKeysResponse : [];
 
   // Show loading state while checking authentication
   if (authLoading) {

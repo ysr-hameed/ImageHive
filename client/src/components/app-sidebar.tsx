@@ -158,7 +158,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   };
 
   const handleNavigation = (url: string) => {
-    setLocation(url);
+    // Use window.location for proper navigation
+    window.location.href = url;
     // Close mobile sidebar after navigation
     if (isMobile) {
       setOpenMobile(false);
@@ -196,18 +197,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       {...props}
     >
       <SidebarHeader className="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
-        <div className="flex items-center gap-2 px-4 py-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Camera className="h-4 w-4" />
+        <div className="flex items-center gap-3 px-4 py-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground flex-shrink-0">
+            <Camera className="h-5 w-5" />
           </div>
-          <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
-            <span className="truncate font-semibold">ImageHost Pro</span>
-            <span className="truncate text-xs">Cloud Storage</span>
+          <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden min-w-0">
+            <span className="truncate font-semibold text-base">ImageHost Pro</span>
+            <span className="truncate text-xs text-gray-500 dark:text-gray-400">Cloud Storage</span>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto h-8 w-8 hidden md:flex"
+            className="h-8 w-8 hidden md:flex flex-shrink-0"
             onClick={toggleSidebar}
           >
             {open ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
@@ -215,7 +216,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           <Button
             variant="ghost"
             size="icon"
-            className="ml-auto h-8 w-8 md:hidden"
+            className="h-8 w-8 md:hidden flex-shrink-0"
             onClick={toggleSidebar}
           >
             <Menu className="h-4 w-4" />
@@ -223,7 +224,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 bg-white dark:bg-slate-800">
         <SidebarGroup>
           <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group-data-[collapsible=icon]:hidden">Main</SidebarGroupLabel>
           <SidebarGroupContent>

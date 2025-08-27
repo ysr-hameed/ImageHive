@@ -46,6 +46,8 @@ interface ImageData {
   privacy: 'public' | 'private';
   createdAt: string;
   updatedAt: string;
+  filename?: string; // Added for the new requirement
+  folder?: string;   // Added for the new requirement
 }
 
 export default function Images() {
@@ -122,7 +124,7 @@ export default function Images() {
       if (!urlToCopy) {
         throw new Error('No URL available for this image');
       }
-      
+
       await navigator.clipboard.writeText(urlToCopy);
       toast({
         title: "URL Copied",
@@ -165,7 +167,7 @@ export default function Images() {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           }
         });
-        
+
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
@@ -179,7 +181,7 @@ export default function Images() {
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
-        
+
         toast({
           title: "Download Started",
           description: "Image download has started.",
@@ -193,7 +195,7 @@ export default function Images() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         toast({
           title: "Download Started",
           description: "Download opened in new tab.",
@@ -487,6 +489,14 @@ export default function Images() {
                     <h3 className="font-medium text-gray-900 dark:text-white truncate">
                       {image.originalName}
                     </h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      File: {image.filename || image.originalName}
+                    </p>
+                    {image.folder && (
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        📁 {image.folder}
+                      </p>
+                    )}
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       {formatBytes(image.size)} • {image.width}×{image.height} • {formatDate(image.createdAt)}
                     </div>

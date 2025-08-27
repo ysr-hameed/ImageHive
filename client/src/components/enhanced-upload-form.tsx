@@ -17,6 +17,7 @@ import { Upload, X, ImageIcon, Settings, Eye, Download, FolderPlus, Bell, Layout
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Check, AlertCircle } from 'lucide-react';
 import { Link } from "wouter";
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 // Mocking Upay integration for now, replace with actual integration
@@ -33,6 +34,43 @@ interface UploadFile extends File {
   progress?: number; // Added progress for visual feedback
 }
 
+// Placeholder for upload options state
+const initialUploadOptions = {
+  privacy: 'public',
+  quality: 85,
+  format: 'original',
+  watermark: false,
+  resize: false,
+  width: 0,
+  height: 0,
+  compression: 'balanced',
+  colorSpace: 'srgb',
+  dpi: 72,
+  autoEnhance: false,
+  generateThumbs: false,
+  progressive: false,
+  stripExif: false,
+  metadata: {
+    title: '',
+    author: '',
+    copyright: '',
+    keywords: '',
+  },
+  // Effects options
+  blur: 0,
+  brightness: 1,
+  contrast: 1,
+  saturation: 1,
+  sharpen: false,
+  grayscale: false,
+  // Premium options
+  watermarkText: '',
+  watermarkOpacity: 50,
+  watermarkPosition: 'bottom-right',
+  autoBackup: false,
+  encryption: false,
+};
+
 export function EnhancedUploadForm() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
@@ -47,27 +85,29 @@ export function EnhancedUploadForm() {
   const [metadata, setMetadata] = useState({
     title: '',
     description: '',
+    tags: '',
+    folder: '',
     isPublic: true,
   });
-    quality: 85,
-    format: 'original',
+
+  const [transforms, setTransforms] = useState({
+    width: '',
+    height: '',
+    format: 'auto',
+    fit: 'cover',
+    quality: 80,
+    blur: 0,
+    brightness: 1,
+    contrast: 1,
+    saturation: 1,
+    grayscale: false,
+    sharpen: false,
     watermark: false,
-    // Add other options if needed, e.g., resize, compression, colorSpace, dpi, autoEnhance, etc.
-    resize: false, // Example added field
-    compression: 'balanced', // Example added field
-    colorSpace: 'srgb', // Example added field
-    dpi: 72, // Example added field
-    autoEnhance: false, // Example added field
-    generateThumbs: false, // Example added field
-    progressive: false, // Example added field
-    stripExif: false, // Example added field
-    metadata: { // Nested metadata structure
-      title: '',
-      author: '',
-      copyright: '',
-      keywords: '',
-    }
+    rotate: 0,
   });
+
+  // Initialize uploadOptions with default values
+  const [uploadOptions, setUploadOptions] = useState(initialUploadOptions);
 
 
   if (!isAuthenticated || !user) {
@@ -311,6 +351,23 @@ export function EnhancedUploadForm() {
         if (uploadOptions.metadata.copyright) formData.append('meta_copyright', uploadOptions.metadata.copyright);
         if (uploadOptions.metadata.keywords) formData.append('meta_keywords', uploadOptions.metadata.keywords);
 
+        // Append effect options
+        if (uploadOptions.blur > 0) formData.append('blur', uploadOptions.blur.toString());
+        if (uploadOptions.brightness !== 1) formData.append('brightness', uploadOptions.brightness.toString());
+        if (uploadOptions.contrast !== 1) formData.append('contrast', uploadOptions.contrast.toString());
+        if (uploadOptions.saturation !== 1) formData.append('saturation', uploadOptions.saturation.toString());
+        if (uploadOptions.sharpen) formData.append('sharpen', 'true');
+        if (uploadOptions.grayscale) formData.append('grayscale', 'true');
+
+        // Append premium options (only if user has a plan that supports them or is upgrading)
+        if (user?.plan === 'pro' || user?.plan === 'enterprise') {
+          if (uploadOptions.watermarkText) formData.append('watermark_text', uploadOptions.watermarkText);
+          if (uploadOptions.watermarkOpacity !== 50) formData.append('watermark_opacity', uploadOptions.watermarkOpacity.toString());
+          if (uploadOptions.watermarkPosition !== 'bottom-right') formData.append('watermark_position', uploadOptions.watermarkPosition);
+          if (uploadOptions.autoBackup) formData.append('auto_backup', 'true');
+          if (uploadOptions.encryption) formData.append('encryption', 'true');
+        }
+
 
         const response = await fetch('/api/v1/images/upload', {
           method: 'POST',
@@ -409,7 +466,8 @@ export function EnhancedUploadForm() {
             <TabsTrigger value="metadata">Metadata</TabsTrigger>
             <TabsTrigger value="transforms">Transforms</TabsTrigger>
             <TabsTrigger value="optimization">Optimization</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced</TabsTrigger>
+            <TabsTrigger value="effects">Effects</TabsTrigger>
+            <TabsTrigger value="premium">Premium</TabsTrigger>
           </TabsList>
           <TabsContent value="metadata">
             <Card>
@@ -770,87 +828,182 @@ export function EnhancedUploadForm() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="advanced">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Code className="w-5 h-5" />
-                  Advanced Features
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="title">Image Title</Label>
-                    <Input
-                      id="title"
-                      value={uploadOptions.metadata.title}
-                      onChange={(e) => setUploadOptions(prev => ({
-                        ...prev,
-                        metadata: { ...prev.metadata, title: e.target.value }
-                      }))}
-                      placeholder="Image title"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="author">Author</Label>
-                    <Input
-                      id="author"
-                      value={uploadOptions.metadata.author}
-                      onChange={(e) => setUploadOptions(prev => ({
-                        ...prev,
-                        metadata: { ...prev.metadata, author: e.target.value }
-                      }))}
-                      placeholder="Author name"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="copyright">Copyright</Label>
-                  <Input
-                    id="copyright"
-                    value={uploadOptions.metadata.copyright}
-                    onChange={(e) => setUploadOptions(prev => ({
-                      ...prev,
-                      metadata: { ...prev.metadata, copyright: e.target.value }
-                    }))}
-                    placeholder="© 2024 Your Name"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="keywords">Keywords (SEO)</Label>
-                  <Input
-                    id="keywords"
-                    value={uploadOptions.metadata.keywords}
-                    onChange={(e) => setUploadOptions(prev => ({
-                      ...prev,
-                      metadata: { ...prev.metadata, keywords: e.target.value }
-                    }))}
-                    placeholder="keyword1, keyword2, keyword3"
-                  />
-                </div>
-
-                <div className="flex flex-wrap gap-6">
-                  {user?.plan === 'pro' || user?.plan === 'enterprise' ? (
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="watermark"
-                        checked={uploadOptions.watermark}
-                        onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, watermark: checked }))}
+          <TabsContent value="effects">
+            <Card className="mt-4">
+              <CardContent className="p-4">
+                <h5 className="font-medium mb-2">Image Effects</h5>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="blur">Blur</Label>
+                      <Input
+                        id="blur"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={uploadOptions.blur || 0}
+                        onChange={(e) => setUploadOptions(prev => ({ ...prev, blur: parseInt(e.target.value) }))}
+                        className="w-full"
                       />
-                      <Label htmlFor="watermark">Apply Watermark</Label>
-                      <Badge variant="secondary">Pro</Badge>
+                      <span className="text-xs text-gray-500">{uploadOptions.blur || 0}%</span>
                     </div>
-                  ) : (
-                    <div className="flex items-center space-x-2 opacity-50">
-                      <Switch id="watermark-disabled" disabled />
-                      <Label htmlFor="watermark-disabled">Apply Watermark</Label>
-                      <Badge variant="outline">Pro Only</Badge>
+                    <div>
+                      <Label htmlFor="brightness">Brightness</Label>
+                      <Input
+                        id="brightness"
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={(uploadOptions.brightness || 1) * 100}
+                        onChange={(e) => setUploadOptions(prev => ({ ...prev, brightness: parseInt(e.target.value) / 100 }))}
+                        className="w-full"
+                      />
+                      <span className="text-xs text-gray-500">{Math.round((uploadOptions.brightness || 1) * 100)}%</span>
                     </div>
-                  )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="contrast">Contrast</Label>
+                      <Input
+                        id="contrast"
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={(uploadOptions.contrast || 1) * 100}
+                        onChange={(e) => setUploadOptions(prev => ({ ...prev, contrast: parseInt(e.target.value) / 100 }))}
+                        className="w-full"
+                      />
+                      <span className="text-xs text-gray-500">{Math.round((uploadOptions.contrast || 1) * 100)}%</span>
+                    </div>
+                    <div>
+                      <Label htmlFor="saturation">Saturation</Label>
+                      <Input
+                        id="saturation"
+                        type="range"
+                        min="0"
+                        max="200"
+                        value={(uploadOptions.saturation || 1) * 100}
+                        onChange={(e) => setUploadOptions(prev => ({ ...prev, saturation: parseInt(e.target.value) / 100 }))}
+                        className="w-full"
+                      />
+                      <span className="text-xs text-gray-500">{Math.round((uploadOptions.saturation || 1) * 100)}%</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="sharpen"
+                        checked={uploadOptions.sharpen || false}
+                        onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, sharpen: checked }))}
+                      />
+                      <Label htmlFor="sharpen">Sharpen</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="grayscale"
+                        checked={uploadOptions.grayscale || false}
+                        onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, grayscale: checked }))}
+                      />
+                      <Label htmlFor="grayscale">Grayscale</Label>
+                    </div>
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="premium">
+            <Card className="mt-4">
+              <CardContent className="p-4">
+                {user?.plan === 'free' ? (
+                  <div className="text-center space-y-4">
+                    <h5 className="font-medium">Premium Features Available</h5>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Upgrade to unlock advanced features
+                    </p>
+                    <div className="grid grid-cols-1 gap-2 text-sm">
+                      <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
+                        <span>Custom Watermarks</span>
+                        <Badge variant="secondary">Pro</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
+                        <span>Advanced Compression</span>
+                        <Badge variant="secondary">Pro</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
+                        <span>Custom Domains</span>
+                        <Badge variant="secondary">Pro</Badge>
+                      </div>
+                      <div className="flex items-center justify-between p-2 bg-gray-50 dark:bg-slate-800 rounded">
+                        <span>Priority Processing</span>
+                        <Badge variant="secondary">Pro</Badge>
+                      </div>
+                    </div>
+                    <Button onClick={() => window.location.href = '/plans'} className="w-full">
+                      Upgrade to Pro
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <h5 className="font-medium mb-2">Premium Features</h5>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="watermarkText">Watermark Text</Label>
+                        <Input
+                          id="watermarkText"
+                          value={uploadOptions.watermarkText || ''}
+                          onChange={(e) => setUploadOptions(prev => ({ ...prev, watermarkText: e.target.value }))}
+                          placeholder="Enter watermark text"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="watermarkOpacity">Watermark Opacity</Label>
+                        <Input
+                          id="watermarkOpacity"
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={uploadOptions.watermarkOpacity || 50}
+                          onChange={(e) => setUploadOptions(prev => ({ ...prev, watermarkOpacity: parseInt(e.target.value) }))}
+                        />
+                        <span className="text-xs text-gray-500">{uploadOptions.watermarkOpacity || 50}%</span>
+                      </div>
+                      <div>
+                        <Label htmlFor="watermarkPosition">Watermark Position</Label>
+                        <Select
+                          value={uploadOptions.watermarkPosition || 'bottom-right'}
+                          onValueChange={(value) => setUploadOptions(prev => ({ ...prev, watermarkPosition: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="top-left">Top Left</SelectItem>
+                            <SelectItem value="top-right">Top Right</SelectItem>
+                            <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                            <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                            <SelectItem value="center">Center</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="autoBackup"
+                          checked={uploadOptions.autoBackup || false}
+                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, autoBackup: checked }))}
+                        />
+                        <Label htmlFor="autoBackup">Auto Backup</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="encryption"
+                          checked={uploadOptions.encryption || false}
+                          onCheckedChange={(checked) => setUploadOptions(prev => ({ ...prev, encryption: checked }))}
+                        />
+                        <Label htmlFor="encryption">Enable Encryption</Label>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

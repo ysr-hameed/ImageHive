@@ -216,18 +216,24 @@ export class BackblazeB2Service {
     }
   }
 
-  getFileUrl(fileName: string, customDomain?: string): string {
+  getFileUrl(fileName: string, customDomain?: string, platformDomain?: string): string {
+    // If custom domain is provided, use it directly
     if (customDomain) {
       return `https://${customDomain}/${fileName}`;
     }
 
-    // Use the download URL from auth response
-    if (this.downloadUrl) {
-      return `${this.downloadUrl}/file/${this.config.bucketName}/${fileName}`;
+    // If platform domain is set in environment, use it
+    if (platformDomain || process.env.PLATFORM_DOMAIN) {
+      const domain = platformDomain || process.env.PLATFORM_DOMAIN;
+      return `https://${domain}/${fileName}`;
     }
 
-    // Fallback to standard URL format
-    return `https://f005.backblazeb2.com/file/${this.config.bucketName}/${fileName}`;
+    // Use current app domain as fallback
+    const appDomain = process.env.REPL_SLUG ? 
+      `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
+      'localhost:5000';
+    
+    return `https://${appDomain}/cdn/${fileName}`;
   }
 
   async getFileInfo(fileId: string): Promise<any> {

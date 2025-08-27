@@ -138,7 +138,7 @@ const registerSchema = z.object({
 });
 
 // Replace dummy auth with proper token authentication
-const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+const authenticateToken = (req: Request, res: NextFunction, next: NextFunction) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
@@ -1166,7 +1166,7 @@ export function registerRoutes(app: Express) {
         watermark, watermarkText, watermarkOpacity, watermarkPosition,
         autoBackup, encryption, expiryDate, downloadLimit, geoRestriction
       } = req.body;
-      
+
       // Parse CDN optimization parameters
       const cdnOptions = {
         quality: req.body.quality ? parseInt(req.body.quality) : 85,
@@ -1257,7 +1257,7 @@ export function registerRoutes(app: Express) {
     try {
       const user = req.user!;
       const isExternal = req.headers['x-api-source'] === 'external';
-      
+
       if (isExternal) {
         await logSystemEvent('info', `External API call: list images`, user.id, { 
           endpoint: '/api/v1/images',
@@ -2090,7 +2090,7 @@ export function registerRoutes(app: Express) {
   });
 
   // Payment Integration Routes
-  
+
   // Get available payment providers (admin configurable)
   app.get('/api/v1/payment/providers', async (req: Request, res: Response) => {
     try {
@@ -2169,7 +2169,7 @@ export function registerRoutes(app: Express) {
       }
 
       const orderId = `order_${Date.now()}_${user.id}`;
-      
+
       switch (provider) {
         case 'payu':
           // PayU integration for India
@@ -2185,13 +2185,13 @@ export function registerRoutes(app: Express) {
             furl: cancelUrl,
             service_provider: 'payu_paisa'
           };
-          
+
           const payuHash = crypto.createHash('sha512')
             .update(`${payuData.key}|${payuData.txnid}|${payuData.amount}|${payuData.productinfo}|${payuData.firstname}|${payuData.email}|||||||||||${process.env.PAYU_SALT}`)
             .digest('hex');
-          
+
           const payuUrl = `https://secure.payu.in/_payment?key=${payuData.key}&txnid=${payuData.txnid}&amount=${payuData.amount}&productinfo=${encodeURIComponent(payuData.productinfo)}&firstname=${payuData.firstname}&email=${payuData.email}&surl=${encodeURIComponent(payuData.surl)}&furl=${encodeURIComponent(payuData.furl)}&hash=${payuHash}`;
-          
+
           res.json({ 
             paymentUrl: payuUrl,
             orderId,
@@ -2244,7 +2244,7 @@ export function registerRoutes(app: Express) {
         case 'paypal':
           const paypalOrderId = `pp_${orderId}`;
           const paypalUrl = `https://www.sandbox.paypal.com/checkoutnow?token=${paypalOrderId}`;
-          
+
           res.json({
             paymentUrl: paypalUrl,
             orderId: paypalOrderId,
@@ -2255,7 +2255,7 @@ export function registerRoutes(app: Express) {
         case 'stripe':
           const stripeSessionId = `cs_${orderId}`;
           const stripeUrl = `https://checkout.stripe.com/pay/${stripeSessionId}`;
-          
+
           res.json({
             paymentUrl: stripeUrl,
             orderId: stripeSessionId,
@@ -2316,7 +2316,7 @@ export function registerRoutes(app: Express) {
       if (isPaymentValid) {
         // Update user's premium status or credits
         await logSystemEvent('info', `Payment verified successfully: ${provider}`, user.id, paymentDetails);
-        
+
         res.json({
           success: true,
           message: 'Payment verified successfully',
@@ -2324,7 +2324,7 @@ export function registerRoutes(app: Express) {
         });
       } else {
         await logSystemEvent('warn', `Payment verification failed: ${provider}`, user.id, paymentDetails);
-        
+
         res.status(400).json({
           error: 'Payment verification failed',
           details: paymentDetails
@@ -2342,14 +2342,14 @@ export function registerRoutes(app: Express) {
   app.post('/api/v1/webhooks/payu', async (req: Request, res: Response) => {
     try {
       const { status, txnid, amount, email } = req.body;
-      
+
       await logSystemEvent('info', 'PayU webhook received', undefined, req.body);
-      
+
       if (status === 'success') {
         // Process successful payment
         console.log(`PayU payment successful: ${txnid} - ${amount}`);
       }
-      
+
       res.status(200).send('OK');
     } catch (error) {
       console.error('PayU webhook error:', error);
@@ -2360,10 +2360,10 @@ export function registerRoutes(app: Express) {
   app.post('/api/v1/webhooks/paypal', async (req: Request, res: Response) => {
     try {
       await logSystemEvent('info', 'PayPal webhook received', undefined, req.body);
-      
+
       // Process PayPal webhook
       console.log('PayPal webhook:', req.body);
-      
+
       res.status(200).send('OK');
     } catch (error) {
       console.error('PayPal webhook error:', error);
@@ -2374,10 +2374,10 @@ export function registerRoutes(app: Express) {
   app.post('/api/v1/webhooks/stripe', async (req: Request, res: Response) => {
     try {
       await logSystemEvent('info', 'Stripe webhook received', undefined, req.body);
-      
+
       // Process Stripe webhook
       console.log('Stripe webhook:', req.body);
-      
+
       res.status(200).send('OK');
     } catch (error) {
       console.error('Stripe webhook error:', error);

@@ -8,9 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Check, 
-  Star, 
+  X, 
   Zap, 
-  Crown, 
   CreditCard, 
   Lock,
   Unlock,

@@ -157,9 +157,6 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
 
   const copyToClipboard = async (text: string, imageId?: string) => {
     try {
-      await navigator.clipboard.writeText(text);
-      toast({ title: "URL copied to clipboard" });
-
       // Save URL access to database for analytics
       if (imageId) {
         try {
@@ -172,6 +169,13 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
           console.error('Failed to track URL copy:', error);
         }
       }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast({ title: "Failed to copy URL", variant: "destructive" });
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({ title: "URL copied to clipboard" });
     } catch (error) {
       console.error('Copy failed:', error);
       toast({ title: "Failed to copy URL", variant: "destructive" });
@@ -515,13 +519,6 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => window.open(image.cdnUrl, '_blank')}
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
                   <Button
                     size="sm"
                     variant="outline"

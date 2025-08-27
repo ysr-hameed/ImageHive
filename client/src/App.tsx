@@ -5,6 +5,7 @@ import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/s
 import { AppSidebar, ProfileMenu } from "@/components/app-sidebar";
 import { NotificationBell } from "@/components/notification-management";
 import { Toaster } from "@/components/ui/toaster";
+import { ThemeProvider } from "@/components/theme-provider";
 import { useAuth } from "@/hooks/useAuth";
 import { queryClient } from "@/lib/queryClient";
 import ErrorBoundary from "@/components/error-boundary";
@@ -131,14 +132,16 @@ function AppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <Router>
-          <Suspense fallback={<FuturisticLoader />}>
-            <AppContent />
-          </Suspense>
-          <Toaster />
-        </Router>
-      </QueryClientProvider>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <QueryClientProvider client={queryClient}>
+          <Router>
+            <Suspense fallback={<FuturisticLoader />}>
+              <AppContent />
+            </Suspense>
+            <Toaster />
+          </Router>
+        </QueryClientProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

@@ -1,422 +1,311 @@
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { SidebarContentLoader } from "@/components/sidebar-content-loader"; // ✅ only once
-import { ImageGrid } from "@/components/image-grid";
-import EmailVerificationBanner from "@/components/email-verification-banner";
-import { NotificationBanner } from "@/components/notification-banner";
-import { Upload, Image as ImageIcon, BarChart3, Key, Settings, LogOut } from "lucide-react";
-import { Link } from "wouter";
-import { useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
-import { CreateApiKeyDialog } from "@/components/api-key-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { PageLoader } from "@/components/futuristic-loader";
+
+import { useQuery } from '@tanstack/react-query';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { SidebarContentLoader } from '@/components/sidebar-content-loader';
+import {
+  BarChart3,
+  TrendingUp,
+  Eye,
+  Download,
+  Image as ImageIcon,
+  Users,
+  Globe,
+  Activity,
+  Upload,
+  Key,
+  Settings,
+  Calendar,
+  Clock,
+  ArrowUpRight,
+  Plus
+} from 'lucide-react';
+import { Link } from 'wouter';
+import { getQueryFn } from '@/lib/queryClient';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Dashboard() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { toast } = useToast();
+  const { user } = useAuth();
 
-  // Handle OAuth redirect with token
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get("token");
-
-    if (token) {
-      localStorage.setItem("token", token);
-      window.history.replaceState({}, document.title, "/dashboard");
-      window.location.reload();
-    }
-  }, []);
-
-  if (!isAuthenticated && !authLoading) {
-    window.location.href = "/auth/login";
-    return null;
-  }
-
-  if (authLoading) {
-    return <PageLoader text="Loading dashboard..." />;
-  }
-
-  // Queries...
-  const { data: analytics = {}, isLoading: analyticsLoading, error: analyticsError } = useQuery({
-    queryKey: ["/api/v1/analytics"],
-    retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
-    enabled: !!user,
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['/api/v1/analytics'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: false,
   });
 
-  const { data: imagesData = {}, isLoading: imagesLoading, error: imagesError } = useQuery({
-    queryKey: ["/api/v1/images"],
-    retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
-    enabled: !!user,
+  const { data: images, isLoading: imagesLoading } = useQuery({
+    queryKey: ['/api/v1/images'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: false,
   });
 
-  const { data: apiKeysData = {}, isLoading: apiKeysLoading, error: apiKeysError } = useQuery({
-    queryKey: ["/api/v1/api-keys"],
-    retry: (failureCount, error) => failureCount < 3 && !isUnauthorizedError(error as Error),
-    enabled: !!user,
+  const { data: apiKeys, isLoading: apiKeysLoading } = useQuery({
+    queryKey: ['/api/v1/api-keys'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    retry: false,
   });
 
-  const apiKeys = (apiKeysData as any)?.apiKeys || [];
+  const isLoading = analyticsLoading || imagesLoading || apiKeysLoading;
 
-  useEffect(() => {
-    const errors = [analyticsError, imagesError, apiKeysError].filter(Boolean);
-    for (const error of errors) {
-      if (isUnauthorizedError(error as Error)) {
-        toast({
-          title: "Session expired",
-          description: "Please log in again.",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/auth/login";
-        }, 1000);
-        return;
-      }
-    }
-  }, [analyticsError, imagesError, apiKeysError, toast]);
-
-  const formatBytes = (bytes: number) => {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
+  // Calculate stats with fallback values
+  const totalImages = images?.length || 0;
+  const totalViews = analytics?.totalViews || 0;
+  const totalDownloads = analytics?.totalDownloads || 0;
+  const activeApiKeys = apiKeys?.filter((key: any) => key.isActive)?.length || 0;
 
   const formatNumber = (num: number) => {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
-    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+    if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
     return num.toString();
   };
 
-  const getPlanColor = (plan: string) => {
-    switch (plan) {
-      case "free": return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
-      case "starter": return "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200";
-      case "pro": return "bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200";
-      case "enterprise": return "bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200";
-      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+  const stats = [
+    {
+      title: "Total Images",
+      value: formatNumber(totalImages),
+      icon: ImageIcon,
+      color: "text-blue-600",
+      bgColor: "bg-blue-100 dark:bg-blue-900/20",
+      description: "Images uploaded"
+    },
+    {
+      title: "Total Views",
+      value: formatNumber(totalViews),
+      icon: Eye,
+      color: "text-emerald-600",
+      bgColor: "bg-emerald-100 dark:bg-emerald-900/20",
+      description: "Image views"
+    },
+    {
+      title: "Downloads",
+      value: formatNumber(totalDownloads),
+      icon: Download,
+      color: "text-purple-600",
+      bgColor: "bg-purple-100 dark:bg-purple-900/20",
+      description: "Total downloads"
+    },
+    {
+      title: "API Keys",
+      value: activeApiKeys,
+      icon: Key,
+      color: "text-orange-600",
+      bgColor: "bg-orange-100 dark:bg-orange-900/20",
+      description: "Active keys"
     }
-  };
+  ];
 
-  const handleLogout = () => {
-    toast({
-      title: "Logged out successfully",
-      description: "You have been logged out.",
-    });
-    window.location.href = "/auth/login";
-  };
+  const quickActions = [
+    {
+      title: "Upload Images",
+      description: "Upload new images to your collection",
+      icon: Upload,
+      href: "/upload",
+      color: "bg-blue-600 hover:bg-blue-700"
+    },
+    {
+      title: "View Analytics",
+      description: "See detailed usage statistics",
+      icon: BarChart3,
+      href: "/analytics",
+      color: "bg-emerald-600 hover:bg-emerald-700"
+    },
+    {
+      title: "Manage API Keys",
+      description: "Create and manage API keys",
+      icon: Key,
+      href: "/api-keys",
+      color: "bg-purple-600 hover:bg-purple-700"
+    },
+    {
+      title: "Account Settings",
+      description: "Update your account preferences",
+      icon: Settings,
+      href: "/settings",
+      color: "bg-orange-600 hover:bg-orange-700"
+    }
+  ];
 
   return (
-    <SidebarContentLoader showSidebar={true}>
-      <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
-      
-
-      {/* Email Verification Banner */}
-      {user && !user.emailVerified && (
-        <EmailVerificationBanner userEmail={user.email || ''} />
-      )}
-
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-gray-900 dark:text-white">
-            Dashboard
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Welcome back, {user?.firstName || user?.email}
-          </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <Badge className={getPlanColor(user?.plan || 'free')} data-testid="user-plan">
-            {(user?.plan || 'free').charAt(0).toUpperCase() + (user?.plan || 'free').slice(1)} Plan
-          </Badge>
-          <Button asChild data-testid="button-upload">
-            <Link href="/upload">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Images
-            </Link>
-          </Button>
-          {/* Profile Icon with Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                {user?.profileImageUrl ? (
-                  <img src={user.profileImageUrl} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
-                ) : (
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <span className="text-sm font-bold text-white">
-                      {user?.firstName ? user.firstName.charAt(0).toUpperCase() : user?.email?.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuItem disabled className="cursor-default opacity-100">
-                <div className="flex flex-col space-y-1">
-                  <p className="font-medium text-sm">{user?.firstName || 'User'} {user?.lastName || ''}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
-                </div>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/settings" className="cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 dark:text-red-400">
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
-          <CardContent className="p-6">
+    <SidebarContentLoader isLoading={isLoading}>
+      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Welcome Header */}
+          <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Images</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-total-images">
-                  {analyticsLoading ? '...' : formatNumber((analytics as any)?.totalImages || 0)}
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  Welcome back, {user?.firstName || user?.email || 'User'}! 👋
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-2">
+                  Here's an overview of your ImageVault account
                 </p>
               </div>
-              <ImageIcon className="w-8 h-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Storage Used</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-storage-used">
-                  {analyticsLoading ? '...' : formatBytes((analytics as any)?.storageUsed || 0)}
-                </p>
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="px-3 py-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+                  Plan: {user?.plan || 'Free'}
+                </Badge>
               </div>
-              <BarChart3 className="w-8 h-8 text-emerald-500" />
             </div>
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              of {formatBytes(user?.storageLimit || 0)} limit
-            </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Views</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-total-views">
-                  {analyticsLoading ? '...' : formatNumber((analytics as any)?.totalViews || 0)}
-                </p>
-              </div>
-              <ImageIcon className="w-8 h-8 text-amber-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Downloads</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white" data-testid="stat-total-downloads">
-                  {analyticsLoading ? '...' : formatNumber((analytics as any)?.totalDownloads || 0)}
-                </p>
-              </div>
-              <BarChart3 className="w-8 h-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Main Content Tabs */}
-      <Tabs defaultValue="images" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="images" data-testid="tab-images">Images</TabsTrigger>
-          <TabsTrigger value="api-keys" data-testid="tab-api-keys">API Keys</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="images">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Recent Images</span>
-                <Button asChild size="sm" data-testid="button-upload-images">
-                  <Link href="/upload">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload More
-                  </Link>
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {imagesLoading ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {[...Array(8)].map((_, i) => (
-                    <div key={i} className="aspect-square bg-gray-200 dark:bg-slate-700 rounded-lg animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                <ImageGrid images={(imagesData as any)?.images || []} />
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="api-keys">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>API Keys</span>
-                <CreateApiKeyDialog>
-                  <Button size="sm" data-testid="button-create-api-key">
-                    <Key className="w-4 h-4 mr-2" />
-                    Create New Key
-                  </Button>
-                </CreateApiKeyDialog>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {apiKeysLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="h-16 bg-gray-200 dark:bg-slate-700 rounded-lg animate-pulse" />
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {Array.isArray(apiKeys) && apiKeys.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Key className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No API Keys</h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        Create your first API key to start using the ImageVault API.
+          {/* Stats Overview */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat) => (
+              <Card key={stat.title} className="relative overflow-hidden">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        {stat.title}
                       </p>
-                      <CreateApiKeyDialog>
-                        <Button data-testid="button-create-first-api-key">
-                          <Key className="w-4 h-4 mr-2" />
-                          Create API Key
-                        </Button>
-                      </CreateApiKeyDialog>
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
+                        {stat.value}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        {stat.description}
+                      </p>
                     </div>
-                  ) : (
-                    apiKeys?.map((apiKey: any) => (
-                      <div key={apiKey.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-slate-800 rounded-lg" data-testid={`api-key-${apiKey.id}`}>
-                        <div>
-                          <h4 className="font-medium text-gray-900 dark:text-white">{apiKey.name}</h4>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Created {new Date(apiKey.createdAt).toLocaleDateString()}
-                            {apiKey.lastUsed && ` • Last used ${new Date(apiKey.lastUsed).toLocaleDateString()}`}
+                    <div className={`p-3 rounded-lg ${stat.bgColor}`}>
+                      <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                Quick Actions
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {quickActions.map((action) => (
+                <Link key={action.title} href={action.href}>
+                  <Card className="cursor-pointer hover:shadow-lg transition-all duration-200 group">
+                    <CardContent className="p-6">
+                      <div className="flex items-center space-x-4">
+                        <div className={`p-3 rounded-lg text-white ${action.color} group-hover:scale-110 transition-transform`}>
+                          <action.icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-medium text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                            {action.title}
+                          </h3>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {action.description}
                           </p>
-                          <code className="text-xs bg-gray-200 dark:bg-slate-700 px-2 py-1 rounded font-mono">
-                            {apiKey.keyPreview || `${apiKey.key?.substring(0, 20)}...`}
-                          </code>
                         </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={apiKey.isActive ? "default" : "secondary"}>
-                            {apiKey.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                          <Button variant="outline" size="sm" data-testid={`button-delete-api-key-${apiKey.id}`}>
-                            Delete
-                          </Button>
-                        </div>
+                        <ArrowUpRight className="h-4 w-4 text-gray-400 group-hover:text-blue-600 transition-colors" />
                       </div>
-                    ))
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Activity className="h-5 w-5 mr-2" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {images?.slice(0, 5)?.map((image: any, index: number) => (
+                    <div key={image.id || index} className="flex items-center space-x-3 py-2">
+                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                        <ImageIcon className="h-5 w-5 text-gray-500" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          {image.title || image.filename || 'Untitled'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(image.createdAt || Date.now()).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-xs">
+                        {image.views || 0} views
+                      </Badge>
+                    </div>
+                  )) || (
+                    <div className="text-center py-8">
+                      <ImageIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No images yet
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        Upload your first image to get started
+                      </p>
+                      <Link href="/upload">
+                        <Button size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Upload Image
+                        </Button>
+                      </Link>
+                    </div>
                   )}
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <Settings className="w-5 h-5 inline mr-2" />
-                Account Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Profile Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email
-                    </label>
-                    <div className="text-gray-900 dark:text-white" data-testid="user-email">
-                      {user?.email}
-                    </div>
+                {images && images.length > 5 && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <Link href="/images">
+                      <Button variant="outline" size="sm" className="w-full">
+                        View All Images
+                        <ArrowUpRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Plan
-                    </label>
-                    <Badge className={getPlanColor(user?.plan || 'free')} data-testid="user-plan-setting">
-                      {(user?.plan || 'free').charAt(0).toUpperCase() + (user?.plan || 'free').slice(1)} Plan
-                    </Badge>
-                  </div>
-                </div>
-              </div>
+                )}
+              </CardContent>
+            </Card>
 
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Usage Limits</h3>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <BarChart3 className="h-5 w-5 mr-2" />
+                  Usage Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600 dark:text-gray-400">Storage</span>
-                      <span className="text-gray-900 dark:text-white">
-                        {formatBytes((analytics as any)?.storageUsed || 0)} / {formatBytes(user?.storageLimit || 0)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                      <div
-                        className="bg-blue-600 h-2 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(100, (((analytics as any)?.storageUsed || 0) / (user?.storageLimit || 1)) * 100)}%`
-                        }}
-                        data-testid="storage-progress"
-                      />
-                    </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Storage Used</span>
+                    <span className="text-sm font-medium">
+                      {analytics?.storageUsed ? `${(analytics.storageUsed / 1024 / 1024).toFixed(1)} MB` : '0 MB'}
+                    </span>
                   </div>
-
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-600 dark:text-gray-400">API Requests (Monthly)</span>
-                      <span className="text-gray-900 dark:text-white">
-                        {formatNumber(0)} / {formatNumber(1000)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
-                      <div
-                        className="bg-emerald-600 h-2 rounded-full transition-all"
-                        style={{
-                          width: `${Math.min(100, (0 / 1000) * 100)}%`
-                        }}
-                        data-testid="api-requests-progress"
-                      />
-                    </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">API Calls This Month</span>
+                    <span className="text-sm font-medium">{analytics?.apiCallsThisMonth || 0}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Bandwidth Used</span>
+                    <span className="text-sm font-medium">
+                      {analytics?.bandwidthUsed ? `${(analytics.bandwidthUsed / 1024 / 1024).toFixed(1)} MB` : '0 MB'}
+                    </span>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <Link href="/analytics">
+                      <Button variant="outline" size="sm" className="w-full">
+                        View Detailed Analytics
+                        <ArrowUpRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </Link>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </SidebarContentLoader>
   );

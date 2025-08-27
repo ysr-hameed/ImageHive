@@ -4,14 +4,14 @@ import { cn } from '@/lib/utils';
 
 interface FuturisticLoaderProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  variant?: 'default' | 'gradient' | 'pulse' | 'orbit' | 'matrix' | 'neural' | 'quantum';
+  variant?: 'default' | 'gradient' | 'pulse' | 'orbit' | 'matrix' | 'neural' | 'quantum' | 'minimal';
   text?: string;
   className?: string;
 }
 
 export function FuturisticLoader({ 
   size = 'md', 
-  variant = 'default', 
+  variant = 'minimal', 
   text = 'Loading...',
   className 
 }: FuturisticLoaderProps) {
@@ -28,6 +28,35 @@ export function FuturisticLoader({
     lg: 'text-lg',
     xl: 'text-xl'
   };
+
+  if (variant === 'minimal') {
+    return (
+      <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
+        <div className="relative">
+          <div className={cn(
+            "rounded-full border-3 border-gray-200 dark:border-gray-700",
+            sizeClasses[size]
+          )}></div>
+          <div className={cn(
+            "absolute inset-0 rounded-full border-3 border-transparent border-t-blue-600 animate-spin",
+            sizeClasses[size]
+          )}></div>
+          <div className={cn(
+            "absolute inset-1 rounded-full border-2 border-transparent border-t-blue-400 animate-spin",
+            sizeClasses[size]
+          )} style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
+        </div>
+        {text && (
+          <div className={cn(
+            "font-medium text-gray-700 dark:text-gray-200 animate-pulse",
+            textSizeClasses[size]
+          )}>
+            {text}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (variant === 'matrix') {
     return (
@@ -116,139 +145,9 @@ export function FuturisticLoader({
     );
   }
 
-  if (variant === 'quantum') {
-    return (
-      <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
-        <div className="relative">
-          <div className={cn("relative", sizeClasses[size])}>
-            {/* Holographic projection */}
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-emerald-500/20 rounded-full animate-spin blur-sm" style={{ animationDuration: '6s' }}></div>
-            <div className="absolute inset-1 bg-gradient-to-r from-emerald-500/30 via-blue-500/30 to-purple-500/30 rounded-full animate-spin blur-xs" style={{ animationDuration: '4s', animationDirection: 'reverse' }}></div>
-            
-            {/* Central holographic core */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative">
-                <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-full animate-pulse shadow-2xl shadow-cyan-500/60"></div>
-                <div className="absolute inset-0 w-6 h-6 bg-gradient-to-r from-purple-600 via-pink-500 to-cyan-400 rounded-full animate-ping opacity-30"></div>
-              </div>
-            </div>
-            
-            {/* Floating data particles */}
-            {[...Array(16)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-1.5 h-1.5 rounded-full animate-bounce"
-                style={{
-                  background: `linear-gradient(45deg, hsl(${180 + i * 20}, 70%, 60%), hsl(${240 + i * 15}, 80%, 70%))`,
-                  left: `${15 + (i % 4) * 20}%`,
-                  top: `${15 + Math.floor(i / 4) * 20}%`,
-                  animationDelay: `${i * 0.15}s`,
-                  animationDuration: `${2 + (i % 3)}s`,
-                  boxShadow: `0 0 10px hsl(${180 + i * 20}, 70%, 60%)`
-                }}
-              />
-            ))}
-            
-            {/* Energy rings with holographic effect */}
-            <div className="absolute inset-0 border-2 border-gradient-to-r from-cyan-400/40 via-purple-400/40 to-emerald-400/40 rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
-            <div className="absolute inset-3 border-2 border-gradient-to-r from-purple-400/50 via-pink-400/50 to-cyan-400/50 rounded-full animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}></div>
-            <div className="absolute inset-6 border-1 border-gradient-to-r from-emerald-400/60 via-blue-400/60 to-purple-400/60 rounded-full animate-spin" style={{ animationDuration: '4s' }}></div>
-            
-            {/* Holographic scan lines */}
-            <div className="absolute inset-0 overflow-hidden rounded-full">
-              <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent animate-pulse" style={{ top: '25%', animationDelay: '0s' }}></div>
-              <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-purple-400/80 to-transparent animate-pulse" style={{ top: '50%', animationDelay: '1s' }}></div>
-              <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent animate-pulse" style={{ top: '75%', animationDelay: '2s' }}></div>
-            </div>
-          </div>
-        </div>
-        {text && (
-          <div className={cn(
-            "font-medium bg-gradient-to-r from-cyan-400 via-purple-500 to-emerald-400 bg-clip-text text-transparent animate-pulse",
-            textSizeClasses[size]
-          )}>
-            {text}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (variant === 'gradient') {
-    return (
-      <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
-        <div className="relative">
-          <div className={cn(
-            "rounded-full border-4 border-transparent bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 animate-spin",
-            sizeClasses[size]
-          )}>
-            <div className="absolute inset-1 rounded-full bg-white dark:bg-slate-900"></div>
-          </div>
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-emerald-500/20 animate-pulse"></div>
-        </div>
-        {text && (
-          <div className={cn(
-            "font-medium bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 bg-clip-text text-transparent animate-pulse",
-            textSizeClasses[size]
-          )}>
-            {text}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (variant === 'pulse') {
-    return (
-      <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
-        <div className="relative">
-          <div className={cn(
-            "rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse",
-            sizeClasses[size]
-          )}></div>
-          <div className={cn(
-            "absolute inset-0 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 animate-ping opacity-20",
-            sizeClasses[size]
-          )}></div>
-        </div>
-        {text && (
-          <div className={cn(
-            "font-medium bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent animate-pulse",
-            textSizeClasses[size]
-          )}>
-            {text}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  if (variant === 'orbit') {
-    return (
-      <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
-        <div className="relative">
-          <div className={cn("relative", sizeClasses[size])}>
-            <div className="absolute inset-0 rounded-full border-2 border-blue-200 dark:border-blue-800"></div>
-            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-600 animate-spin"></div>
-            <div className="absolute inset-2 rounded-full border-2 border-transparent border-t-purple-600 animate-spin" style={{ animationDuration: '0.8s', animationDirection: 'reverse' }}></div>
-            <div className="absolute inset-4 rounded-full border-2 border-transparent border-t-emerald-600 animate-spin" style={{ animationDuration: '1.2s' }}></div>
-          </div>
-        </div>
-        {text && (
-          <div className={cn(
-            "font-medium text-gray-600 dark:text-gray-300",
-            textSizeClasses[size]
-          )}>
-            {text}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Default variant - clean and simple with fixed centering
+  // Default variant - clean and modern
   return (
-    <div className={cn("fixed inset-0 bg-white dark:bg-slate-900 flex flex-col items-center justify-center space-y-6 z-50", className)}>
+    <div className={cn("fixed inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex flex-col items-center justify-center space-y-6 z-50", className)}>
       <div className="relative">
         <div className={cn(
           "rounded-full border-4 border-gray-200 dark:border-slate-700",
@@ -280,29 +179,14 @@ export function FuturisticLoader({
   );
 }
 
-export function PageLoader({ text = "Initializing ImageVault...", variant = "default" }: { text?: string; variant?: 'default' | 'orbit' }) {
+export function PageLoader({ text = "Initializing ImageVault...", variant = "minimal" }: { text?: string; variant?: 'minimal' | 'neural' | 'matrix' }) {
   return (
-    <div className="fixed inset-0 bg-white dark:bg-slate-900 flex items-center justify-center z-50">
-      <div className="text-center">
-        <div className="relative mb-8">
-          <div className="w-16 h-16 border-4 border-gray-200 dark:border-slate-700 rounded-full"></div>
-          <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-blue-600 border-r-blue-500 rounded-full animate-spin"></div>
-          <div className="absolute inset-2 w-12 h-12 border-2 border-transparent border-t-purple-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
-        </div>
-        
-        <div className="text-lg font-medium text-gray-700 dark:text-gray-200 mb-4 animate-pulse">
-          {text}
-        </div>
-        
-        {/* Simple loading progress indicators */}
-        <div className="flex justify-center space-x-2 mb-6">
-          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-          <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-        </div>
+    <div className="fixed inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="text-center max-w-md mx-auto px-6">
+        <FuturisticLoader variant={variant} size="lg" text={text} />
         
         {/* Status indicators */}
-        <div className="flex justify-center space-x-6 text-xs text-gray-400 dark:text-gray-500">
+        <div className="flex justify-center space-x-6 text-xs text-gray-400 dark:text-gray-500 mt-8">
           <span className="flex items-center space-x-1">
             <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
             <span>Authentication</span>
@@ -314,7 +198,7 @@ export function PageLoader({ text = "Initializing ImageVault...", variant = "def
           <span className="flex items-center space-x-1">
             <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
             <span>CDN</span>
-          </span>
+          </div>
         </div>
       </div>
     </div>

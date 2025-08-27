@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,37 +21,40 @@ export default function HeroSection() {
   const { isAuthenticated, user } = useAuth();
 
   return (
-    <section className="relative py-8 sm:py-16 lg:py-24 xl:py-32 overflow-hidden min-h-[80vh] sm:min-h-[85vh] lg:min-h-[90vh]">
-      <div className="absolute inset-0 bg-gray-50 dark:bg-slate-900"></div>
+    <section className="relative py-12 sm:py-20 lg:py-28 xl:py-36 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/30">
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%239C92AC" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="1"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-        <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center h-full">
-          <div className="animate-fade-in">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+          {/* Left Content */}
+          <div className="text-center lg:text-left space-y-8 animate-fade-in">
             <Badge 
-              className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium mb-6"
+              className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium border border-blue-200 dark:border-blue-800"
               data-testid="hero-badge"
             >
               <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
-              Live: Professional Image Hosting API
+              🚀 Professional Image Hosting API
             </Badge>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-display font-bold text-gray-900 dark:text-white mb-3 sm:mb-4 lg:mb-6 leading-tight">
-              Professional Image Hosting for{" "}
-              <span className="text-blue-600 dark:text-blue-400 block sm:inline">
-                Developers
-              </span>
-            </h1>
+            <div className="space-y-6">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 dark:text-white leading-tight">
+                Professional Image Hosting for{" "}
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent">
+                  Developers
+                </span>
+              </h1>
 
-            <p className="text-base sm:text-lg lg:text-xl text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 lg:mb-8 leading-relaxed max-w-2xl">
-              Scale your image hosting to millions of users with our lightning-fast API. 
-              Built on Backblaze B2 with global CDN, custom domains, and enterprise-grade security.
-            </p>
+              <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+                Scale your image hosting to <span className="font-semibold text-gray-900 dark:text-white">millions of users</span> with our lightning-fast API. 
+                Built on Backblaze B2 with global CDN, custom domains, and enterprise-grade security.
+              </p>
+            </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 sm:mb-6 lg:mb-8">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               {isAuthenticated && user ? (
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 hover:from-blue-700 hover:via-purple-700 hover:to-emerald-700 text-white border-0 px-8 py-6 text-lg font-semibold shadow-xl transform hover:scale-105 transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 hover:from-blue-700 hover:via-purple-700 hover:to-emerald-700 text-white border-0 px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                   asChild
                 >
                   <Link href="/dashboard">
@@ -61,7 +65,7 @@ export default function HeroSection() {
               ) : (
                 <Button
                   size="lg"
-                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 hover:from-blue-700 hover:via-purple-700 hover:to-emerald-700 text-white border-0 px-8 py-6 text-lg font-semibold shadow-xl transform hover:scale-105 transition-all duration-300"
+                  className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 hover:from-blue-700 hover:via-purple-700 hover:to-emerald-700 text-white border-0 px-8 py-4 text-lg font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                   asChild
                 >
                   <Link href="/auth/register">
@@ -74,7 +78,7 @@ export default function HeroSection() {
                 variant="outline" 
                 size="lg"
                 asChild
-                className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-lg lg:text-xl font-medium border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
+                className="px-8 py-4 text-lg font-medium border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-800/50 transition-all duration-200"
                 data-testid="button-view-plans"
               >
                 <Link href="/plans">
@@ -83,56 +87,65 @@ export default function HeroSection() {
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-              <div className="flex items-center space-x-1">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                <span>99.9% Uptime SLA</span>
+            <div className="flex flex-wrap justify-center lg:justify-start items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                <span className="font-medium">99.9% Uptime SLA</span>
               </div>
-              <div className="flex items-center space-x-1">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                <span>Global CDN</span>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                <span className="font-medium">Global CDN</span>
               </div>
-              <div className="flex items-center space-x-1">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                <span>RESTful API</span>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-emerald-500" />
+                <span className="font-medium">RESTful API</span>
               </div>
             </div>
           </div>
 
-          <div className="relative animate-fade-in mt-8 lg:mt-0">
-            {/* Interactive API Demo Terminal */}
-            <div className="bg-gray-900 dark:bg-slate-800 rounded-xl shadow-2xl p-3 sm:p-6 font-mono text-xs sm:text-sm overflow-x-auto border border-gray-700">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
-                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-yellow-500 rounded-full"></div>
-                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
-                <span className="ml-2 sm:ml-4 text-gray-400 text-xs sm:text-sm">api-demo.sh</span>
+          {/* Right Content - Interactive API Demo */}
+          <div className="relative animate-fade-in-up">
+            <div className="bg-gray-900 dark:bg-slate-800 rounded-2xl shadow-2xl p-6 font-mono text-sm overflow-x-auto border border-gray-700 backdrop-blur-sm bg-opacity-95">
+              <div className="flex items-center space-x-2 mb-6">
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <span className="ml-4 text-gray-400 text-sm">api-demo.sh</span>
               </div>
-              <div className="text-green-400 overflow-x-auto space-y-1">
-                <div className="whitespace-nowrap text-xs sm:text-sm">$ curl -X POST /api/upload \</div>
-                <div className="ml-2 sm:ml-4 whitespace-nowrap text-xs sm:text-sm">-H "Authorization: Bearer your-api-key" \</div>
-                <div className="ml-2 sm:ml-4 whitespace-nowrap text-xs sm:text-sm">-F "image=@photo.jpg" \</div>
-                <div className="ml-2 sm:ml-4 mb-3 whitespace-nowrap text-xs sm:text-sm">-F "isPublic=true"</div>
-                <div className="text-blue-300 text-xs sm:text-sm">
+              
+              <div className="text-green-400 space-y-2">
+                <div className="text-blue-300 mb-3"># Upload image via API</div>
+                <div>$ curl -X POST /api/upload \</div>
+                <div className="ml-4">-H "Authorization: Bearer your-api-key" \</div>
+                <div className="ml-4">-F "image=@photo.jpg" \</div>
+                <div className="ml-4 mb-4">-F "isPublic=true"</div>
+                
+                <div className="text-blue-300 mb-2"># Response</div>
+                <div className="text-cyan-300">
                   {"{"}
                   <br />
-                  <span className="ml-2">"success": true,</span>
+                  <span className="ml-2 text-emerald-300">"success": true,</span>
                   <br />
-                  <span className="ml-2 break-all">"url": "https://cdn.imagevault.app/uploads/abc123.jpg",</span>
+                  <span className="ml-2 text-yellow-300">"url": "https://cdn.imagevault.app/uploads/abc123.jpg",</span>
                   <br />
-                  <span className="ml-2">"id": "abc123",</span>
+                  <span className="ml-2 text-purple-300">"id": "abc123",</span>
                   <br />
-                  <span className="ml-2">"size": 245760,</span>
+                  <span className="ml-2 text-pink-300">"size": 245760,</span>
                   <br />
-                  <span className="ml-2">"views": 0</span>
+                  <span className="ml-2 text-blue-300">"views": 0</span>
                   <br />
                   {"}"}
                 </div>
-                <div className="mt-3 text-gray-500 text-xs">
+                
+                <div className="mt-4 text-emerald-400 text-sm">
                   <span className="animate-pulse">✅ Image uploaded successfully!</span>
                 </div>
               </div>
             </div>
+
+            {/* Floating elements for visual appeal */}
+            <div className="absolute -top-6 -right-6 w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full opacity-20 animate-pulse"></div>
+            <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-gradient-to-br from-emerald-500 to-blue-600 rounded-full opacity-10 animate-pulse delay-1000"></div>
           </div>
         </div>
       </div>

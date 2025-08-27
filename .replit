@@ -39,7 +39,7 @@ externalPort = 3000
 PORT = "5000"
 
 [workflows]
-runButton = "Project"
+runButton = "Fixed Dev Server"
 
 [[workflows.workflow]]
 name = "Project"
@@ -231,6 +231,19 @@ args = "npm run dev"
 [[workflows.workflow]]
 name = "Simple Dev Server"
 author = 46941984
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Fixed Dev Server"
+author = 46956181
 mode = "sequential"
 
 [[workflows.workflow.tasks]]

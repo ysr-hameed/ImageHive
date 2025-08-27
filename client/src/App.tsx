@@ -118,13 +118,13 @@ function AppContent() {
 
   if (isLoading) {
     console.log('⏳ App Loading State - showing loader');
-    return <FuturisticLoader variant="quantum" text="Initializing ImageVault..." />;lt..." />;
+    return <FuturisticLoader variant="quantum" text="Initializing ImageVault..." />;
   }
 
   const currentPath = window.location.pathname;
   const isAuthPage = currentPath.startsWith('/auth/');
-  const publicPaths = ['/', '/docs', '/features', '/about', '/blog', '/careers', '/press', '/contact', '/help', '/community', '/guides', '/privacy', '/terms', '/status', '/sdks'];
-  const isPublicPage = publicPaths.includes(currentPath);
+  const publicPaths = ['/', '/docs', '/documentation', '/api-docs', '/features', '/about', '/blog', '/careers', '/press', '/contact', '/help', '/community', '/guides', '/privacy', '/terms', '/status', '/sdks'];
+  const isPublicPage = publicPaths.includes(currentPath) || currentPath.startsWith('/docs');
 
   // Authenticated pages with sidebar
   if (user && !isAuthPage && !isPublicPage) {
@@ -156,6 +156,7 @@ function AppContent() {
                 <Route path="/admin" component={Admin} />
                 <Route path="/collections" component={Collections} />
                 <Route path="/activity" component={Activity} />
+                <Route path="/upgrade" component={Upgrade} />
                 <Route component={NotFound} />
               </Switch>
             </main>

@@ -14,7 +14,8 @@ import {
   CreditCard, 
   Lock,
   Unlock,
-  ArrowRight 
+  ArrowRight,
+  MessageCircle 
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 

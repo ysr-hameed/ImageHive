@@ -530,7 +530,6 @@ Form Data:
         </div>
         </div>
       </div>
-    </div>
   );
 };
 

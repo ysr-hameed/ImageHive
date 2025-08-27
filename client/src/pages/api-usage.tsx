@@ -19,8 +19,8 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
-import { useAuth } from "@/context/AuthContext"; // Assuming useAuth is in this path
-import PageLoader from "@/components/ui/page-loader"; // Assuming PageLoader component
+import { useAuth } from "@/hooks/useAuth";
+import { PageLoader } from "@/components/futuristic-loader";
 
 // Define PLAN_LIMITS if not already defined elsewhere.
 // This is a placeholder; the actual limits should be fetched or defined based on your application's structure.

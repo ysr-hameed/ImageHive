@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth'; // Assuming useAuth is in this path
-import PageLoader from '@/components/ui/page-loader'; // Assuming PageLoader is in this path
+import { PageLoader } from "@/components/futuristic-loader";
 
 export default function Activity() {
   const { user, isLoading: authLoading } = useAuth();

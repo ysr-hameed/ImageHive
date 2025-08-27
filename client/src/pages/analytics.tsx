@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,69 +20,50 @@ import {
 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
+import { getQueryFn } from '@/lib/queryClient';
 
 export default function Analytics() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
     queryKey: ['/api/v1/analytics'],
-    queryFn: async () => {
-      // Mock realistic analytics data
-      return {
-        totalViews: 89247,
-        totalDownloads: 15643,
-        totalBandwidth: 127.5 * 1024 * 1024 * 1024, // 127.5 GB
-        apiCalls: 45289,
-        uniqueVisitors: 8934,
-        newImages: 89,
-        viewsGrowth: 12.5,
-        downloadsGrowth: 8.2,
-        bandwidthGrowth: 23.1
-      };
-    },
+    queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
   });
 
   const { data: images, isLoading: imagesLoading } = useQuery({
     queryKey: ['/api/v1/images'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
   });
 
   const { data: user } = useQuery({
-    queryKey: ['/api/auth/user'],
+    queryKey: ['/api/v1/auth/user'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
   });
 
   const { data: apiKeys, isLoading: apiKeysLoading } = useQuery({
     queryKey: ['/api/v1/api-keys'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
   });
 
   const { data: usage, isLoading: usageLoading } = useQuery({
     queryKey: ['/api/v1/usage'],
-    queryFn: async () => {
-      return {
-        current: {
-          requests: 12847,
-          bandwidth: 45.2 * 1024 * 1024 * 1024, // 45.2 GB
-          storage: 23.8 * 1024 * 1024 * 1024 // 23.8 GB
-        },
-        limits: {
-          requests: 50000,
-          bandwidth: 100 * 1024 * 1024 * 1024, // 100 GB
-          storage: 100 * 1024 * 1024 * 1024 // 100 GB
-        }
-      };
-    },
+    queryFn: getQueryFn({ on401: "returnNull" }),
     retry: false,
   });
 
   const deleteImageMutation = useMutation({
     mutationFn: async (imageId: string) => {
-      const response = await fetch(`/api/images/${imageId}`, {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/v1/images/${imageId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -91,6 +73,7 @@ export default function Analytics() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/images'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/analytics'] });
       toast({
         title: 'Image deleted successfully.',
         description: new Date().toLocaleDateString(),
@@ -100,6 +83,7 @@ export default function Analytics() {
       toast({
         title: 'Error deleting image',
         description: error.message,
+        variant: 'destructive',
       });
     },
   });
@@ -118,24 +102,26 @@ export default function Analytics() {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
-  // Calculate enhanced stats with realistic data
-  const totalImages = images?.images?.length || 247;
-  const totalViews = analytics?.totalViews || 89247;
-  const totalDownloads = analytics?.totalDownloads || 15643;
-  const totalBandwidth = analytics?.totalBandwidth || (127.5 * 1024 * 1024 * 1024);
-  const storageUsed = usage?.current?.storage || (23.8 * 1024 * 1024 * 1024);
-  const storageLimit = usage?.limits?.storage || (100 * 1024 * 1024 * 1024);
-  const newImages = analytics?.newImages || 89;
-  const apiKeyCount = Array.isArray(apiKeys) ? apiKeys.length : 3;
-  const monthlyRequests = usage?.current?.requests || 12847;
-  const apiCalls = analytics?.apiCalls || 45289;
-  const uniqueVisitors = analytics?.uniqueVisitors || 8934;
+  // Use real data from API responses
+  const totalImages = images?.images?.length || 0;
+  const totalViews = analytics?.totalViews || 0;
+  const totalDownloads = analytics?.totalDownloads || 0;
+  const totalBandwidth = analytics?.totalBandwidth || 0;
+  const storageUsed = user?.storageUsed || 0;
+  const storageLimit = user?.storageLimit || (100 * 1024 * 1024 * 1024); // 100GB default
+  const newImages = analytics?.newImages || 0;
+  const apiKeyCount = Array.isArray(apiKeys) ? apiKeys.length : 0;
+  const monthlyRequests = usage?.current?.requests || 0;
+  const apiCalls = analytics?.apiCalls || 0;
+  const uniqueVisitors = analytics?.uniqueVisitors || 0;
 
-  // Get top performing images
+  // Get top performing images from real data
   const topImages = images?.images?.sort((a: any, b: any) => (b.views || 0) - (a.views || 0)).slice(0, 5) || [];
 
+  const isLoading = analyticsLoading || imagesLoading || apiKeysLoading || usageLoading;
+
   return (
-    <SidebarContentLoader isLoading={isLoading || imagesLoading || apiKeysLoading || usageLoading}>
+    <SidebarContentLoader isLoading={isLoading}>
       <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
         <div className="max-w-7xl mx-auto">
           {/* Page Content Header */}
@@ -158,8 +144,8 @@ export default function Analytics() {
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
                       {formatNumber(totalViews)}
                     </p>
-                    <p className="text-xs text-green-600 flex items-center mt-1">
-                      <TrendingUp className="w-3 h-3 mr-1" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center mt-1">
+                      <Eye className="w-3 h-3 mr-1" />
                       All time
                     </p>
                   </div>
@@ -176,8 +162,8 @@ export default function Analytics() {
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
                       {formatNumber(totalDownloads)}
                     </p>
-                    <p className="text-xs text-green-600 flex items-center mt-1">
-                      <TrendingUp className="w-3 h-3 mr-1" />
+                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center mt-1">
+                      <Download className="w-3 h-3 mr-1" />
                       All time
                     </p>
                   </div>
@@ -211,9 +197,9 @@ export default function Analytics() {
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
                       {formatBytes(totalBandwidth)}
                     </p>
-                    <p className="text-xs text-green-600 flex items-center mt-1">
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                      +{analytics?.bandwidthGrowth || 23.1}% this month
+                    <p className="text-xs text-gray-600 dark:text-gray-400 flex items-center mt-1">
+                      <Globe className="w-3 h-3 mr-1" />
+                      This month
                     </p>
                   </div>
                   <Globe className="w-8 h-8 text-orange-500" />
@@ -241,8 +227,7 @@ export default function Analytics() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{formatNumber(apiCalls)}</div>
-                <p className="text-xs text-green-600 flex items-center">
-                  <TrendingUp className="w-3 h-3 mr-1" />
+                <p className="text-xs text-muted-foreground">
                   {formatNumber(monthlyRequests)} this month
                 </p>
               </CardContent>
@@ -250,13 +235,26 @@ export default function Analytics() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Unique Visitors</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">API Keys</CardTitle>
+                <Key className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{formatNumber(uniqueVisitors)}</div>
+                <div className="text-2xl font-bold">{apiKeyCount}</div>
                 <p className="text-xs text-muted-foreground">
-                  {apiKeyCount} API keys active
+                  Active keys
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Monthly Requests</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{formatNumber(monthlyRequests)}</div>
+                <p className="text-xs text-muted-foreground">
+                  This month
                 </p>
               </CardContent>
             </Card>
@@ -284,13 +282,13 @@ export default function Analytics() {
                       <div className="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded overflow-hidden">
                         <img
                           src={`${image.url}?w=50&h=50&fit=cover`}
-                          alt={image.title}
+                          alt={image.title || 'Image'}
                           className="w-full h-full object-cover"
                         />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                          {image.title}
+                          {image.title || image.filename || 'Untitled'}
                         </p>
                         <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                           <span className="flex items-center gap-1">
@@ -356,34 +354,6 @@ export default function Analytics() {
             </Card>
           </div>
 
-          {/* API Key Usage */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Key className="w-5 h-5" />
-                API Key Usage
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Active API Keys</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{apiKeyCount}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    You have {apiKeyCount} API keys active.
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Monthly Requests</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{formatNumber(monthlyRequests)}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Total requests made this month.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Recent Activity */}
           <Card>
             <CardHeader>
@@ -402,13 +372,13 @@ export default function Analytics() {
                     <div className="w-12 h-12 bg-gray-200 dark:bg-slate-700 rounded overflow-hidden">
                       <img
                         src={`${image.url}?w=50&h=50&fit=cover`}
-                        alt={image.title}
+                        alt={image.title || 'Image'}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        Uploaded: <span className="font-normal">{image.title}</span>
+                        Uploaded: <span className="font-normal">{image.title || image.filename || 'Untitled'}</span>
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
                         {new Date(image.createdAt).toLocaleDateString()}
@@ -432,7 +402,7 @@ export default function Analytics() {
                 )}
               </div>
             </CardContent>
-          </Card>
+          </div>
         </div>
       </div>
     </SidebarContentLoader>

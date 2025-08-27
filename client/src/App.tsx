@@ -65,12 +65,7 @@ function AppContent() {
 
   const currentPath = window.location.pathname;
   const isAuthPage = currentPath.startsWith('/auth/');
-  const publicPaths = [
-    '/', '/docs', '/documentation', '/api-docs', '/features',
-    '/about', '/blog', '/careers', '/press', '/contact',
-    '/help', '/community', '/guides', '/privacy', '/terms',
-    '/status', '/sdks', '/plans'
-  ];
+  const publicPaths = ['/', '/docs', '/plans', '/documentation', '/api-docs', '/features', '/about', '/blog', '/careers', '/press', '/contact', '/help', '/community', '/guides', '/privacy', '/terms', '/status', '/sdks'];
   const isPublicPage = publicPaths.includes(currentPath) || currentPath.startsWith('/docs');
 
   console.log('Route Debug:', { currentPath, isAuthPage, isPublicPage, hasUser: !!user });

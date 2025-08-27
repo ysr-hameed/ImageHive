@@ -1,16 +1,17 @@
+
 import { useState, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, XCircle, Loader2, Mail } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Mail, Send } from 'lucide-react';
 import { Link, useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
 
 export default function VerifyEmail() {
   const { toast } = useToast();
   const [location] = useLocation();
-  const [verificationStatus, setVerificationStatus] = useState<'loading' | 'success' | 'error'>('loading');
+  const [verificationStatus, setVerificationStatus] = useState<'loading' | 'success' | 'error' | 'no-token'>('loading');
   const [token, setToken] = useState('');
 
   const verifyEmailMutation = useMutation({
@@ -64,7 +65,8 @@ export default function VerifyEmail() {
       setToken(verificationToken);
       verifyEmailMutation.mutate(verificationToken);
     } else {
-      setVerificationStatus('error');
+      // No token provided - show message that email was sent
+      setVerificationStatus('no-token');
     }
   }, [location]);
 
@@ -97,6 +99,40 @@ export default function VerifyEmail() {
           icon: <XCircle className="w-8 h-8 text-red-600" />,
           title: 'Verification failed',
           description: 'The verification link is invalid or has expired. You can request a new verification email.',
+          actions: (
+            <div className="space-y-3">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => resendVerificationMutation.mutate()}
+                disabled={resendVerificationMutation.isPending}
+              >
+                {resendVerificationMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-4 h-4 mr-2" />
+                    Resend verification email
+                  </>
+                )}
+              </Button>
+              <Button variant="outline" asChild className="w-full">
+                <Link href="/auth/login">
+                  Back to sign in
+                </Link>
+              </Button>
+            </div>
+          ),
+        };
+
+      case 'no-token':
+        return {
+          icon: <Send className="w-8 h-8 text-blue-600" />,
+          title: 'Check your email!',
+          description: 'We\'ve sent a verification link to your email address. Please check your inbox and click the link to verify your account.',
           actions: (
             <div className="space-y-3">
               <Button
@@ -177,7 +213,7 @@ export default function VerifyEmail() {
         <div className="text-center text-sm text-gray-600 dark:text-gray-400">
           <p>
             Need help?{' '}
-            <Link href="/support" className="text-blue-600 hover:text-blue-500">
+            <Link href="/contact" className="text-blue-600 hover:text-blue-500">
               Contact support
             </Link>
           </p>

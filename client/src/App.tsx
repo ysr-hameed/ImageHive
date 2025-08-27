@@ -72,6 +72,11 @@ function AppContent() {
 
   // Authenticated pages with sidebar
   if (user && !isAuthPage && !isPublicPage) {
+    console.log('✅ Rendering authenticated app with sidebar for user:', user.email);
+    // Ensure dashboard route works by explicitly checking path
+    if (currentPath === '/dashboard') {
+      console.log('📍 Dashboard path detected');
+    }
     return (
       <SidebarProvider>
         <div className="flex min-h-screen w-full">

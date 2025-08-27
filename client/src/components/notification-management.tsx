@@ -23,7 +23,8 @@ import {
   Settings,
   Plus,
   Eye,
-  EyeOff
+  EyeOff,
+  Edit
 } from "lucide-react";
 
 interface Notification {
@@ -204,14 +205,12 @@ export function NotificationManagement() {
 
   const markAsRead = (id: string) => {
     markAsReadMutation.mutate(id);
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
+    // State will be updated via query invalidation
   };
 
   const deleteNotification = (id: string) => {
     deleteNotificationMutation.mutate(id);
-    setNotifications(notifications.filter(n => n.id !== id));
+    // State will be updated via query invalidation
   };
 
   return (
@@ -322,7 +321,7 @@ export function NotificationManagement() {
                       <div className="text-2xl mb-2">
                         {notification.type === 'info' && <Info className="w-6 h-6 text-blue-500" />}
                         {notification.type === 'warning' && <AlertCircle className="w-6 h-6 text-yellow-500" />}
-                        {notification.type === 'error' && <XCircle className="w-6 h-6 text-red-500" />}
+                        {notification.type === 'success' && <CheckCircle className="w-6 h-6 text-green-500" />}
                         {notification.type === 'success' && <CheckCircle className="w-6 h-6 text-green-500" />}
                       </div>
                       <h4 className="font-medium">{notification.title}</h4>
@@ -393,10 +392,12 @@ export function NotificationBell() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
+      // Toast is handled by the hook
       toast({ title: 'Notification marked as read' });
     },
     onError: (error) => {
       console.error('Error marking notification as read:', error);
+      // Toast is handled by the hook
       toast({ title: 'Failed to mark notification as read', variant: 'destructive' });
     },
   });

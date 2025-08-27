@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +22,9 @@ import {
   AlertCircle,
   Trash2,
   Bell,
-  CreditCard
+  CreditCard,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Switch } from "@/components/ui/switch";
@@ -32,6 +35,32 @@ export default function Settings() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [newDomain, setNewDomain] = useState("");
+  const [profileData, setProfileData] = useState({
+    firstName: "",
+    lastName: "",
+    email: ""
+  });
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+
+  // Initialize profile data when user loads
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || ""
+      });
+    }
+  }, [user]);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -48,6 +77,14 @@ export default function Settings() {
   // Fetch custom domains
   const { data: domainsData = { domains: [] }, isLoading: domainsLoading } = useQuery({
     queryKey: ["/api/v1/domains"],
+    queryFn: async () => {
+      try {
+        return await apiRequest("GET", "/api/v1/domains");
+      } catch (error) {
+        console.log("Domains API not available yet");
+        return { domains: [] };
+      }
+    },
     retry: false,
   });
 
@@ -87,7 +124,7 @@ export default function Settings() {
   // Verify domain mutation
   const verifyDomainMutation = useMutation({
     mutationFn: async (domainId: string) => {
-      return await apiRequest("POST", `/api/v1/domains/${domainId}/verify`, {});
+      return await apiRequest("POST", `/api/v1/domains/${domainId}/verify`);
     },
     onSuccess: () => {
       toast({
@@ -132,10 +169,75 @@ export default function Settings() {
     },
   });
 
+  // Update profile mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (data: typeof profileData) => {
+      return await apiRequest("PUT", "/api/v1/profile", data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/auth/me"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to update profile",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Change password mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: typeof passwordData) => {
+      if (data.newPassword !== data.confirmPassword) {
+        throw new Error("New passwords do not match");
+      }
+      if (data.newPassword.length < 8) {
+        throw new Error("Password must be at least 8 characters long");
+      }
+      return await apiRequest("PUT", "/api/v1/auth/change-password", {
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password changed",
+        description: "Your password has been updated successfully.",
+      });
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to change password",
+        description: error.message || "Please check your current password and try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleAddDomain = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDomain.trim()) return;
     createDomainMutation.mutate(newDomain);
+  };
+
+  const handleUpdateProfile = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfileMutation.mutate(profileData);
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    changePasswordMutation.mutate(passwordData);
   };
 
   const copyToClipboard = (text: string) => {
@@ -146,22 +248,10 @@ export default function Settings() {
     });
   };
 
-  // EnhancedUploadForm component from the original code snippet (assuming it was there)
-  // This is a placeholder to show where the fix might be applied if it was present.
-  // The actual fix for "Cannot read properties of undefined (reading 'title')" would involve
-  // checking if 'user' and 'user.plan' are defined before accessing them.
-  // For example: const userPlan = user?.plan ?? 'Free';
-  // Since the original code provided does not contain EnhancedUploadForm, this comment serves
-  // as an explanation of the error found in the user message.
-  // The primary changes below focus on the layout as requested.
-
-
   return (
     <SidebarContentLoader isLoading={!user}>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 w-full">
         <div className="w-full max-w-full">
-
-
           <Tabs defaultValue="domains" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="domains">Domains</TabsTrigger>
@@ -295,27 +385,45 @@ export default function Settings() {
                     <span>Profile Information</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" defaultValue={user?.firstName} />
+                <CardContent>
+                  <form onSubmit={handleUpdateProfile} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="firstName">First Name</Label>
+                        <Input 
+                          id="firstName" 
+                          value={profileData.firstName}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
+                          placeholder="Enter your first name"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="lastName">Last Name</Label>
+                        <Input 
+                          id="lastName" 
+                          value={profileData.lastName}
+                          onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
+                          placeholder="Enter your last name"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" defaultValue={user?.lastName} />
+                      <Label htmlFor="email">Email</Label>
+                      <Input id="email" type="email" value={profileData.email} disabled />
+                      <p className="text-xs text-gray-500 mt-1">Email cannot be changed. Contact support if needed.</p>
                     </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue={user?.email} disabled />
-                  </div>
-                  <Button>Save Changes</Button>
+                    <Button 
+                      type="submit" 
+                      disabled={updateProfileMutation.isPending}
+                    >
+                      {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </form>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Account Settings */}
+            {/* Security Settings */}
             <TabsContent value="security">
               <Card>
                 <CardHeader>
@@ -324,17 +432,78 @@ export default function Settings() {
                     <span>Security Settings</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-4">
+                <CardContent>
+                  <form onSubmit={handleChangePassword} className="space-y-4">
                     <div>
-                      <h3 className="font-medium">Change Password</h3>
-                      <p className="text-sm text-gray-600 mb-2">
-                        Update your account password
-                      </p>
-                      <Button variant="outline">Change Password</Button>
+                      <Label htmlFor="currentPassword">Current Password</Label>
+                      <div className="relative">
+                        <Input 
+                          id="currentPassword" 
+                          type={showPasswords.current ? "text" : "password"}
+                          value={passwordData.currentPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
+                          placeholder="Enter your current password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                        >
+                          {showPasswords.current ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                      </div>
                     </div>
-                    {/* Add more security features here like 2FA */}
-                  </div>
+                    <div>
+                      <Label htmlFor="newPassword">New Password</Label>
+                      <div className="relative">
+                        <Input 
+                          id="newPassword" 
+                          type={showPasswords.new ? "text" : "password"}
+                          value={passwordData.newPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
+                          placeholder="Enter your new password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                        >
+                          {showPasswords.new ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                      <div className="relative">
+                        <Input 
+                          id="confirmPassword" 
+                          type={showPasswords.confirm ? "text" : "password"}
+                          value={passwordData.confirmPassword}
+                          onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                          placeholder="Confirm your new password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-0 top-0 h-full px-3"
+                          onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                        >
+                          {showPasswords.confirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </div>
+                    <Button 
+                      type="submit" 
+                      disabled={changePasswordMutation.isPending}
+                    >
+                      {changePasswordMutation.isPending ? "Changing..." : "Change Password"}
+                    </Button>
+                  </form>
                 </CardContent>
               </Card>
             </TabsContent>
@@ -413,15 +582,15 @@ export default function Settings() {
                       <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
                         Storage Used
                       </h5>
-                      <p className="text-2xl font-bold text-blue-600">2.1 GB</p>
-                      <p className="text-xs text-gray-500">of 5 GB limit</p>
+                      <p className="text-2xl font-bold text-blue-600">{user?.usage?.storage || '0 MB'}</p>
+                      <p className="text-xs text-gray-500">of {user?.limits?.storage || '1 GB'} limit</p>
                     </div>
                     <div className="p-4 border border-gray-200 dark:border-slate-600 rounded-lg">
                       <h5 className="text-sm font-medium text-gray-900 dark:text-white mb-1">
                         API Calls
                       </h5>
-                      <p className="text-2xl font-bold text-green-600">1.2K</p>
-                      <p className="text-xs text-gray-500">of 10K limit</p>
+                      <p className="text-2xl font-bold text-green-600">{user?.usage?.apiCalls || '0'}</p>
+                      <p className="text-xs text-gray-500">of {user?.limits?.apiCalls || '1K'} limit</p>
                     </div>
                   </div>
 
@@ -437,12 +606,12 @@ export default function Settings() {
                             CARD
                           </div>
                           <div>
-                            <p className="text-sm font-medium">**** **** **** 4242</p>
-                            <p className="text-xs text-gray-500">Expires 12/2025</p>
+                            <p className="text-sm font-medium">No payment method added</p>
+                            <p className="text-xs text-gray-500">Add a payment method to upgrade</p>
                           </div>
                         </div>
-                        <Button variant="outline" size="sm">
-                          Update
+                        <Button variant="outline" size="sm" asChild>
+                          <Link to="/payment">Add Payment Method</Link>
                         </Button>
                       </div>
                     </div>
@@ -453,17 +622,14 @@ export default function Settings() {
                     <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">
                       Recent Invoices
                     </h4>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                        <div>
-                          <p className="text-sm font-medium">Pro Plan - January 2024</p>
-                          <p className="text-xs text-gray-500">Paid on Jan 1, 2024</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">$29.00</p>
-                          <Button variant="ghost" size="sm">Download</Button>
-                        </div>
-                      </div>
+                    <div className="text-center py-8">
+                      <CreditCard className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                        No invoices yet
+                      </h3>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Your billing history will appear here after your first payment.
+                      </p>
                     </div>
                   </div>
                 </CardContent>

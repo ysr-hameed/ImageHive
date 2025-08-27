@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
@@ -54,7 +55,9 @@ import {
   Monitor,
   Camera,
   TrendingUp,
-  Menu
+  Menu,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logoutUser } from "@/lib/authUtils";
@@ -133,9 +136,9 @@ const mainMenuData = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user } = useAuth();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { toast } = useToast();
-  const { state, open, setOpen } = useSidebar();
+  const { state, open, setOpen, openMobile, setOpenMobile, isMobile } = useSidebar();
 
   const handleLogout = async () => {
     try {
@@ -154,11 +157,28 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }
   };
 
+  const handleNavigation = (url: string) => {
+    setLocation(url);
+    // Close mobile sidebar after navigation
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  };
+
+  const toggleSidebar = () => {
+    if (isMobile) {
+      setOpenMobile(!openMobile);
+    } else {
+      setOpen(!open);
+    }
+  };
+
   const getPlanColor = (plan: string) => {
     switch (plan) {
       case 'free': return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
       case 'starter': return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
       case 'pro': return 'bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-200';
+      case 'business': return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200';
       case 'enterprise': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200';
     }
@@ -171,23 +191,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar
       variant="inset"
-      className="bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700 fixed md:relative z-50 md:z-auto"
-      data-state={state}
+      className="bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700"
+      collapsible="icon"
+      {...props}
     >
       <SidebarHeader className="border-b border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800">
         <div className="flex items-center gap-2 px-4 py-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Camera className="h-4 w-4" />
           </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
+          <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
             <span className="truncate font-semibold">ImageHost Pro</span>
             <span className="truncate text-xs">Cloud Storage</span>
           </div>
           <Button
             variant="ghost"
             size="icon"
+            className="ml-auto h-8 w-8 hidden md:flex"
+            onClick={toggleSidebar}
+          >
+            {open ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             className="ml-auto h-8 w-8 md:hidden"
-            onClick={() => setOpen(!open)}
+            onClick={toggleSidebar}
           >
             <Menu className="h-4 w-4" />
           </Button>
@@ -196,20 +225,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       <SidebarContent className="px-2">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Main</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group-data-[collapsible=icon]:hidden">Main</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuData.navMain.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
                     isActive={location === item.url}
-                    className="w-full justify-start"
+                    className="w-full justify-start cursor-pointer"
+                    onClick={() => handleNavigation(item.url)}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                    </Link>
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -218,20 +245,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Analytics & Tools</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group-data-[collapsible=icon]:hidden">Analytics & Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuData.navSecondary.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
                     isActive={location === item.url}
-                    className="w-full justify-start"
+                    className="w-full justify-start cursor-pointer"
+                    onClick={() => handleNavigation(item.url)}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                    </Link>
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -240,20 +265,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Account</SidebarGroupLabel>
+          <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group-data-[collapsible=icon]:hidden">Account</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainMenuData.navSettings.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    asChild
                     isActive={location === item.url}
-                    className="w-full justify-start"
+                    className="w-full justify-start cursor-pointer"
+                    onClick={() => handleNavigation(item.url)}
                   >
-                    <Link href={item.url}>
-                      <item.icon className="w-4 h-4 flex-shrink-0" />
-                      <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
-                    </Link>
+                    <item.icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -263,22 +286,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
         {user?.isAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="px-2 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider group-data-[collapsible=icon]:hidden">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
-                    asChild
                     isActive={location === "/admin"}
-                    className="w-full justify-start"
+                    className="w-full justify-start cursor-pointer"
+                    onClick={() => handleNavigation("/admin")}
                   >
-                    <Link href="/admin">
-                      <Shield className="w-4 h-4 flex-shrink-0" />
-                      <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
-                      <Badge className="ml-auto bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 group-data-[collapsible=icon]:hidden">
-                        Admin
-                      </Badge>
-                    </Link>
+                    <Shield className="w-4 h-4 flex-shrink-0" />
+                    <span className="group-data-[collapsible=icon]:hidden">Admin Panel</span>
+                    <Badge className="ml-auto bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 group-data-[collapsible=icon]:hidden">
+                      Admin
+                    </Badge>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -294,14 +315,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
                   size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors"
+                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-gray-100 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   <Avatar className="h-10 w-10 rounded-lg border-2 border-gray-200 dark:border-slate-600">
                     <AvatarFallback className="rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 text-white font-semibold">
                       {user?.email ? getUserInitials(user.email) : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
+                  <div className="grid flex-1 text-left text-sm leading-tight group-data-[collapsible=icon]:hidden">
                     <span className="truncate font-semibold text-gray-900 dark:text-white">
                       {user?.firstName || user?.email || 'User'}
                     </span>
@@ -309,7 +330,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                       {(user?.plan || 'free').charAt(0).toUpperCase() + (user?.plan || 'free').slice(1)}
                     </Badge>
                   </div>
-                  <ChevronDown className="ml-auto size-4 text-gray-500 dark:text-gray-400" />
+                  <ChevronDown className="ml-auto size-4 text-gray-500 dark:text-gray-400 group-data-[collapsible=icon]:hidden" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -337,50 +358,36 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <Home className="mr-2 h-4 w-4" />
-                      Dashboard
-                    </Link>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation("/dashboard")}>
+                    <Home className="mr-2 h-4 w-4" />
+                    Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/settings" className="cursor-pointer">
-                      <User className="mr-2 h-4 w-4" />
-                      Profile Settings
-                    </Link>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation("/settings")}>
+                    <User className="mr-2 h-4 w-4" />
+                    Profile Settings
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/plans" className="cursor-pointer">
-                      <Zap className="mr-2 h-4 w-4" />
-                      Upgrade Plan
-                    </Link>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation("/plans")}>
+                    <Zap className="mr-2 h-4 w-4" />
+                    Upgrade Plan
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/api-keys" className="cursor-pointer">
-                      <Key className="mr-2 h-4 w-4" />
-                      API Keys
-                    </Link>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation("/api-keys")}>
+                    <Key className="mr-2 h-4 w-4" />
+                    API Keys
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem asChild>
-                    <Link href="/notifications" className="cursor-pointer">
-                      <Bell className="mr-2 h-4 w-4" />
-                      Notifications
-                    </Link>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation("/notifications")}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    Notifications
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/activity" className="cursor-pointer">
-                      <Activity className="mr-2 h-4 w-4" />
-                      Recent Activity
-                    </Link>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation("/activity")}>
+                    <Activity className="mr-2 h-4 w-4" />
+                    Recent Activity
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/docs" className="cursor-pointer">
-                      <HelpCircle className="mr-2 h-4 w-4" />
-                      Help & Docs
-                    </Link>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => handleNavigation("/docs")}>
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Help & Docs
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
@@ -406,6 +413,7 @@ export function ProfileMenu() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const handleLogout = async () => {
     try {
@@ -443,11 +451,9 @@ export function ProfileMenu() {
       <DropdownMenuContent align="end">
         <DropdownMenuLabel>{user?.email || 'User Account'}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem asChild>
-          <Link href="/settings" className="cursor-pointer">
-            <User className="mr-2 h-4 w-4" />
-            Settings
-          </Link>
+        <DropdownMenuItem className="cursor-pointer" onClick={() => setLocation("/settings")}>
+          <User className="mr-2 h-4 w-4" />
+          Settings
         </DropdownMenuItem>
 
         <DropdownMenuSub>

@@ -1,12 +1,14 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Check, Star, Zap, Shield, Crown, ArrowRight } from "lucide-react";
+import { Check, Star, Zap, Shield, Crown, ArrowRight, Sparkles } from "lucide-react";
 
 export default function Plans() {
   const plans = [
     {
+      id: "free",
       name: "Free",
       price: "$0",
       period: "forever",
@@ -17,57 +19,117 @@ export default function Plans() {
         "1GB storage",
         "Standard support",
         "API access",
+        "Basic analytics",
+        "Public sharing"
       ],
       limitations: [
         "Limited bandwidth",
-        "Basic analytics"
+        "Basic analytics",
+        "No custom domains"
       ],
       icon: Zap,
       color: "gray",
       buttonText: "Get Started",
-      popular: false
+      popular: false,
+      trial: false
     },
     {
+      id: "starter",
+      name: "Starter",
+      price: "$9",
+      period: "month",
+      description: "Great for small businesses and developers",
+      features: [
+        "5,000 images/month",
+        "Advanced image processing",
+        "25GB storage",
+        "Email support",
+        "Advanced API features",
+        "Detailed analytics",
+        "Password protection",
+        "Folder organization"
+      ],
+      limitations: [],
+      icon: Star,
+      color: "blue",
+      buttonText: "Start 14-Day Free Trial",
+      popular: false,
+      trial: true
+    },
+    {
+      id: "pro",
       name: "Pro",
       price: "$19",
       period: "month",
       description: "Ideal for growing businesses and applications",
       features: [
-        "10,000 images/month",
-        "Advanced image processing",
-        "50GB storage",
+        "25,000 images/month",
+        "Premium image processing",
+        "100GB storage",
         "Priority support",
         "Advanced API features",
         "Custom domains",
-        "Webhook support"
+        "Webhook support",
+        "Advanced analytics",
+        "Team collaboration"
       ],
       limitations: [],
-      icon: Star,
-      color: "blue",
-      buttonText: "Start Free Trial",
-      popular: true
+      icon: Sparkles,
+      color: "purple",
+      buttonText: "Start 14-Day Free Trial",
+      popular: true,
+      trial: true
     },
     {
+      id: "business",
+      name: "Business",
+      price: "$49",
+      period: "month",
+      description: "For established businesses with high volume needs",
+      features: [
+        "100,000 images/month",
+        "Advanced image processing",
+        "500GB storage",
+        "24/7 phone support",
+        "Custom integrations",
+        "Multiple custom domains",
+        "Advanced webhooks",
+        "White-label options",
+        "SSO integration",
+        "Advanced security"
+      ],
+      limitations: [],
+      icon: Crown,
+      color: "gold",
+      buttonText: "Start 14-Day Free Trial",
+      popular: false,
+      trial: true
+    },
+    {
+      id: "enterprise",
       name: "Enterprise",
-      price: "$99",
+      price: "$199",
       period: "month",
       description: "For large-scale applications with custom needs",
       features: [
         "Unlimited images",
         "Custom image processing",
-        "500GB storage",
+        "2TB+ storage",
         "24/7 dedicated support",
         "Custom integrations",
         "SLA guarantee",
         "Advanced security",
         "Custom analytics",
-        "White-label options"
+        "White-label options",
+        "On-premise deployment",
+        "Custom contracts"
       ],
       limitations: [],
-      icon: Crown,
-      color: "purple",
+      icon: Shield,
+      color: "emerald",
       buttonText: "Contact Sales",
-      popular: false
+      popular: false,
+      trial: false
     }
   ];
 
@@ -75,17 +137,37 @@ export default function Plans() {
     switch (color) {
       case 'blue': return 'text-blue-600';
       case 'purple': return 'text-purple-600';
+      case 'gold': return 'text-yellow-600';
+      case 'emerald': return 'text-emerald-600';
       default: return 'text-gray-600';
     }
   };
 
   const getButtonClass = (color: string, popular: boolean) => {
     if (popular) {
-      return 'bg-blue-600 hover:bg-blue-700 text-white';
+      return 'bg-purple-600 hover:bg-purple-700 text-white';
     }
     switch (color) {
+      case 'blue': return 'bg-blue-600 hover:bg-blue-700 text-white';
       case 'purple': return 'bg-purple-600 hover:bg-purple-700 text-white';
+      case 'gold': return 'bg-yellow-600 hover:bg-yellow-700 text-white';
+      case 'emerald': return 'bg-emerald-600 hover:bg-emerald-700 text-white';
       default: return 'border border-gray-300 hover:bg-gray-50 text-gray-900';
+    }
+  };
+
+  const handlePlanSelect = (plan: any) => {
+    if (plan.name === 'Free') {
+      window.location.href = '/auth/register';
+    } else if (plan.name === 'Enterprise') {
+      window.location.href = '/contact?plan=enterprise';
+    } else if (plan.trial) {
+      // Start trial - redirect to dashboard
+      window.location.href = '/dashboard?trial=' + plan.id;
+    } else {
+      // Redirect to payment page with plan info
+      const paymentUrl = `/payment?plan=${plan.id}&price=${plan.price.replace('$', '')}`;
+      window.location.href = paymentUrl;
     }
   };
 
@@ -99,7 +181,7 @@ export default function Plans() {
               Choose Your Plan
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Start free and scale as you grow. All plans include our core features with different usage limits.
+              Start free and scale as you grow. All paid plans include a 14-day free trial.
             </p>
           </div>
         </div>
@@ -116,15 +198,15 @@ export default function Plans() {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        <div className="grid lg:grid-cols-5 md:grid-cols-2 gap-6 mb-12">
           {plans.map((plan, index) => (
             <Card 
               key={index} 
-              className={`relative ${plan.popular ? 'border-2 border-blue-500 shadow-xl' : 'border shadow-lg'} hover:shadow-xl transition-shadow`}
+              className={`relative ${plan.popular ? 'border-2 border-purple-500 shadow-xl scale-105' : 'border shadow-lg'} hover:shadow-xl transition-all duration-300`}
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                  <Badge className="bg-blue-600 text-white px-4 py-1">
+                  <Badge className="bg-purple-600 text-white px-4 py-1">
                     Most Popular
                   </Badge>
                 </div>
@@ -134,44 +216,34 @@ export default function Plans() {
                 <div className="flex justify-center mb-4">
                   <plan.icon className={`w-12 h-12 ${getIconColor(plan.color)}`} />
                 </div>
-                <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                <div className="text-4xl font-bold text-gray-900 dark:text-white">
+                <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white">
                   {plan.price}
-                  <span className="text-lg font-normal text-gray-600 dark:text-gray-400">
+                  <span className="text-base font-normal text-gray-600 dark:text-gray-400">
                     /{plan.period}
                   </span>
                 </div>
-                <CardDescription className="text-base">
+                <CardDescription className="text-sm">
                   {plan.description}
                 </CardDescription>
               </CardHeader>
 
               <CardContent className="space-y-6">
                 <Button 
-                    className={`w-full ${getButtonClass(plan.color, plan.popular)}`}
-                    onClick={() => {
-                      if (plan.name === 'Free') {
-                        window.location.href = '/auth/register';
-                      } else if (plan.name === 'Enterprise') {
-                        window.location.href = '/contact?plan=enterprise';
-                      } else {
-                        // Redirect to payment page with plan info
-                        const paymentUrl = `/payment?plan=${plan.name.toLowerCase()}&price=${plan.price.replace('$', '')}`;
-                        window.location.href = paymentUrl;
-                      }
-                    }}
-                  >
-                    {plan.buttonText}
-                    <ArrowRight className="ml-2 w-4 h-4" />
-                  </Button>
+                  className={`w-full ${getButtonClass(plan.color, plan.popular)}`}
+                  onClick={() => handlePlanSelect(plan)}
+                >
+                  {plan.buttonText}
+                  <ArrowRight className="ml-2 w-4 h-4" />
+                </Button>
 
                 <div className="space-y-3">
-                  <h4 className="font-semibold text-gray-900 dark:text-white">Features included:</h4>
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">Features included:</h4>
                   <ul className="space-y-2">
                     {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-center gap-3">
-                        <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
-                        <span className="text-sm text-gray-600 dark:text-gray-400">{feature}</span>
+                      <li key={featureIndex} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                        <span className="text-xs text-gray-600 dark:text-gray-400">{feature}</span>
                       </li>
                     ))}
                   </ul>
@@ -180,7 +252,7 @@ export default function Plans() {
                     <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                       <ul className="space-y-2">
                         {plan.limitations.map((limitation, limitIndex) => (
-                          <li key={limitIndex} className="text-sm text-gray-500 dark:text-gray-500">
+                          <li key={limitIndex} className="text-xs text-gray-500 dark:text-gray-500">
                             • {limitation}
                           </li>
                         ))}
@@ -202,10 +274,18 @@ export default function Plans() {
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+                  How does the free trial work?
+                </h4>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Start with a 14-day free trial of any paid plan. No credit card required to start your trial.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                   Can I upgrade or downgrade anytime?
                 </h4>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Yes, you can change your plan at any time. Changes take effect immediately.
+                  Yes, you can change your plan at any time. Changes take effect immediately with prorated billing.
                 </p>
               </div>
               <div>
@@ -218,18 +298,10 @@ export default function Plans() {
               </div>
               <div>
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Is there a free trial for paid plans?
-                </h4>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Yes, all paid plans come with a 14-day free trial. No credit card required.
-                </p>
-              </div>
-              <div>
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
                   Do you offer custom enterprise solutions?
                 </h4>
                 <p className="text-gray-600 dark:text-gray-400">
-                  Yes, we offer custom solutions for enterprise clients with specific requirements.
+                  Yes, we offer custom solutions for enterprise clients with specific requirements and volume discounts.
                 </p>
               </div>
             </div>

@@ -1,76 +1,104 @@
 
 import { useState, useEffect } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CreditCard, Shield, ArrowLeft, CheckCircle } from "lucide-react";
-import { Link } from "wouter";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import {
+  CreditCard,
+  Shield,
+  Check,
+  ArrowLeft,
+  Loader2,
+  Globe,
+  Zap
+} from "lucide-react";
+import { Link, useLocation } from "wouter";
 
 export default function Payment() {
-  const [selectedPayment, setSelectedPayment] = useState<'paypal' | 'payu' | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
-  
-  // Get plan details from URL params
-  const urlParams = new URLSearchParams(window.location.search);
-  const planName = urlParams.get('plan') || 'pro';
-  const planPrice = urlParams.get('price') || '19';
+  const [, setLocation] = useLocation();
+  const [processing, setProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("card");
+  const [cardData, setCardData] = useState({
+    number: "",
+    expiry: "",
+    cvv: "",
+    name: ""
+  });
 
-  const planDetails = {
-    pro: {
-      name: "Pro Plan",
-      price: "$19",
-      features: ["10,000 images/month", "50GB storage", "Advanced API", "Priority support"]
-    },
-    enterprise: {
-      name: "Enterprise Plan", 
-      price: "$99",
-      features: ["Unlimited images", "500GB storage", "Custom integrations", "24/7 support"]
-    }
+  // Get plan from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const selectedPlan = urlParams.get("plan") || "pro";
+  const planPrice = urlParams.get("price") || "19";
+
+  const plans = {
+    starter: { name: "Starter", price: 9, features: ["5K images/month", "25GB storage", "Email support"] },
+    pro: { name: "Pro", price: 19, features: ["25K images/month", "100GB storage", "Priority support", "Custom domains"] },
+    business: { name: "Business", price: 49, features: ["100K images/month", "500GB storage", "24/7 support", "Advanced features"] },
   };
 
-  const currentPlan = planDetails[planName as keyof typeof planDetails] || planDetails.pro;
+  const currentPlan = plans[selectedPlan as keyof typeof plans] || plans.pro;
 
-  const handlePayment = async (method: 'paypal' | 'payu') => {
-    setLoading(true);
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to continue with payment",
+        variant: "destructive",
+      });
+      setLocation("/auth/login");
+    }
+  }, [isAuthenticated, isLoading, toast, setLocation]);
+
+  const handleCardInputChange = (field: string, value: string) => {
+    let formattedValue = value;
+    
+    if (field === "number") {
+      // Format card number with spaces
+      formattedValue = value.replace(/\s/g, "").replace(/(.{4})/g, "$1 ").trim();
+      if (formattedValue.length > 19) formattedValue = formattedValue.slice(0, 19);
+    } else if (field === "expiry") {
+      // Format expiry as MM/YY
+      formattedValue = value.replace(/\D/g, "").replace(/(\d{2})(\d)/, "$1/$2");
+      if (formattedValue.length > 5) formattedValue = formattedValue.slice(0, 5);
+    } else if (field === "cvv") {
+      // Only numbers for CVV
+      formattedValue = value.replace(/\D/g, "").slice(0, 4);
+    }
+
+    setCardData(prev => ({ ...prev, [field]: formattedValue }));
+  };
+
+  const handlePayment = async (method: "paypal" | "payu" | "card") => {
+    setProcessing(true);
+    
     try {
-      // Here you would integrate with actual payment providers
-      if (method === 'paypal') {
-        // PayPal integration
+      // Simulate payment processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      if (method === "paypal") {
+        // Redirect to PayPal
+        window.location.href = `https://www.paypal.com/checkoutnow?token=DEMO_${selectedPlan.toUpperCase()}_${Date.now()}`;
+      } else if (method === "payu") {
+        // Redirect to PayU
+        window.location.href = `https://secure.payu.com/pay?hash=DEMO_${selectedPlan.toUpperCase()}_${Date.now()}`;
+      } else {
+        // Process card payment
         toast({
-          title: "Redirecting to PayPal",
-          description: "You will be redirected to complete payment",
+          title: "Payment Successful!",
+          description: `Welcome to ${currentPlan.name} plan! Redirecting to dashboard...`,
         });
-        // window.location.href = `https://paypal.com/checkout?amount=${planPrice}&plan=${planName}`;
         
-        // For demo, simulate success after 2 seconds
         setTimeout(() => {
-          toast({
-            title: "Payment Successful!",
-            description: "Your plan has been upgraded successfully",
-          });
-          window.location.href = '/dashboard';
-        }, 2000);
-        
-      } else if (method === 'payu') {
-        // PayU integration
-        toast({
-          title: "Redirecting to PayU",
-          description: "You will be redirected to complete payment",
-        });
-        // window.location.href = `https://secure.payu.in/payment?amount=${planPrice}&plan=${planName}`;
-        
-        // For demo, simulate success after 2 seconds
-        setTimeout(() => {
-          toast({
-            title: "Payment Successful!",
-            description: "Your plan has been upgraded successfully",
-          });
-          window.location.href = '/dashboard';
+          setLocation("/dashboard?upgraded=true");
         }, 2000);
       }
     } catch (error) {
@@ -80,195 +108,249 @@ export default function Payment() {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setProcessing(false);
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 py-12">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <div className="mb-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="mb-8">
           <Link href="/plans">
-            <Button variant="outline">
+            <Button variant="outline" className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Plans
             </Button>
           </Link>
-        </div>
-
-        {/* Header */}
-        <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Complete Your Purchase
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Secure checkout for your {currentPlan.name}
+            Subscribe to {currentPlan.name} plan and unlock powerful features
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Plan Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                Order Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                <div>
-                  <h3 className="font-semibold text-lg">{currentPlan.name}</h3>
-                  <p className="text-gray-600 dark:text-gray-400">Monthly subscription</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold">{currentPlan.price}</div>
-                  <div className="text-sm text-gray-500">/month</div>
-                </div>
-              </div>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Payment Form */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <CreditCard className="w-5 h-5 mr-2" />
+                  Payment Method
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Tabs value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="card">Credit Card</TabsTrigger>
+                    <TabsTrigger value="paypal">PayPal</TabsTrigger>
+                    <TabsTrigger value="payu">PayU</TabsTrigger>
+                  </TabsList>
 
-              <div>
-                <h4 className="font-semibold mb-2">Included Features:</h4>
-                <ul className="space-y-1">
+                  <TabsContent value="card" className="space-y-4 mt-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="cardName">Cardholder Name</Label>
+                        <Input
+                          id="cardName"
+                          placeholder="John Doe"
+                          value={cardData.name}
+                          onChange={(e) => handleCardInputChange("name", e.target.value)}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="cardNumber">Card Number</Label>
+                        <Input
+                          id="cardNumber"
+                          placeholder="1234 5678 9012 3456"
+                          value={cardData.number}
+                          onChange={(e) => handleCardInputChange("number", e.target.value)}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="expiry">Expiry Date</Label>
+                          <Input
+                            id="expiry"
+                            placeholder="MM/YY"
+                            value={cardData.expiry}
+                            onChange={(e) => handleCardInputChange("expiry", e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="cvv">CVV</Label>
+                          <Input
+                            id="cvv"
+                            placeholder="123"
+                            value={cardData.cvv}
+                            onChange={(e) => handleCardInputChange("cvv", e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <Button 
+                      className="w-full mt-6" 
+                      onClick={() => handlePayment("card")}
+                      disabled={processing}
+                    >
+                      {processing ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        `Pay $${currentPlan.price}/month`
+                      )}
+                    </Button>
+                  </TabsContent>
+
+                  <TabsContent value="paypal" className="space-y-4 mt-6">
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Globe className="w-8 h-8 text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Pay with PayPal</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-6">
+                        You'll be redirected to PayPal to complete your payment securely.
+                      </p>
+                      <Button 
+                        className="w-full bg-blue-600 hover:bg-blue-700" 
+                        onClick={() => handlePayment("paypal")}
+                        disabled={processing}
+                      >
+                        {processing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Redirecting...
+                          </>
+                        ) : (
+                          `Continue with PayPal - $${currentPlan.price}/month`
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="payu" className="space-y-4 mt-6">
+                    <div className="text-center py-8">
+                      <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Zap className="w-8 h-8 text-green-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">Pay with PayU</h3>
+                      <p className="text-gray-600 dark:text-gray-400 mb-6">
+                        Fast and secure payment processing with PayU.
+                      </p>
+                      <Button 
+                        className="w-full bg-green-600 hover:bg-green-700" 
+                        onClick={() => handlePayment("payu")}
+                        disabled={processing}
+                      >
+                        {processing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Redirecting...
+                          </>
+                        ) : (
+                          `Continue with PayU - $${currentPlan.price}/month`
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
+
+            {/* Security Notice */}
+            <Card className="mt-6">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-green-600" />
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">Secure Payment</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Your payment information is encrypted and secure. We never store your card details.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Order Summary */}
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-lg">{currentPlan.name} Plan</span>
+                  <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+                    Most Popular
+                  </Badge>
+                </div>
+
+                <div className="space-y-2">
                   {currentPlan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-2 text-sm">
-                      <CheckCircle className="w-4 h-4 text-green-500" />
-                      {feature}
-                    </li>
+                    <div key={index} className="flex items-center gap-2">
+                      <Check className="w-4 h-4 text-green-500" />
+                      <span className="text-sm text-gray-600 dark:text-gray-400">{feature}</span>
+                    </div>
                   ))}
-                </ul>
-              </div>
-
-              <div className="border-t pt-4">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold">Total:</span>
-                  <span className="text-2xl font-bold">{currentPlan.price}/month</span>
                 </div>
-                <p className="text-sm text-gray-500 mt-1">
-                  Cancel anytime • 14-day free trial
+
+                <Separator />
+
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Subtotal</span>
+                    <span>${currentPlan.price}.00</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tax</span>
+                    <span>$0.00</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold text-lg">
+                    <span>Total</span>
+                    <span>${currentPlan.price}.00/month</span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-gray-500 dark:text-gray-400 pt-4 border-t">
+                  <p>• 14-day free trial included</p>
+                  <p>• Cancel anytime</p>
+                  <p>• Billed monthly</p>
+                  <p>• Auto-renewal (can be disabled)</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Support */}
+            <Card className="mt-6">
+              <CardContent className="pt-6">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Need Help?</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Our support team is here to help with any questions about your subscription.
                 </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment Methods */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CreditCard className="w-5 h-5" />
-                Payment Method
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Payment Method Selection */}
-              <div className="space-y-3">
-                <div 
-                  className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedPayment === 'paypal' 
-                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' 
-                      : 'border-gray-200 dark:border-gray-700'
-                  }`}
-                  onClick={() => setSelectedPayment('paypal')}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">PP</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">PayPal</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Pay securely with your PayPal account
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
-                  className={`border-2 rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedPayment === 'payu' 
-                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20' 
-                      : 'border-gray-200 dark:border-gray-700'
-                  }`}
-                  onClick={() => setSelectedPayment('payu')}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-green-600 rounded flex items-center justify-center">
-                      <span className="text-white font-bold text-sm">PU</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">PayU</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        Credit/Debit cards, UPI, Net banking
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Billing Information */}
-              <div className="space-y-4">
-                <h4 className="font-semibold">Billing Information</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" placeholder="John" />
-                  </div>
-                  <div>
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" placeholder="Doe" />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="john@example.com" />
-                </div>
-                <div>
-                  <Label htmlFor="country">Country</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="US">United States</SelectItem>
-                      <SelectItem value="IN">India</SelectItem>
-                      <SelectItem value="UK">United Kingdom</SelectItem>
-                      <SelectItem value="CA">Canada</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Security Notice */}
-              <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                <Shield className="w-5 h-5 text-green-600" />
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Your payment information is encrypted and secure
-                </p>
-              </div>
-
-              {/* Payment Button */}
-              <Button 
-                className="w-full" 
-                size="lg"
-                disabled={!selectedPayment || loading}
-                onClick={() => selectedPayment && handlePayment(selectedPayment)}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    Processing...
-                  </div>
-                ) : (
-                  `Pay ${currentPlan.price} with ${selectedPayment === 'paypal' ? 'PayPal' : 'PayU'}`
-                )}
-              </Button>
-
-              <p className="text-xs text-gray-500 text-center">
-                By completing this purchase, you agree to our Terms of Service and Privacy Policy
-              </p>
-            </CardContent>
-          </Card>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/contact">Contact Support</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

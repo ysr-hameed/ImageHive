@@ -162,10 +162,7 @@ export function usePlanLimits() {
     return getUserAnalytics();
   };
 
-  // The following function was causing a duplicate definition error, so it's commented out.
-  // const fetchPlans = () => {
-  //   return fetchPlans();
-  // };
+  
 
   const fetchUserUsage = () => {
     return getCurrentUserUsage();
@@ -184,7 +181,7 @@ export function usePlanLimits() {
     invalidateNotifications,
     fetchNotifications,
     fetchAnalytics,
-    // fetchPlans, // Commented out due to duplicate definition
+    fetchPlans,
     fetchUserUsage,
   };
 }

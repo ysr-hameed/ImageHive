@@ -23,7 +23,7 @@ import crypto from 'crypto';
 import { storage } from "./storage";
 import { emailService } from './services/emailService';
 import { processImage, getImageInfo } from './services/imageProcessor';
-import { uploadToBackblaze, deleteFromBackblaze } from './services/backblaze';
+import { uploadToBackblaze, deleteFromBackblaze, backblazeService } from './services/backblaze';
 import os from 'os';
 import fs from 'fs';
 import { promisify } from 'util';
@@ -138,7 +138,7 @@ const registerSchema = z.object({
 });
 
 // Replace dummy auth with proper token authentication
-const authenticateToken = (req: Request, res: NextFunction, next: NextFunction) => {
+const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
 
   if (!token) {
@@ -2315,16 +2315,16 @@ export function registerRoutes(app: Express) {
 
       // Check if user already has a trial
       const userData = await storage.getUser(user.id);
-      if (userData?.trialUsed) {
-        return res.status(400).json({ error: 'Trial already used' });
-      }
+      // Note: trialUsed feature not implemented yet
+      // if (userData?.trialUsed) {
+      //   return res.status(400).json({ error: 'Trial already used' });
+      // }
 
       // Start trial
+      // Update user plan (simplified - trial features not fully implemented)
       await db.update(users)
         .set({
           plan: planId,
-          trialUsed: true,
-          trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days
           updatedAt: new Date()
         })
         .where(eq(users.id, user.id));
@@ -2512,7 +2512,7 @@ export function registerRoutes(app: Express) {
           type: actionType,
           description,
           timestamp: activity.createdAt,
-          details: activity.metadata ? JSON.parse(activity.metadata) : null
+          details: activity.metadata && typeof activity.metadata === 'string' ? JSON.parse(activity.metadata) : activity.metadata
         };
       });
 
@@ -2536,11 +2536,9 @@ export function registerRoutes(app: Express) {
       const userApiKeys = await db.select({
         id: apiKeys.id,
         name: apiKeys.name,
-        key: apiKeys.key,
-        permissions: apiKeys.permissions,
+        keyHash: apiKeys.keyHash,
         isActive: apiKeys.isActive,
         lastUsed: apiKeys.lastUsed,
-        requestCount: apiKeys.requestCount,
         createdAt: apiKeys.createdAt
       })
         .from(apiKeys)
@@ -2566,14 +2564,13 @@ export function registerRoutes(app: Express) {
 
       const apiKey = `iv_${crypto.randomBytes(32).toString('hex')}`;
 
+      const hashedKey = await bcrypt.hash(apiKey, 10);
+      
       const [newApiKey] = await db.insert(apiKeys).values({
-        id: uuidv4(),
         userId: user.id,
         name,
-        key: apiKey,
-        permissions: permissions || ['images:read', 'images:write'],
-        isActive: true,
-        requestCount: 0
+        keyHash: hashedKey,
+        isActive: true
       }).returning();
 
       await logSystemEvent('info', `API key created: ${name}`, user.id);

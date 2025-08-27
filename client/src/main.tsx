@@ -86,7 +86,7 @@ try {
         max-width: 100%;
         overflow: auto;
         white-space: pre-wrap;
-      ">${error.message}</pre>
+      ">${error instanceof Error ? error.message : String(error)}</pre>
     </div>
   `;
 }

@@ -37,7 +37,6 @@ interface Notification {
   read: boolean; // Added 'read' property
 }
 
-import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

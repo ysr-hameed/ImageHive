@@ -120,8 +120,8 @@ export default function Settings() {
 
   return (
     <SidebarContentLoader isLoading={!user}>
-      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 w-full">
+        <div className="w-full max-w-full">
 
 
           <Tabs defaultValue="domains" className="space-y-6">

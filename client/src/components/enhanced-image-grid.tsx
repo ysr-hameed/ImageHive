@@ -214,6 +214,81 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
     }
   };
 
+  const handleDownload = async (image: any) => {
+    try {
+      // Track download in analytics
+      await apiRequest("POST", `/api/v1/images/${image.id}/download`, {});
+
+      const response = await fetch(image.url, {
+        mode: 'cors',
+        credentials: 'omit'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch image');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = image.title || `image-${image.id}`;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download completed",
+        description: "Your image has been downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: "Failed to download the image. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCopyUrl = async (image: any) => {
+    try {
+      await navigator.clipboard.writeText(image.url);
+      toast({
+        title: "URL copied",
+        description: "Image URL has been copied to clipboard",
+      });
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = image.url;
+      textArea.style.position = 'fixed';
+      textArea.style.left = '-999999px';
+      textArea.style.top = '-999999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        document.execCommand('copy');
+        toast({
+          title: "URL copied",
+          description: "Image URL has been copied to clipboard",
+        });
+      } catch (err) {
+        toast({
+          title: "Copy failed",
+          description: "Failed to copy URL. Please try manually selecting and copying.",
+          variant: "destructive",
+        });
+      }
+
+      document.body.removeChild(textArea);
+    }
+  };
+
   if (images.length === 0) {
     return (
       <div className="text-center py-12">
@@ -343,9 +418,16 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                     <Button
                       size="sm"
                       variant="secondary"
-                      onClick={() => copyToClipboard(image.cdnUrl, 'Image URL')}
+                      onClick={() => handleCopyUrl(image)}
                     >
                       <Copy className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => handleDownload(image)}
+                    >
+                      <Download className="w-4 h-4" />
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -483,9 +565,16 @@ export default function EnhancedImageGrid({ images }: EnhancedImageGridProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => copyToClipboard(image.cdnUrl, 'Image URL')}
+                    onClick={() => handleCopyUrl(image)}
                   >
                     <Copy className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownload(image)}
+                  >
+                    <Download className="w-4 h-4" />
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

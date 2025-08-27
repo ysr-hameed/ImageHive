@@ -9,14 +9,13 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Link } from 'wouter';
 import { ArrowRight, PlayCircle, Rocket, BarChart3, Sparkles, Shield, Zap } from 'lucide-react';
-import { SidebarContentLoader } from '@/components/sidebar-content-loader';
+
 
 export default function Landing() {
   const { isAuthenticated, user, isLoading } = useAuth();
 
   return (
-    <SidebarContentLoader showSidebar={false}>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-blue-950/30 dark:to-purple-950/30">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 dark:from-slate-900 dark:via-blue-950/30 dark:to-purple-950/30">
       {/* Animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-3xl animate-pulse"></div>
@@ -120,6 +119,5 @@ export default function Landing() {
         <Footer />
       </main>
     </div>
-  </SidebarContentLoader>
-);
+  );
 }

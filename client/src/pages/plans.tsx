@@ -1,365 +1,289 @@
-
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/use-toast';
-import { useLocation } from 'wouter';
-import { Check, Crown, Zap, Star, CreditCard, ArrowRight, Users, Shield, Headphones, Clock } from 'lucide-react';
-import { SidebarContentLoader } from '@/components/sidebar-content-loader';
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { SidebarContentLoader } from "@/components/sidebar-content-loader";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  Check, 
+  Star, 
+  Zap, 
+  Crown, 
+  CreditCard, 
+  Lock,
+  Unlock,
+  ArrowRight 
+} from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 const plans = [
   {
+    id: "free",
     name: "Free",
-    price: 0,
+    price: "$0",
     period: "forever",
-    description: "Perfect for personal projects",
+    description: "Perfect for personal projects and small websites",
     features: [
-      "2 GB storage",
-      "5,000 API requests/month",
-      "Basic image optimization",
-      "HTTPS & CDN",
-      "Community support"
+      "1GB Storage",
+      "100 Images/month",
+      "Basic transformations",
+      "Community support",
+      "Basic analytics"
     ],
     limitations: [
-      "Limited storage",
-      "Basic features only",
-      "Community support"
+      "Limited API calls",
+      "No custom domains",
+      "Basic support only"
     ],
-    buttonText: "Get Started",
-    buttonVariant: "outline" as const,
-    enterprise: false
+    popular: false,
+    icon: Lock
   },
   {
-    name: "Starter",
-    price: 5,
-    period: "/month",
-    description: "Great for small businesses",
+    id: "pro",
+    name: "Pro",
+    price: "$29",
+    period: "per month",
+    description: "Best for growing businesses and developers",
     features: [
-      "25 GB storage", 
-      "25,000 API requests/month",
-      "Advanced image processing",
+      "100GB Storage",
+      "10,000 Images/month",
+      "Advanced transformations",
       "Custom domains",
-      "Email support"
+      "Priority support",
+      "Advanced analytics",
+      "API access",
+      "Webhook support"
     ],
     limitations: [],
     popular: true,
-    buttonText: "Subscribe Now",
-    buttonVariant: "default" as const,
-    enterprise: false
+    icon: Zap
   },
   {
-    name: "Pro", 
-    price: 15,
-    period: "/month",
-    description: "For growing applications",
-    features: [
-      "100 GB storage",
-      "100,000 API requests/month", 
-      "Watermarks & branding",
-      "Priority support",
-      "Advanced analytics"
-    ],
-    limitations: [],
-    buttonText: "Subscribe Now",
-    buttonVariant: "default" as const,
-    enterprise: false
-  },
-  {
+    id: "enterprise",
     name: "Enterprise",
-    price: "Custom",
-    period: "",
-    description: "Custom enterprise solutions", 
+    price: "$199",
+    period: "per month",
+    description: "For large organizations with custom needs",
     features: [
-      "500 GB storage",
-      "1M API requests/month",
-      "Custom integrations", 
-      "SLA guarantees",
-      "Dedicated support"
+      "Unlimited Storage",
+      "Unlimited Images",
+      "Custom transformations",
+      "Multiple custom domains",
+      "24/7 dedicated support",
+      "Advanced analytics & reports",
+      "SLA guarantee",
+      "Custom integrations",
+      "White-label solution"
     ],
     limitations: [],
-    buttonText: "Contact Sales",
-    buttonVariant: "outline" as const,
-    enterprise: true
-  }
-];
-
-const features = [
-  {
-    icon: Zap,
-    title: 'Lightning Fast',
-    description: 'Global CDN ensures your images load quickly worldwide'
-  },
-  {
-    icon: Shield,
-    title: 'Secure & Reliable',
-    description: '99.9% uptime with enterprise-grade security'
-  },
-  {
-    icon: Users,
-    title: 'Team Collaboration',
-    description: 'Work together with your team on image management'
-  },
-  {
-    icon: Headphones,
-    title: '24/7 Support',
-    description: 'Get help when you need it with our support team'
+    popular: false,
+    icon: Crown
   }
 ];
 
 export default function Plans() {
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
-  const [isYearly, setIsYearly] = useState(false);
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [isUpgrading, setIsUpgrading] = useState<string | null>(null);
 
-  const handlePlanSelect = async (planId: string) => {
-    if (!isAuthenticated) {
-      setLocation('/auth/login');
-      return;
-    }
-
-    if (planId === 'enterprise') {
-      window.open('mailto:sales@imagevault.com?subject=Enterprise Plan Inquiry');
-      return;
-    }
-
-    if (planId === user?.plan) {
-      toast({
-        title: 'Already subscribed',
-        description: 'You are already on this plan.',
+  const upgradeMutation = useMutation({
+    mutationFn: async (planId: string) => {
+      return await apiRequest("POST", "/api/v1/payments/create-checkout", { 
+        planId,
+        successUrl: `${window.location.origin}/dashboard?upgraded=true`,
+        cancelUrl: `${window.location.origin}/plans`
       });
-      return;
-    }
-
-    setLoadingPlan(planId);
-
-    try {
-      const response = await fetch('/api/v1/payments/create-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          planId,
-          successUrl: `${window.location.origin}/upgrade/success`,
-          cancelUrl: `${window.location.origin}/plans`
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment session');
+    },
+    onSuccess: (data: any) => {
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
       }
-
-      const { paymentUrl } = await response.json();
-      window.location.href = paymentUrl;
-    } catch (error) {
+    },
+    onError: (error: any) => {
       toast({
-        title: 'Payment Error',
-        description: 'Failed to start payment process. Please try again.',
-        variant: 'destructive'
+        title: "Payment Error",
+        description: error.message || "Failed to initiate payment",
+        variant: "destructive",
       });
-    } finally {
-      setLoadingPlan(null);
+      setIsUpgrading(null);
+    },
+  });
+
+  const handleUpgrade = async (planId: string) => {
+    if (!isAuthenticated) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to upgrade your plan",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setIsUpgrading(planId);
+    upgradeMutation.mutate(planId);
   };
+
+  const currentPlan = user?.plan?.toLowerCase() || 'free';
 
   return (
     <SidebarContentLoader>
-      <div className="flex-1 w-full max-w-none space-y-8 p-4 md:p-8">
-        <div className="w-full max-w-none">
-          {/* Header */}
+      <div className="flex-1 space-y-6 p-4 md:p-8 pt-6">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-              Choose the Perfect Plan
+              Choose Your Plan
             </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
-              Scale your image management with plans designed for every need. Start free and upgrade as you grow.
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Scale your image management with flexible pricing that grows with your needs
             </p>
-
-            {/* Billing Toggle */}
-            <div className="flex items-center justify-center mb-8">
-              <span className={`text-sm mr-3 transition-colors ${!isYearly ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
-                Monthly
-              </span>
-              <Switch
-                checked={isYearly}
-                onCheckedChange={setIsYearly}
-                className="data-[state=checked]:bg-blue-600"
-              />
-              <span className={`text-sm ml-3 transition-colors ${isYearly ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
-                Yearly
-              </span>
-              {isYearly && (
-                <Badge variant="secondary" className="ml-2">
-                  Save 20%
-                </Badge>
-              )}
-            </div>
           </div>
 
-          {/* Plans Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {plans.map((plan) => {
-              const isCurrentPlan = user?.plan === plan.name.toLowerCase();
-              const price = typeof plan.price === 'object'
-                ? (isYearly ? plan.price.yearly : plan.price.monthly)
-                : plan.price;
+              const Icon = plan.icon;
+              const isCurrentPlan = currentPlan === plan.id;
+              const canUpgrade = plan.id !== 'free' && !isCurrentPlan && currentPlan !== 'enterprise';
+              const isDowngrade = (currentPlan === 'enterprise' && plan.id !== 'enterprise') || 
+                                 (currentPlan === 'pro' && plan.id === 'free');
 
               return (
-                <Card key={plan.name} className={`relative ${plan.popular ? 'ring-2 ring-blue-500 scale-105' : ''}`}>
+                <Card 
+                  key={plan.id} 
+                  className={`relative ${plan.popular ? 'ring-2 ring-blue-500 shadow-lg' : ''} ${isCurrentPlan ? 'ring-2 ring-green-500' : ''}`}
+                >
                   {plan.popular && (
-                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-blue-500 text-white">
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-blue-500 text-white px-4 py-1">
                         <Star className="w-3 h-3 mr-1" />
                         Most Popular
                       </Badge>
                     </div>
                   )}
 
-                  <CardHeader className="text-center pb-2">
-                    <CardTitle className="flex items-center justify-center gap-2">
-                      {plan.name === 'Pro' && <Crown className="w-5 h-5 text-yellow-500" />}
-                      {plan.name}
-                      {plan.name === 'Enterprise' && <Badge variant="outline" className="border-gray-400 text-gray-400">Custom</Badge>}
-                    </CardTitle>
-                    <div className="text-3xl font-bold">
-                      {typeof price === 'number' ? (
-                        <>
-                          ${price}
-                          <span className="text-base font-normal text-gray-500">
-                            {plan.period}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-2xl">{price}</span>
-                      )}
+                  {isCurrentPlan && (
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                      <Badge className="bg-green-500 text-white px-4 py-1">
+                        <Check className="w-3 h-3 mr-1" />
+                        Current Plan
+                      </Badge>
                     </div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm">
-                      {plan.description}
-                    </p>
+                  )}
+
+                  <CardHeader className="text-center pb-6">
+                    <div className="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center mb-4">
+                      <Icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
+                    <div className="text-4xl font-bold text-gray-900 dark:text-white">
+                      {plan.price}
+                      <span className="text-lg font-normal text-gray-600 dark:text-gray-400">
+                        /{plan.period}
+                      </span>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400">{plan.description}</p>
                   </CardHeader>
 
-                  <CardContent>
-                    <div className="space-y-3 mb-6">
+                  <CardContent className="space-y-6">
+                    <div className="space-y-3">
                       {plan.features.map((feature, index) => (
-                        <div key={index} className="flex items-center text-sm">
-                          <Check className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                          <span>{feature}</span>
-                        </div>
-                      ))}
-                      {plan.limitations && plan.limitations.map((limitation, index) => (
-                        <div key={index} className="flex items-center text-sm text-gray-500">
-                          <span className="w-4 h-4 mr-2 flex-shrink-0">×</span>
-                          <span>{limitation}</span>
+                        <div key={index} className="flex items-center gap-3">
+                          <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{feature}</span>
                         </div>
                       ))}
                     </div>
 
-                    <Button
-                      className="w-full"
-                      variant={isCurrentPlan ? 'secondary' : (plan.popular ? 'default' : plan.buttonVariant)}
-                      disabled={isCurrentPlan || loadingPlan === plan.name.toLowerCase()}
-                      onClick={() => handlePlanSelect(plan.name.toLowerCase())}
-                    >
-                      {loadingPlan === plan.name.toLowerCase() ? (
-                        'Processing...'
-                      ) : isCurrentPlan ? (
-                        'Current Plan'
+                    <div className="pt-6">
+                      {isCurrentPlan ? (
+                        <Button className="w-full" disabled>
+                          <Check className="w-4 h-4 mr-2" />
+                          Current Plan
+                        </Button>
+                      ) : isDowngrade ? (
+                        <Button variant="outline" className="w-full" disabled>
+                          Contact Support to Downgrade
+                        </Button>
+                      ) : canUpgrade ? (
+                        <Button 
+                          className="w-full" 
+                          onClick={() => handleUpgrade(plan.id)}
+                          disabled={isUpgrading === plan.id}
+                        >
+                          {isUpgrading === plan.id ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Upgrade to {plan.name}
+                              <ArrowRight className="w-4 h-4 ml-2" />
+                            </>
+                          )}
+                        </Button>
                       ) : (
-                        <>
-                          {plan.buttonText}
-                          {!plan.enterprise && <ArrowRight className="w-4 h-4 ml-2" />}
-                        </>
+                        <Button variant="outline" className="w-full">
+                          <Unlock className="w-4 h-4 mr-2" />
+                          Get Started
+                        </Button>
                       )}
-                    </Button>
+                    </div>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
 
-          {/* Features Section */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
-              Why Choose ImageVault?
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {features.map((feature, index) => (
-                <Card key={index}>
-                  <CardContent className="p-6 text-center">
-                    <feature.icon className="w-12 h-12 text-blue-500 mx-auto mb-4" />
-                    <h3 className="font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm">
-                      {feature.description}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
           {/* FAQ Section */}
-          <div className="mb-12">
-            <h2 className="text-3xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+          <div className="mt-16">
+            <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
               Frequently Asked Questions
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">Can I change plans anytime?</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    Can I change my plan anytime?
+                  </h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.
+                    Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately for upgrades.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">What payment methods do you accept?</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    What payment methods do you accept?
+                  </h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    We accept all major credit cards via our secure payment processor.
+                    We accept all major credit cards, PayPal, and bank transfers for Enterprise plans.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">Is there a free trial?</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    Is there a free trial?
+                  </h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    We offer a 14-day free trial for paid plans. Our Free plan is always available.
+                    Our Free plan allows you to test all basic features. Pro and Enterprise plans come with 14-day free trials.
                   </p>
                 </CardContent>
               </Card>
               <Card>
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-2">How does custom domain work?</h3>
+                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
+                    What happens to my data if I downgrade?
+                  </h3>
                   <p className="text-gray-600 dark:text-gray-400 text-sm">
-                    Configure DNS records to point to our CDN. Full instructions in our documentation.
+                    Your data is preserved, but access may be limited based on your new plan's quotas until usage is reduced.
                   </p>
                 </CardContent>
               </Card>
             </div>
-          </div>
-
-          {/* CTA Section */}
-          <div className="text-center">
-            <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-              <CardContent className="p-8">
-                <h2 className="text-2xl font-bold mb-4">Ready to Scale Your Image Management?</h2>
-                <p className="mb-6 opacity-90">
-                  Join thousands of developers and businesses who trust ImageVault.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button size="lg" variant="secondary">
-                    Start Free
-                  </Button>
-                  <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-600">
-                    View Documentation
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

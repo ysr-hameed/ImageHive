@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { SidebarContentLoader } from '@/components/sidebar-content-loader';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -69,8 +69,7 @@ curl_close($ch);
   };
 
   return (
-    <SidebarContentLoader showSidebar={true}>
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
         <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
@@ -531,7 +530,7 @@ Form Data:
         </div>
         </div>
       </div>
-    </SidebarContentLoader>
+    </div>
   );
 };
 

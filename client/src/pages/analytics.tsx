@@ -13,6 +13,7 @@ import {
   Activity,
   Calendar,
   Clock,
+  Key,
 } from 'lucide-react';
 
 export default function Analytics() {
@@ -28,6 +29,11 @@ export default function Analytics() {
 
   const { data: user } = useQuery({
     queryKey: ['/api/auth/user'],
+    retry: false,
+  });
+
+  const { data: apiKeysData } = useQuery({
+    queryKey: ['/api/v1/api-keys'],
     retry: false,
   });
 
@@ -49,6 +55,7 @@ export default function Analytics() {
   const totalImages = images?.images?.length || 0;
   const totalViews = images?.images?.reduce((sum: number, img: any) => sum + (img.views || 0), 0) || 0;
   const totalDownloads = images?.images?.reduce((sum: number, img: any) => sum + (img.downloads || 0), 0) || 0;
+  const totalApiKeys = apiKeysData?.apiKeys?.length || 0;
   const storageUsed = user?.storageUsed || 0;
   const storageLimit = user?.storageLimit || 1024 * 1024 * 1024;
 
@@ -128,15 +135,15 @@ export default function Analytics() {
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Images</p>
+                    <p className="text-sm font-medium text-gray-600 dark:text-gray-400">API Keys</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {formatNumber(totalImages)}
+                      {formatNumber(totalApiKeys)}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      Uploaded
+                      Active keys
                     </p>
                   </div>
-                  <Activity className="w-8 h-8 text-amber-500" />
+                  <Key className="w-8 h-8 text-amber-500" />
                 </div>
               </CardContent>
             </Card>

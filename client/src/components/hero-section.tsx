@@ -11,10 +11,10 @@ export default function HeroSection() {
         <div className="grid lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12 items-center h-full">
           <div className="animate-fade-in">
             <Badge 
-              className="inline-flex items-center px-3 py-1 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 text-sm font-medium mb-6"
+              className="inline-flex items-center px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium mb-6"
               data-testid="hero-badge"
             >
-              <span className="w-2 h-2 bg-brand-500 rounded-full mr-2 animate-pulse"></span>
+              <span className="w-2 h-2 bg-blue-500 rounded-full mr-2 animate-pulse"></span>
               Live: Professional Image Hosting API
             </Badge>
             
@@ -34,27 +34,27 @@ export default function HeroSection() {
               <Button 
                 size="lg" 
                 asChild 
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base lg:text-lg transition-all duration-200 transform hover:scale-105 shadow-lg"
+                className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-lg lg:text-xl font-semibold transition-all duration-200 transform hover:scale-105 shadow-xl hover:shadow-2xl bg-blue-600 hover:bg-blue-700"
                 data-testid="button-start-free-trial"
               >
                 <a href="/auth/register">
-                  Get Started Free
+                  🚀 Get Started Free
                 </a>
               </Button>
               <Button 
                 variant="outline" 
                 size="lg"
                 asChild
-                className="w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 text-sm sm:text-base lg:text-lg"
+                className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-lg lg:text-xl font-medium border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
                 data-testid="button-view-plans"
               >
                 <a href="/plans">
-                  View Plans
+                  💎 View Plans
                 </a>
               </Button>
             </div>
             
-            <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+            <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
               <div className="flex items-center space-x-1">
                 <CheckCircle className="w-4 h-4 text-emerald-500" />
                 <span>99.9% Uptime SLA</span>
@@ -72,34 +72,38 @@ export default function HeroSection() {
           
           <div className="relative animate-fade-in mt-8 lg:mt-0">
             {/* Interactive API Demo Terminal */}
-            <div className="bg-gray-900 dark:bg-slate-800 rounded-xl shadow-2xl p-4 sm:p-6 font-mono text-xs sm:text-sm overflow-x-auto">
+            <div className="bg-gray-900 dark:bg-slate-800 rounded-xl shadow-2xl p-3 sm:p-6 font-mono text-xs sm:text-sm overflow-x-auto border border-gray-700">
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span className="ml-4 text-gray-400">api-demo.sh</span>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-yellow-500 rounded-full"></div>
+                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-500 rounded-full"></div>
+                <span className="ml-2 sm:ml-4 text-gray-400 text-xs sm:text-sm">api-demo.sh</span>
               </div>
-              <div className="text-green-400 overflow-x-auto">
-                <div className="mb-2 whitespace-nowrap">$ curl -X POST /api/upload \</div>
-                <div className="ml-2 sm:ml-4 mb-2 whitespace-nowrap">-H "Authorization: Bearer your-api-key" \</div>
-                <div className="ml-2 sm:ml-4 mb-2 whitespace-nowrap">-F "image=@photo.jpg" \</div>
-                <div className="ml-2 sm:ml-4 mb-4 whitespace-nowrap">-F "isPublic=true"</div>
-                <div className="text-blue-300">
+              <div className="text-green-400 overflow-x-auto space-y-1">
+                <div className="whitespace-nowrap text-xs sm:text-sm">$ curl -X POST /api/upload \</div>
+                <div className="ml-2 sm:ml-4 whitespace-nowrap text-xs sm:text-sm">-H "Authorization: Bearer your-api-key" \</div>
+                <div className="ml-2 sm:ml-4 whitespace-nowrap text-xs sm:text-sm">-F "image=@photo.jpg" \</div>
+                <div className="ml-2 sm:ml-4 mb-3 whitespace-nowrap text-xs sm:text-sm">-F "isPublic=true"</div>
+                <div className="text-blue-300 text-xs sm:text-sm">
                   {"{"}
                   <br />
                   <span className="ml-2">"success": true,</span>
                   <br />
-                  <span className="ml-2 text-xs sm:text-sm break-all">"url": "https://cdn.imagevault.app/uploads/abc123.jpg",</span>
+                  <span className="ml-2 break-all">"url": "https://cdn.imagevault.app/uploads/abc123.jpg",</span>
                   <br />
                   <span className="ml-2">"id": "abc123",</span>
                   <br />
-                  <span className="ml-2">"size": 245760</span>
+                  <span className="ml-2">"size": 245760,</span>
+                  <br />
+                  <span className="ml-2">"views": 0</span>
                   <br />
                   {"}"}
                 </div>
+                <div className="mt-3 text-gray-500 text-xs">
+                  <span className="animate-pulse">✅ Image uploaded successfully!</span>
+                </div>
               </div>
             </div>
-            
           </div>
         </div>
       </div>

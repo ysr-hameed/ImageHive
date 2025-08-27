@@ -248,7 +248,7 @@ export function FuturisticLoader({
 
   // Default variant - clean and simple
   return (
-    <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
+    <div className={cn("flex flex-col items-center justify-center space-y-4 min-h-screen", className)}>
       <div className="relative">
         <div className={cn(
           "rounded-full border-3 border-gray-200 dark:border-slate-700",
@@ -273,7 +273,7 @@ export function FuturisticLoader({
 
 export function PageLoader({ text = "Initializing ImageVault...", variant = "default" }: { text?: string; variant?: 'default' | 'orbit' }) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+    <div className="fixed inset-0 bg-gray-50 dark:bg-slate-900 flex items-center justify-center z-50">
       <div className="text-center">
         <FuturisticLoader variant={variant} size="xl" text={text} />
         

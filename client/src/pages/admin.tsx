@@ -52,6 +52,15 @@ export default function Admin() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [smtpSettings, setSmtpSettings] = useState({
+    host: 'smtp.gmail.com',
+    port: 587,
+    username: '',
+    password: '',
+    fromEmail: '',
+    fromName: 'ImageVault',
+    enabled: false
+  });
   const [systemSettings, setSystemSettings] = useState({
     maintenanceMode: false,
     registrationEnabled: true,

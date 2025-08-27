@@ -54,7 +54,8 @@ import {
   Sun,
   Moon,
   Monitor,
-  Camera
+  Camera,
+  TrendingUp
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { logoutUser } from "@/lib/authUtils";
@@ -95,6 +96,11 @@ const mainMenuData = {
       title: "API Keys",
       url: "/api-keys",
       icon: Key,
+    },
+    {
+      title: "API Usage",
+      url: "/api-usage",
+      icon: TrendingUp,
     },
     {
       title: "Activity",

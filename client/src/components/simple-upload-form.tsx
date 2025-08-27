@@ -133,10 +133,11 @@ const SimpleUploadForm: React.FC = () => {
           throw new Error('Upload failed');
         }
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed';
         setFiles(prev => 
           prev.map(f => 
             f.id === fileData.id 
-              ? { ...f, status: 'error' as const, error: error.message }
+              ? { ...f, status: 'error' as const, error: errorMessage }
               : f
           )
         );

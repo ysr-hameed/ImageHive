@@ -147,8 +147,8 @@ export default function Dashboard() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full h-10 w-10">
-                {user?.avatarUrl ? (
-                  <img src={user.avatarUrl} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
+                {user?.profileImageUrl ? (
+                  <img src={user.profileImageUrl} alt="Profile" className="h-8 w-8 rounded-full object-cover" />
                 ) : (
                   <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                     <span className="text-sm font-bold text-white">
@@ -399,14 +399,14 @@ export default function Dashboard() {
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-gray-600 dark:text-gray-400">API Requests (Monthly)</span>
                       <span className="text-gray-900 dark:text-white">
-                        {formatNumber(user?.apiRequestsUsed || 0)} / {formatNumber(user?.apiRequestsLimit || 0)}
+                        {formatNumber(0)} / {formatNumber(1000)}
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-2">
                       <div
                         className="bg-emerald-600 h-2 rounded-full transition-all"
                         style={{
-                          width: `${Math.min(100, ((user?.apiRequestsUsed || 0) / (user?.apiRequestsLimit || 1)) * 100)}%`
+                          width: `${Math.min(100, (0 / 1000) * 100)}%`
                         }}
                         data-testid="api-requests-progress"
                       />

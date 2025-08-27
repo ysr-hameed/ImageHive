@@ -21,7 +21,7 @@ import {
   CheckCircle, 
   XCircle,
   Settings,
-  MarkAsRead,
+  Plus,
   Eye,
   EyeOff
 } from "lucide-react";

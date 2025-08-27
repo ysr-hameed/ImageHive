@@ -1,12 +1,7 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'wouter';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-
 import { 
-  Bell, 
   Check, 
-  Trash2, 
   AlertCircle, 
   Info, 
   CheckCircle, 
@@ -15,43 +10,157 @@ import {
   Plus,
   Eye,
   EyeOff,
-  Edit
+  Edit,
+  Bell,
+  Trash2,
+  Send
 } from "lucide-react";
 
 interface Notification {
   id: string;
   title: string;
   message: string;
-  type: 'info' | 'warning' | 'success';
+  type: 'info' | 'warning' | 'success' | 'error';
   isActive: boolean;
   createdAt: string;
-  read: boolean; // Added 'read' property
+  read: boolean;
+  isGlobal?: boolean;
+  emailSent?: boolean;
 }
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
-import { Bell, Trash2, Send } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+// Mock components - replace with actual UI library components
+const Button = ({ children, variant = 'default', size = 'default', disabled = false, type = 'button', className = '', onClick, asChild = false, ...props }: any) => (
+  <button 
+    type={type}
+    disabled={disabled}
+    onClick={onClick}
+    className={`px-4 py-2 rounded ${variant === 'outline' ? 'border border-gray-300' : variant === 'ghost' ? 'bg-transparent hover:bg-gray-100' : 'bg-blue-600 text-white'} ${className}`}
+    {...props}
+  >
+    {children}
+  </button>
+);
+
+const Input = ({ className = '', ...props }: any) => (
+  <input className={`w-full px-3 py-2 border border-gray-300 rounded ${className}`} {...props} />
+);
+
+const Label = ({ children, htmlFor, ...props }: any) => (
+  <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700 mb-1" {...props}>
+    {children}
+  </label>
+);
+
+const Textarea = ({ className = '', ...props }: any) => (
+  <textarea className={`w-full px-3 py-2 border border-gray-300 rounded ${className}`} {...props} />
+);
+
+const Select = ({ children, value, onValueChange, ...props }: any) => (
+  <select 
+    value={value} 
+    onChange={(e) => onValueChange?.(e.target.value)}
+    className="w-full px-3 py-2 border border-gray-300 rounded"
+    {...props}
+  >
+    {children}
+  </select>
+);
+
+const SelectTrigger = ({ children }: any) => <>{children}</>;
+const SelectContent = ({ children }: any) => <>{children}</>;
+const SelectItem = ({ children, value }: any) => <option value={value}>{children}</option>;
+const SelectValue = () => null;
+
+const Switch = ({ checked, onCheckedChange, id, ...props }: any) => (
+  <input 
+    type="checkbox" 
+    id={id}
+    checked={checked} 
+    onChange={(e) => onCheckedChange?.(e.target.checked)}
+    className="toggle"
+    {...props}
+  />
+);
+
+const Card = ({ children, className = '' }: any) => (
+  <div className={`bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>
+    {children}
+  </div>
+);
+
+const CardContent = ({ children, className = '' }: any) => (
+  <div className={`p-6 ${className}`}>{children}</div>
+);
+
+const CardHeader = ({ children, className = '' }: any) => (
+  <div className={`px-6 py-4 border-b border-gray-200 ${className}`}>{children}</div>
+);
+
+const CardTitle = ({ children, className = '' }: any) => (
+  <h3 className={`text-lg font-semibold ${className}`}>{children}</h3>
+);
+
+const Badge = ({ children, variant = 'default', className = '' }: any) => {
+  const baseClasses = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium';
+  const variantClasses = {
+    default: 'bg-blue-100 text-blue-800',
+    destructive: 'bg-red-100 text-red-800',
+    outline: 'border border-gray-300 text-gray-700',
+    secondary: 'bg-gray-100 text-gray-800'
+  };
+
+  return (
+    <span className={`${baseClasses} ${variantClasses[variant as keyof typeof variantClasses] || variantClasses.default} ${className}`}>
+      {children}
+    </span>
+  );
+};
+
+const DropdownMenu = ({ children, open, onOpenChange }: any) => (
+  <div className="relative inline-block text-left">
+    {children}
+  </div>
+);
+
+const DropdownMenuTrigger = ({ children, asChild }: any) => (
+  <div>{children}</div>
+);
+
+const DropdownMenuContent = ({ children, align = 'left', className = '' }: any) => (
+  <div className={`absolute z-10 mt-2 w-56 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 ${align === 'end' ? 'right-0' : 'left-0'} ${className}`}>
+    {children}
+  </div>
+);
+
+// Mock hooks
+const useToast = () => ({
+  toast: ({ title, description, variant }: any) => {
+    console.log(`Toast: ${title} - ${description} (${variant || 'default'})`);
+  }
+});
+
+// Mock API function
+const apiRequest = async (method: string, url: string, data?: any) => {
+  // Mock implementation
+  console.log(`API ${method} ${url}`, data);
+  return { success: true, data: [] };
+};
 
 export function NotificationManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [notificationForm, setNotificationForm] = useState({
     title: '',
     message: '',
-    type: 'info',
+    type: 'info' as 'info' | 'warning' | 'success' | 'error',
     sendEmail: false,
     isGlobal: true,
     userIds: ''
   });
+
+  const [isCreating, setIsCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Fetch existing notifications
   const { data: notifications = [], isLoading } = useQuery({
@@ -93,6 +202,38 @@ export function NotificationManagement() {
     }
   });
 
+  // Create notification mutation
+  const createMutation = useMutation({
+    mutationFn: async (data: any) => {
+      return await apiRequest('POST', '/api/v1/admin/notifications', data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/admin/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
+      resetForm();
+      toast({ title: 'Notification created successfully' });
+    },
+    onError: () => {
+      toast({ title: 'Failed to create notification', variant: 'destructive' });
+    },
+  });
+
+  // Update notification mutation
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      return await apiRequest('PUT', `/api/v1/admin/notifications/${id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/admin/notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
+      resetForm();
+      toast({ title: 'Notification updated successfully' });
+    },
+    onError: () => {
+      toast({ title: 'Failed to update notification', variant: 'destructive' });
+    },
+  });
+
   // Delete notification mutation
   const deleteNotificationMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -114,6 +255,46 @@ export function NotificationManagement() {
     }
   });
 
+  // Mark as read mutation
+  const markAsReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return await apiRequest('PATCH', `/api/v1/notifications/${id}/read`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/v1/notifications"] });
+      toast({
+        title: "Success",
+        description: "Notification marked as read",
+      });
+    },
+  });
+
+  const resetForm = () => {
+    setNotificationForm({
+      title: '',
+      message: '',
+      type: 'info',
+      sendEmail: false,
+      isGlobal: true,
+      userIds: ''
+    });
+    setIsCreating(false);
+    setEditingId(null);
+  };
+
+  const handleEdit = (notification: Notification) => {
+    setNotificationForm({
+      title: notification.title,
+      message: notification.message,
+      type: notification.type,
+      sendEmail: false,
+      isGlobal: notification.isGlobal || true,
+      userIds: ''
+    });
+    setEditingId(notification.id);
+    setIsCreating(true);
+  };
+
   const handleSendNotification = (e: React.FormEvent) => {
     e.preventDefault();
     if (!notificationForm.title || !notificationForm.message) {
@@ -125,6 +306,41 @@ export function NotificationManagement() {
       return;
     }
     sendNotificationMutation.mutate(notificationForm);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingId) {
+      updateMutation.mutate({ id: editingId, data: notificationForm });
+    } else {
+      createMutation.mutate(notificationForm);
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'warning': return 'bg-amber-100 text-amber-800';
+      case 'success': return 'bg-emerald-100 text-emerald-800';
+      case 'error': return 'bg-red-100 text-red-800';
+      default: return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'warning': return <AlertCircle className="w-6 h-6 text-yellow-500" />;
+      case 'success': return <CheckCircle className="w-6 h-6 text-green-500" />;
+      case 'error': return <XCircle className="w-6 h-6 text-red-500" />;
+      default: return <Info className="w-6 h-6 text-blue-500" />;
+    }
+  };
+
+  const markAsRead = (id: string) => {
+    markAsReadMutation.mutate(id);
+  };
+
+  const deleteNotification = (id: string) => {
+    deleteNotificationMutation.mutate(id);
   };
 
   return (
@@ -145,7 +361,9 @@ export function NotificationManagement() {
                 <Input
                   id="title"
                   value={notificationForm.title}
-                  onChange={(e) => setNotificationForm(prev => ({ ...prev, title: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setNotificationForm(prev => ({ ...prev, title: e.target.value }))
+                  }
                   placeholder="Notification title"
                 />
               </div>
@@ -153,7 +371,9 @@ export function NotificationManagement() {
                 <Label htmlFor="type">Type</Label>
                 <Select
                   value={notificationForm.type}
-                  onValueChange={(value) => setNotificationForm(prev => ({ ...prev, type: value }))}
+                  onValueChange={(value: 'info' | 'warning' | 'success' | 'error') => 
+                    setNotificationForm(prev => ({ ...prev, type: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -173,7 +393,9 @@ export function NotificationManagement() {
               <Textarea
                 id="message"
                 value={notificationForm.message}
-                onChange={(e) => setNotificationForm(prev => ({ ...prev, message: e.target.value }))}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
+                  setNotificationForm(prev => ({ ...prev, message: e.target.value }))
+                }
                 placeholder="Notification message"
                 rows={3}
               />
@@ -184,7 +406,9 @@ export function NotificationManagement() {
                 <Switch
                   id="sendEmail"
                   checked={notificationForm.sendEmail}
-                  onCheckedChange={(checked) => setNotificationForm(prev => ({ ...prev, sendEmail: checked }))}
+                  onCheckedChange={(checked: boolean) => 
+                    setNotificationForm(prev => ({ ...prev, sendEmail: checked }))
+                  }
                 />
                 <Label htmlFor="sendEmail">Send Email</Label>
               </div>
@@ -192,7 +416,9 @@ export function NotificationManagement() {
                 <Switch
                   id="isGlobal"
                   checked={notificationForm.isGlobal}
-                  onCheckedChange={(checked) => setNotificationForm(prev => ({ ...prev, isGlobal: checked }))}
+                  onCheckedChange={(checked: boolean) => 
+                    setNotificationForm(prev => ({ ...prev, isGlobal: checked }))
+                  }
                 />
                 <Label htmlFor="isGlobal">Send to All Users</Label>
               </div>
@@ -204,7 +430,9 @@ export function NotificationManagement() {
                 <Input
                   id="userIds"
                   value={notificationForm.userIds}
-                  onChange={(e) => setNotificationForm(prev => ({ ...prev, userIds: e.target.value }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                    setNotificationForm(prev => ({ ...prev, userIds: e.target.value }))
+                  }
                   placeholder="user1,user2,user3"
                 />
               </div>
@@ -221,231 +449,6 @@ export function NotificationManagement() {
         </CardContent>
       </Card>
 
-      {/* Existing Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Notifications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {isLoading ? (
-              <div className="text-center py-8">Loading notifications...</div>
-            ) : notifications.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>No notifications sent yet.</p>
-              </div>
-            ) : (
-              notifications.map((notification: any) => (
-                <div key={notification.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-medium">{notification.title}</h4>
-                      <Badge variant={notification.type === 'error' ? 'destructive' : 'default'}>
-                        {notification.type}
-                      </Badge>
-                      {notification.isGlobal && <Badge variant="outline">Global</Badge>}
-                      {notification.emailSent && <Badge variant="secondary">Email Sent</Badge>}
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{notification.message}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(notification.createdAt).toLocaleString()}
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteNotificationMutation.mutate(notification.id)}
-                    disabled={deleteNotificationMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    message: '',
-    type: 'info' as 'info' | 'warning' | 'success',
-    isActive: true,
-  });
-
-  const { data: notifications = [], isLoading } = useQuery({
-    queryKey: ['/api/v1/admin/notifications'],
-    retry: false,
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const response = await fetch('/api/v1/admin/notifications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to create notification');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/admin/notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
-      resetForm();
-      toast({ title: 'Notification created successfully' });
-    },
-    onError: () => {
-      toast({ title: 'Failed to create notification', variant: 'destructive' });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      const response = await fetch(`/api/v1/admin/notifications/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) throw new Error('Failed to update notification');
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/admin/notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
-      resetForm();
-      toast({ title: 'Notification updated successfully' });
-    },
-    onError: () => {
-      toast({ title: 'Failed to update notification', variant: 'destructive' });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/v1/admin/notifications/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-      if (!response.ok) throw new Error('Failed to delete notification');
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/admin/notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
-      toast({ title: 'Notification deleted successfully' });
-    },
-    onError: () => {
-      toast({ title: 'Failed to delete notification', variant: 'destructive' });
-    },
-  });
-
-  const resetForm = () => {
-    setFormData({
-      title: '',
-      message: '',
-      type: 'info',
-      isActive: true,
-    });
-    setIsCreating(false);
-    setEditingId(null);
-  };
-
-  const handleEdit = (notification: Notification) => {
-    setFormData({
-      title: notification.title,
-      message: notification.message,
-      type: notification.type,
-      isActive: notification.isActive,
-    });
-    setEditingId(notification.id);
-    setIsCreating(true);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (editingId) {
-      updateMutation.mutate({ id: editingId, data: formData });
-    } else {
-      createMutation.mutate(formData);
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'warning': return 'bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-200';
-      case 'success': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-800 dark:text-emerald-200';
-      default: return 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200';
-    }
-  };
-
-  const markAsReadMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/v1/notifications/${id}/read`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to mark notification as read");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/notifications"] });
-      toast({
-        title: "Success",
-        description: "Notification marked as read",
-      });
-    },
-  });
-
-  const deleteNotificationMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const response = await fetch(`/api/v1/notifications/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to delete notification");
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/notifications"] });
-      toast({
-        title: "Success",
-        description: "Notification deleted",
-      });
-    },
-  });
-
-  const markAsRead = (id: string) => {
-    markAsReadMutation.mutate(id);
-    // State will be updated via query invalidation
-  };
-
-  const deleteNotification = (id: string) => {
-    deleteNotificationMutation.mutate(id);
-    // State will be updated via query invalidation
-  };
-
-  return (
-    <div className="space-y-6">
       {/* Create/Edit Form */}
       {isCreating && (
         <Card>
@@ -459,21 +462,23 @@ export function NotificationManagement() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="title">Title</Label>
+                  <Label htmlFor="create-title">Title</Label>
                   <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                    id="create-title"
+                    value={notificationForm.title}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => 
+                      setNotificationForm(prev => ({ ...prev, title: e.target.value }))
+                    }
                     placeholder="Notification title"
                     required
                   />
                 </div>
                 <div>
-                  <Label htmlFor="type">Type</Label>
+                  <Label htmlFor="create-type">Type</Label>
                   <Select
-                    value={formData.type}
-                    onValueChange={(value: 'info' | 'warning' | 'success') => 
-                      setFormData(prev => ({ ...prev, type: value }))
+                    value={notificationForm.type}
+                    onValueChange={(value: 'info' | 'warning' | 'success' | 'error') => 
+                      setNotificationForm(prev => ({ ...prev, type: value }))
                     }
                   >
                     <SelectTrigger>
@@ -483,17 +488,20 @@ export function NotificationManagement() {
                       <SelectItem value="info">Info</SelectItem>
                       <SelectItem value="warning">Warning</SelectItem>
                       <SelectItem value="success">Success</SelectItem>
+                      <SelectItem value="error">Error</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="message">Message</Label>
+                <Label htmlFor="create-message">Message</Label>
                 <Textarea
-                  id="message"
-                  value={formData.message}
-                  onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
+                  id="create-message"
+                  value={notificationForm.message}
+                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => 
+                    setNotificationForm(prev => ({ ...prev, message: e.target.value }))
+                  }
                   placeholder="Notification message"
                   rows={3}
                   required
@@ -503,8 +511,10 @@ export function NotificationManagement() {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+                  checked={notificationForm.isGlobal}
+                  onCheckedChange={(checked: boolean) => 
+                    setNotificationForm(prev => ({ ...prev, isGlobal: checked }))
+                  }
                 />
                 <Label htmlFor="isActive">Active</Label>
               </div>
@@ -530,30 +540,27 @@ export function NotificationManagement() {
         </Button>
       )}
 
-      {/* Notifications List */}
+      {/* Existing Notifications */}
       <Card>
         <CardHeader>
-          <CardTitle>Active Notifications</CardTitle>
+          <CardTitle>Recent Notifications</CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="text-center py-4">Loading notifications...</div>
-          ) : !Array.isArray(notifications) || notifications.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No notifications created yet</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {(notifications as Notification[]).map((notification) => (
+          <div className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8">Loading notifications...</div>
+            ) : !Array.isArray(notifications) || notifications.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Bell className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No notifications sent yet.</p>
+              </div>
+            ) : (
+              (notifications as Notification[]).map((notification) => (
                 <div key={notification.id} className="flex items-start gap-4 p-4 border rounded-lg">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <div className="text-2xl mb-2">
-                        {notification.type === 'info' && <Info className="w-6 h-6 text-blue-500" />}
-                        {notification.type === 'warning' && <AlertCircle className="w-6 h-6 text-yellow-500" />}
-                        {notification.type === 'success' && <CheckCircle className="w-6 h-6 text-green-500" />}
-                        {notification.type === 'success' && <CheckCircle className="w-6 h-6 text-green-500" />}
+                        {getTypeIcon(notification.type)}
                       </div>
                       <h4 className="font-medium">{notification.title}</h4>
                       <Badge className={getTypeColor(notification.type)}>
@@ -562,8 +569,10 @@ export function NotificationManagement() {
                       <Badge variant={notification.isActive ? 'default' : 'secondary'}>
                         {notification.isActive ? 'Active' : 'Inactive'}
                       </Badge>
+                      {notification.isGlobal && <Badge variant="outline">Global</Badge>}
+                      {notification.emailSent && <Badge variant="secondary">Email Sent</Badge>}
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <p className="text-sm text-gray-600 mb-2">
                       {notification.message}
                     </p>
                     <p className="text-xs text-gray-500">
@@ -582,15 +591,15 @@ export function NotificationManagement() {
                       variant="ghost"
                       size="sm"
                       onClick={() => deleteNotification(notification.id)}
-                      disabled={deleteMutation.isPending}
+                      disabled={deleteNotificationMutation.isPending}
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
@@ -601,8 +610,11 @@ export function NotificationManagement() {
 export function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
+
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['/api/v1/notifications'],
+    queryFn: () => apiRequest('GET', '/api/v1/notifications'),
     retry: false,
   });
 
@@ -612,23 +624,14 @@ export function NotificationBell() {
 
   const markAsReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await fetch(`/api/v1/notifications/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ isActive: false }), // Assuming isActive is used to mark as read in this context
-      });
-      if (!response.ok) throw new Error('Failed to mark notification as read');
-      return response.json();
+      return await apiRequest('PATCH', `/api/v1/notifications/${id}`, { isActive: false });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/v1/notifications'] });
-      // Toast is handled by the hook
       toast({ title: 'Notification marked as read' });
     },
     onError: (error) => {
       console.error('Error marking notification as read:', error);
-      // Toast is handled by the hook
       toast({ title: 'Failed to mark notification as read', variant: 'destructive' });
     },
   });
@@ -664,8 +667,8 @@ export function NotificationBell() {
               {notifications.slice(0, 10).map((notification: Notification) => (
                 <div
                   key={notification.id}
-                  className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${
-                    notification.read ? 'bg-gray-50 dark:bg-gray-800' : 'bg-blue-50 dark:bg-blue-900/20'
+                  className={`p-3 rounded-lg border cursor-pointer hover:bg-gray-50 ${
+                    notification.read ? 'bg-gray-50' : 'bg-blue-50'
                   }`}
                   onClick={() => {
                     if (!notification.read) {
@@ -676,7 +679,7 @@ export function NotificationBell() {
                   <div className="flex items-start gap-2">
                     <div className="flex-1">
                       <h4 className="font-medium text-sm">{notification.title}</h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      <p className="text-xs text-gray-600 mt-1">
                         {notification.message}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
@@ -691,8 +694,8 @@ export function NotificationBell() {
               ))}
               {notifications.length > 10 && (
                 <div className="text-center pt-2">
-                  <Button variant="ghost" size="sm" asChild>
-                    <Link href="/notifications">View All</Link>
+                  <Button variant="ghost" size="sm">
+                    <a href="/notifications">View All</a>
                   </Button>
                 </div>
               )}

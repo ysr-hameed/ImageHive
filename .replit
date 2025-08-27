@@ -243,3 +243,12 @@ args = "npm run dev"
 
 [agent]
 integrations = ["javascript_paypal==1.0.0", "javascript_auth_all_persistance==1.0.0", "javascript_log_in_with_replit==1.0.0", "javascript_database==1.0.0"]
+
+[rules]
+
+[rules.formatter]
+
+[rules.formatter.fileExtensions]
+
+[rules.formatter.fileExtensions.".tsx"]
+id = "module:web/languageServer:typescript-language-server"

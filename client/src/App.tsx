@@ -48,42 +48,6 @@ import NotFound from "./pages/not-found";
 
 const ApiDocs = lazy(() => import("./pages/docs").then(m => ({ default: m.default })));
 
-// Import all pages
-import Dashboard from "@/pages/dashboard";
-import Images from "@/pages/images";
-import Upload from "@/pages/upload";
-import Analytics from "@/pages/analytics";
-import ApiKeys from "@/pages/api-keys";
-import Settings from "@/pages/settings";
-import ApiUsage from "@/pages/api-usage";
-import Plans from "@/pages/plans";
-import Notifications from "@/pages/notifications";
-import Admin from "@/pages/admin";
-import Collections from "@/pages/collections";
-import Activity from "@/pages/activity";
-import Login from "@/pages/auth/login";
-import Register from "@/pages/auth/register";
-import ForgotPassword from "@/pages/auth/forgot-password";
-import ResetPassword from "@/pages/auth/reset-password";
-import VerifyEmail from "@/pages/auth/verify-email";
-import LandingPage from "@/pages/landing";
-import NotFound from "@/pages/not-found";
-import ApiDocs from "@/pages/docs";
-import Features from "@/pages/features";
-import About from "@/pages/about";
-import Blog from "@/pages/blog";
-import Careers from "@/pages/careers";
-import Press from "@/pages/press";
-import Contact from "@/pages/contact";
-import Help from "@/pages/help";
-import Community from "@/pages/community";
-import Guides from "@/pages/guides";
-import Privacy from "@/pages/privacy";
-import Terms from "@/pages/terms";
-import Status from "@/pages/status";
-import SDKs from "@/pages/sdks";
-import Docs from "@/pages/docs";
-
 function AppContent() {
   const { user, isLoading } = useAuth();
 
@@ -183,44 +147,6 @@ function AppContent() {
     );
   }
 
-  // If user is authenticated, show app with sidebar
-  if (user && !isAuthPage && !isPublicPage) {
-    return (
-      <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-gray-50 dark:bg-gray-900">
-          <AppSidebar />
-          <SidebarInset className="flex-1">
-            <div className="flex h-16 shrink-0 items-center gap-2 px-4 border-b bg-white dark:bg-slate-800">
-              <SidebarTrigger className="-ml-1" />
-              <div className="flex-1" />
-              <NotificationBell />
-              <ProfileMenu />
-            </div>
-            <main className="flex-1 overflow-auto">
-              <Suspense fallback={<FuturisticLoader variant="quantum" text="Loading..." />}>
-                <Switch>
-                  <Route path="/dashboard" component={Dashboard} />
-                  <Route path="/upload" component={Upload} />
-                  <Route path="/images" component={Images} />
-                  <Route path="/analytics" component={Analytics} />
-                  <Route path="/plans" component={Plans} />
-                  <Route path="/settings" component={Settings} />
-                  <Route path="/api-keys" component={ApiKeys} />
-                  <Route path="/notifications" component={Notifications} />
-                  <Route path="/collections" component={Collections} />
-                  <Route path="/activity" component={Activity} />
-                  <Route path="/admin" component={Admin} />
-                  <Route path="/api-usage" component={ApiUsage} />
-                  <Route path="/upgrade" component={Upgrade} />
-                  <Route component={NotFound} />
-                </Switch>
-              </Suspense>
-            </main>
-          </SidebarInset>
-        </div>
-      </SidebarProvider>
-    );
-  }
 
   // Public pages without sidebar (including auth pages)
   return (

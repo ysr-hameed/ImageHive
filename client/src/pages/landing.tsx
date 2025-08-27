@@ -1,3 +1,4 @@
+import { SEOHead, seoConfigs } from "@/components/seo-head";
 import Navigation from "@/components/navigation";
 import HeroSection from "@/components/hero-section";
 import FeaturesSection from "@/components/features-section";
@@ -39,6 +40,7 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <SEOHead {...seoConfigs.home} />
       <Navigation />
 
       {/* Welcome message for authenticated users */}

@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -356,7 +355,7 @@ export default function Admin() {
                 +{apiMetrics?.callsToday || 0} today
               </div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                 {metricsLoading ? '...' : `${apiMetrics?.successRate || stats?.successRate || 0}%`}
@@ -366,7 +365,7 @@ export default function Admin() {
                 Last 24h average
               </div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-3xl font-bold text-amber-600 dark:text-amber-400">
                 {metricsLoading ? '...' : `${apiMetrics?.avgResponseTime || stats?.responseTime || 0}ms`}
@@ -376,7 +375,7 @@ export default function Admin() {
                 P95: {apiMetrics?.p95ResponseTime || 0}ms
               </div>
             </div>
-            
+
             <div className="text-center">
               <div className="text-3xl font-bold text-red-600 dark:text-red-400">
                 {metricsLoading ? '...' : formatNumber(apiMetrics?.errorCount || 0)}
@@ -387,7 +386,7 @@ export default function Admin() {
               </div>
             </div>
           </div>
-          
+
           <div className="mt-6 pt-6 border-t border-gray-200 dark:border-slate-600">
             <h4 className="font-medium mb-3">Top API Endpoints (24h)</h4>
             <div className="space-y-2">
@@ -415,7 +414,7 @@ export default function Admin() {
       {/* System Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center">
             <Monitor className="w-5 h-5" />
             Real-time System Information
           </CardTitle>
@@ -991,7 +990,7 @@ export default function Admin() {
                     <Label htmlFor="notifTitle">Title</Label>
                     <Input id="notifTitle" placeholder="Important announcement..." />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="notifMessage">Message</Label>
                     <Textarea id="notifMessage" placeholder="Your message here..." rows={3} />

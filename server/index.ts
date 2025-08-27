@@ -85,8 +85,17 @@ async function startServer() {
       console.log('📝 To enable full functionality, set DATABASE_URL in your environment variables.');
     }
 
-    console.log('🎉 Server startup completed successfully!');
-  });
+    console.log(`🎉 Server startup completed successfully!`);
+
+  // Generate sitemap and robots.txt on startup
+  try {
+    const { generateSitemap, generateRobotsTxt } = await import('./sitemap');
+    await generateSitemap();
+    await generateRobotsTxt();
+  } catch (error) {
+    console.error('Failed to generate sitemap:', error);
+  }
+});
 
   server.on('error', (error: any) => {
     if (error.code === 'EADDRINUSE') {

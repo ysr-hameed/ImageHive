@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "wouter";
@@ -253,7 +252,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={location === item.url}
-                    className="w-full justify-start cursor-pointer"
+                    className="w-full justify-start cursor-pointer group-data-[collapsible=icon]:justify-center"
                     onClick={() => handleNavigation(item.url)}
                   >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -273,7 +272,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     isActive={location === item.url}
-                    className="w-full justify-start cursor-pointer"
+                    className="w-full justify-start cursor-pointer group-data-[collapsible=icon]:justify-center"
                     onClick={() => handleNavigation(item.url)}
                   >
                     <item.icon className="w-4 h-4 flex-shrink-0" />
@@ -293,7 +292,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     isActive={location === "/admin"}
-                    className="w-full justify-start cursor-pointer"
+                    className="w-full justify-start cursor-pointer group-data-[collapsible=icon]:justify-center"
                     onClick={() => handleNavigation("/admin")}
                   >
                     <Shield className="w-4 h-4 flex-shrink-0" />

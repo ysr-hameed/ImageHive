@@ -51,9 +51,9 @@ export default function Plans() {
       limitations: [],
       icon: Star,
       color: "blue",
-      buttonText: "Start 14-Day Free Trial",
+      buttonText: "Choose Plan",
       popular: false,
-      trial: true
+      trial: false
     },
     {
       id: "pro",
@@ -75,9 +75,9 @@ export default function Plans() {
       limitations: [],
       icon: Sparkles,
       color: "purple",
-      buttonText: "Start 14-Day Free Trial",
+      buttonText: "Choose Plan",
       popular: true,
-      trial: true
+      trial: false
     },
     {
       id: "business",
@@ -100,9 +100,9 @@ export default function Plans() {
       limitations: [],
       icon: Crown,
       color: "gold",
-      buttonText: "Start 14-Day Free Trial",
+      buttonText: "Choose Plan",
       popular: false,
-      trial: true
+      trial: false
     },
     {
       id: "enterprise",
@@ -199,8 +199,8 @@ export default function Plans() {
         {/* Pricing Cards */}
         <div className="grid lg:grid-cols-5 md:grid-cols-2 gap-6 mb-12">
           {plans.map((plan, index) => (
-            <Card 
-              key={index} 
+            <Card
+              key={index}
               className={`relative ${plan.popular ? 'border-2 border-purple-500 shadow-xl scale-105' : 'border shadow-lg'} hover:shadow-xl transition-all duration-300`}
             >
               {plan.popular && (
@@ -228,7 +228,7 @@ export default function Plans() {
               </CardHeader>
 
               <CardContent className="space-y-6">
-                <Button 
+                <Button
                   className={`w-full ${getButtonClass(plan.color, plan.popular)}`}
                   onClick={() => handlePlanSelect(plan)}
                 >

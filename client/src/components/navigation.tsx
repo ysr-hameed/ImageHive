@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ImageIcon, Menu, X, Zap, Shield, Globe, Rocket } from "lucide-react";
+import { useAuth } from '@/hooks/useAuth';
 
 // Mocking auth state for demonstration purposes
 // In a real app, you would use a context or hook to get this state

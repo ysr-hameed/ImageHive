@@ -121,44 +121,55 @@ export function FuturisticLoader({
       <div className={cn("flex flex-col items-center justify-center space-y-4", className)}>
         <div className="relative">
           <div className={cn("relative", sizeClasses[size])}>
-            {/* Quantum particles */}
-            {[...Array(12)].map((_, i) => (
+            {/* Holographic projection */}
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/20 via-purple-500/20 to-emerald-500/20 rounded-full animate-spin blur-sm" style={{ animationDuration: '6s' }}></div>
+            <div className="absolute inset-1 bg-gradient-to-r from-emerald-500/30 via-blue-500/30 to-purple-500/30 rounded-full animate-spin blur-xs" style={{ animationDuration: '4s', animationDirection: 'reverse' }}></div>
+            
+            {/* Central holographic core */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative">
+                <div className="w-6 h-6 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 rounded-full animate-pulse shadow-2xl shadow-cyan-500/60"></div>
+                <div className="absolute inset-0 w-6 h-6 bg-gradient-to-r from-purple-600 via-pink-500 to-cyan-400 rounded-full animate-ping opacity-30"></div>
+              </div>
+            </div>
+            
+            {/* Floating data particles */}
+            {[...Array(16)].map((_, i) => (
               <div
                 key={i}
-                className="absolute w-1 h-1 bg-gradient-to-r from-cyan-400 to-blue-600 rounded-full"
+                className="absolute w-1.5 h-1.5 rounded-full animate-bounce"
                 style={{
-                  left: `${20 + Math.random() * 60}%`,
-                  top: `${20 + Math.random() * 60}%`,
-                  animation: `quantumFloat 3s ease-in-out infinite ${i * 0.25}s`,
+                  background: `linear-gradient(45deg, hsl(${180 + i * 20}, 70%, 60%), hsl(${240 + i * 15}, 80%, 70%))`,
+                  left: `${15 + (i % 4) * 20}%`,
+                  top: `${15 + Math.floor(i / 4) * 20}%`,
+                  animationDelay: `${i * 0.15}s`,
+                  animationDuration: `${2 + (i % 3)}s`,
+                  boxShadow: `0 0 10px hsl(${180 + i * 20}, 70%, 60%)`
                 }}
               />
             ))}
-            {/* Central quantum core */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-4 h-4 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full animate-pulse shadow-lg shadow-cyan-500/50"></div>
+            
+            {/* Energy rings with holographic effect */}
+            <div className="absolute inset-0 border-2 border-gradient-to-r from-cyan-400/40 via-purple-400/40 to-emerald-400/40 rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
+            <div className="absolute inset-3 border-2 border-gradient-to-r from-purple-400/50 via-pink-400/50 to-cyan-400/50 rounded-full animate-spin" style={{ animationDuration: '6s', animationDirection: 'reverse' }}></div>
+            <div className="absolute inset-6 border-1 border-gradient-to-r from-emerald-400/60 via-blue-400/60 to-purple-400/60 rounded-full animate-spin" style={{ animationDuration: '4s' }}></div>
+            
+            {/* Holographic scan lines */}
+            <div className="absolute inset-0 overflow-hidden rounded-full">
+              <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-cyan-400/80 to-transparent animate-pulse" style={{ top: '25%', animationDelay: '0s' }}></div>
+              <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-purple-400/80 to-transparent animate-pulse" style={{ top: '50%', animationDelay: '1s' }}></div>
+              <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent animate-pulse" style={{ top: '75%', animationDelay: '2s' }}></div>
             </div>
-            {/* Energy rings */}
-            <div className="absolute inset-0 border-2 border-cyan-400/30 rounded-full animate-spin" style={{ animationDuration: '4s' }}></div>
-            <div className="absolute inset-2 border-2 border-blue-400/40 rounded-full animate-spin" style={{ animationDuration: '3s', animationDirection: 'reverse' }}></div>
           </div>
         </div>
         {text && (
           <div className={cn(
-            "font-medium bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent",
+            "font-medium bg-gradient-to-r from-cyan-400 via-purple-500 to-emerald-400 bg-clip-text text-transparent animate-pulse",
             textSizeClasses[size]
           )}>
             {text}
           </div>
         )}
-        <style dangerouslySetInnerHTML={{
-          __html: `
-            @keyframes quantumFloat {
-              0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.7; }
-              33% { transform: translate(10px, -10px) scale(1.2); opacity: 1; }
-              66% { transform: translate(-5px, 10px) scale(0.8); opacity: 0.5; }
-            }
-          `
-        }} />
       </div>
     );
   }

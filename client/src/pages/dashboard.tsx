@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { SidebarContentLoader } from "@/components/sidebar-content-loader";
 import { ImageGrid } from "@/components/image-grid";
 import EmailVerificationBanner from "@/components/email-verification-banner";
 import { NotificationBanner } from '@/components/notification-banner';
@@ -122,13 +121,12 @@ export default function Dashboard() {
       description: "You have been logged out.",
     });
     // Assuming useAuth provides a logout function:
-    // logout(); 
+    // logout();
     window.location.href = "/auth/login";
   };
 
   return (
-    <SidebarContentLoader showSidebar={true}>
-      <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
+    <div className="w-full max-w-none min-h-screen space-y-4 p-4 md:p-8">
       {/* Notifications */}
       <NotificationBanner />
 
@@ -432,7 +430,6 @@ export default function Dashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-      </div>
-    </SidebarContentLoader>
+    </div>
   );
 }

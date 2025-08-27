@@ -1,4 +1,3 @@
-
 import Navigation from "@/components/navigation";
 import HeroSection from "@/components/hero-section";
 import FeaturesSection from "@/components/features-section";
@@ -120,7 +119,7 @@ export default function Landing() {
         <AdminPanelPreview />
         <Footer />
       </main>
-      </div>
-    </SidebarContentLoader>
-  );
+    </div>
+  </SidebarContentLoader>
+);
 }

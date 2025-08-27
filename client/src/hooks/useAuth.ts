@@ -16,15 +16,16 @@ export function useAuth() {
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: hasToken,
     retry: (failureCount, error: any) => {
-      if (error?.message?.includes("401")) {
+      if (error?.message?.includes("401") || error?.message?.includes("403")) {
         localStorage.removeItem("token");
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1; // Reduced retry attempts
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    refetchOnMount: false, // Prevent immediate mount refetch
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Error handling is done in retry function above
   });
 
   const isAuthenticated = !!user && hasToken;

@@ -77,9 +77,9 @@ export default function HeroSection() {
                 className="w-full sm:w-auto px-6 sm:px-8 py-4 sm:py-5 text-base sm:text-lg lg:text-xl font-medium border-2 border-blue-200 hover:border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
                 data-testid="button-view-plans"
               >
-                <a href="/plans">
+                <Link href="/plans">
                   💎 View Plans
-                </a>
+                </Link>
               </Button>
             </div>
 

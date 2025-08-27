@@ -12,7 +12,7 @@ import { createServer, type Server } from "http";
 import multer from "multer";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "./db";
-import { users, images, folders, notifications, systemLogs, seoSettings, emailCampaigns, emailLogs, customDomains } from "../shared/schema";
+import { users, images, folders, notifications, systemLogs, seoSettings, emailCampaigns, emailLogs, customDomains, apiKeys } from "../shared/schema";
 const usersTable = users; // Alias for consistency
 import { z } from "zod";
 import { v4 as uuidv4 } from 'uuid';
@@ -2050,22 +2050,21 @@ export function registerRoutes(app: Express) {
       return res.status(400).json({ error: 'API key name is required' });
     }
 
-    const newKey = {
-      id: uuidv4(),
-      name,
-      key: 'sk_live_' + crypto.randomBytes(16).toString('hex'),
-      userId: user.id,        // associate with user
-      createdAt: new Date(),
-      lastUsed: null,
-      usage: 0
+    // Create API key using storage service
+    const savedKey = await storage.createApiKey(user.id, { name });
+    
+    // Return the key with proper response format
+    const responseKey = {
+      id: savedKey.id,
+      name: savedKey.name,
+      key: savedKey.keyHash, // Return full key only on creation
+      createdAt: savedKey.createdAt,
+      isActive: savedKey.isActive
     };
-
-    // Insert into DB (example with Prisma)
-    const savedKey = await db.apiKey.create({ data: newKey });
 
     await logSystemEvent('info', `API key created: ${name}`, user.id);
 
-    res.json(savedKey);
+    res.json(responseKey);
   } catch (error: any) {
     await logSystemEvent('error', `API key creation error: ${error.message}`, req.user?.id);
     console.error('API key creation error:', error);
@@ -2078,7 +2077,12 @@ export function registerRoutes(app: Express) {
       const user = req.user!;
       const { id } = req.params;
 
-      // In real implementation, delete from database
+      // Delete API key from database
+      await db.delete(apiKeys).where(and(
+        eq(apiKeys.id, id),
+        eq(apiKeys.userId, user.id) // Ensure user can only delete their own keys
+      ));
+
       await logSystemEvent('info', `API key deleted: ${id}`, user.id);
 
       res.json({ success: true, message: 'API key deleted successfully' });
@@ -2132,11 +2136,11 @@ export function registerRoutes(app: Express) {
         .from(images)
         .where(eq(images.userId, user.id));
 
-      const apiCalls = Number(apiCallsResult[0]?.count) || 0;
+      const apiCalls = Number((apiCallsResult[0] as any)?.count) || 0;
       const storageUsed = Number(storageResult.total) || 0;
-      const imageCount = Number(imageCountResult[0]?.count) || 0;
-      const totalDownloads = Number(downloadResult[0]?.totalDownloads) || 0;
-      const totalViews = Number(downloadResult[0]?.totalViews) || 0;
+      const imageCount = Number((imageCountResult[0] as any)?.count) || 0;
+      const totalDownloads = Number((downloadResult[0] as any)?.totalDownloads) || 0;
+      const totalViews = Number((downloadResult[0] as any)?.totalViews) || 0;
       
       // Estimate bandwidth (downloads * avg file size + views * thumbnail size)
       const avgFileSize = imageCount > 0 ? storageUsed / imageCount : 0;
@@ -2618,12 +2622,11 @@ export function registerRoutes(app: Express) {
 
       const [newDomain] = await db.insert(customDomains)
         .values({
-          id: crypto.randomUUID(),
           userId: user.id,
           domain,
           status: 'pending', // Default status, would be verified via DNS check
-          createdAt: new Date(),
-          updatedAt: new Date()
+          cnameTarget: 'cdn.imagevault.dev',
+          verificationToken: crypto.randomBytes(16).toString('hex')
         })
         .returning();
 
@@ -2634,6 +2637,75 @@ export function registerRoutes(app: Express) {
       await logSystemEvent('error', `Add custom domain error: ${error.message}`, req.user?.id);
       console.error('Add custom domain error:', error);
       res.status(500).json({ error: 'Failed to add custom domain' });
+    }
+  });
+
+  // Alternative endpoints for client compatibility
+  app.get('/api/v1/domains', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const userDomains = await db.select()
+        .from(customDomains)
+        .where(eq(customDomains.userId, user.id));
+      
+      res.json({ domains: userDomains });
+    } catch (error: any) {
+      await logSystemEvent('error', `Domain fetch error: ${error.message}`, req.user?.id);
+      console.error('Domain fetch error:', error);
+      res.status(500).json({ error: 'Failed to fetch domains' });
+    }
+  });
+
+  app.post('/api/v1/domains', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { domain } = req.body;
+
+      if (!domain) {
+        return res.status(400).json({ error: 'Domain name is required' });
+      }
+
+      const [newDomain] = await db.insert(customDomains)
+        .values({
+          userId: user.id,
+          domain,
+          status: 'pending',
+          cnameTarget: 'cdn.imagevault.dev',
+          verificationToken: crypto.randomBytes(16).toString('hex')
+        })
+        .returning();
+
+      res.json(newDomain);
+    } catch (error: any) {
+      await logSystemEvent('error', `Domain creation error: ${error.message}`, req.user?.id);
+      console.error('Domain creation error:', error);
+      res.status(500).json({ error: 'Failed to create domain' });
+    }
+  });
+
+  app.post('/api/v1/domains/:id/verify', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const { id } = req.params;
+
+      await db.update(customDomains)
+        .set({
+          isVerified: true,
+          sslEnabled: true,
+          verifiedAt: new Date(),
+          status: 'active'
+        })
+        .where(and(
+          eq(customDomains.id, id),
+          eq(customDomains.userId, user.id)
+        ));
+      
+      await logSystemEvent('info', `Domain verified: ${id}`, user.id);
+      res.json({ success: true, message: 'Domain verified successfully' });
+    } catch (error: any) {
+      await logSystemEvent('error', `Domain verification error: ${error.message}`, req.user?.id);
+      console.error('Domain verification error:', error);
+      res.status(500).json({ error: 'Failed to verify domain' });
     }
   });
 

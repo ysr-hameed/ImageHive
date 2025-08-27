@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye, Download, Trash2, Share2 } from 'lucide-react';
+import { Eye, Download, Trash2, Share2, Copy, Info } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface Image {
   id: string;
@@ -24,12 +25,30 @@ interface ImageGridProps {
 }
 
 export function ImageGrid({ images, onDelete, onView, isLoading }: ImageGridProps) {
+  const { toast } = useToast();
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({
+        title: 'URL Copied!',
+        description: 'Image URL has been copied to clipboard',
+      });
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: 'Failed to copy URL to clipboard',
+        variant: 'destructive',
+      });
+    }
   };
 
   if (isLoading) {
@@ -79,14 +98,25 @@ export function ImageGrid({ images, onDelete, onView, isLoading }: ImageGridProp
                   variant="secondary"
                   className="h-8 w-8 p-0"
                   onClick={() => onView?.(image)}
+                  title="View details"
                 >
-                  <Eye className="w-4 h-4" />
+                  <Info className="w-4 h-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-8 w-8 p-0"
+                  onClick={() => copyToClipboard(image.cdnUrl)}
+                  title="Copy URL"
+                >
+                  <Copy className="w-4 h-4" />
                 </Button>
                 <Button
                   size="sm"
                   variant="secondary"
                   className="h-8 w-8 p-0"
                   onClick={() => window.open(image.cdnUrl, '_blank')}
+                  title="Download"
                 >
                   <Download className="w-4 h-4" />
                 </Button>
@@ -96,6 +126,7 @@ export function ImageGrid({ images, onDelete, onView, isLoading }: ImageGridProp
                     variant="destructive"
                     className="h-8 w-8 p-0"
                     onClick={() => onDelete(image.id)}
+                    title="Delete"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>

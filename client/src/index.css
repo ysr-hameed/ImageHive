@@ -103,6 +103,19 @@
   .rounded-3xl {
     border-radius: calc(var(--radius) + 12px);
   }
+
+  /* Grid pattern background */
+  .bg-grid-slate-100 {
+    background-image: linear-gradient(rgba(148, 163, 184, 0.1) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(148, 163, 184, 0.1) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .bg-grid-slate-700\/25 {
+    background-image: linear-gradient(rgba(71, 85, 105, 0.25) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(71, 85, 105, 0.25) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
 }
 
 /* Responsive container fixes */

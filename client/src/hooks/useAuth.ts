@@ -87,7 +87,7 @@ export function useAuth(): AuthState & {
         return userData;
       } catch (error) {
         console.error('Auth query failed:', error);
-        
+
         // Log all auth errors for debugging
         if (error instanceof Error) {
           console.log('Auth error details:', {
@@ -95,7 +95,7 @@ export function useAuth(): AuthState & {
             stack: error.stack,
             timestamp: new Date().toISOString()
           });
-          
+
           if (error.message.includes('401') || error.message.includes('403')) {
             clearAuth();
           }
@@ -117,31 +117,33 @@ export function useAuth(): AuthState & {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
-      const requestBody = {
-        email: credentials.email.trim(),
-        password: credentials.password
-      };
+      try {
+          const response = await fetch("/api/v1/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              email: credentials.email?.trim() || "",
+              password: credentials.password?.trim() || ""
+            }),
+          });
 
-      const response = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify(requestBody),
-      });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: "Login failed" }));
+            throw new Error(errorData.error || "Login failed");
+          }
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
-        throw new Error(errorData.error || "Login failed");
-      }
-
-      const data = await response.json();
-      if (data.token) {
-        localStorage.setItem('authToken', data.token);
-      }
-
-      return data;
+          const data = await response.json();
+          if (data.token) {
+            localStorage.setItem('authToken', data.token);
+          }
+          return data;
+        } catch (error) {
+          console.error('Login request failed:', error);
+          throw error;
+        }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });

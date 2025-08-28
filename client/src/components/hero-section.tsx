@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,7 +17,7 @@ export default function HeroSection() {
     <section className="relative w-full min-h-[80vh] py-8 sm:py-12 lg:py-20 xl:py-28 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/30">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%229C92AC%22 fill-opacity=%220.05%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%221%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
 
-      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"></div>
+      <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center min-h-[60vh]">
           {/* Left Content */}
           <div className="text-center lg:text-left space-y-4 sm:space-y-6 animate-fade-in w-full">
@@ -96,7 +97,7 @@ export default function HeroSection() {
 
           {/* Right Content - Interactive API Demo */}
           <div className="relative animate-fade-in-up w-full order-first lg:order-last">
-            <div className="bg-gray-900 dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl p-3 sm:p-4 lg:p-6 font-mono text-xs overflow-x-auto border border-gray-700 backdrop-blur-sm bg-opacity-95 w-full"></div>
+            <div className="bg-gray-900 dark:bg-slate-800 rounded-xl sm:rounded-2xl shadow-xl sm:shadow-2xl p-3 sm:p-4 lg:p-6 font-mono text-xs overflow-x-auto border border-gray-700 backdrop-blur-sm bg-opacity-95 w-full">
               <div className="flex items-center space-x-2 mb-6">
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>

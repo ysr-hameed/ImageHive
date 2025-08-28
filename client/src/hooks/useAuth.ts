@@ -84,8 +84,7 @@ export function useAuth(): AuthState & {
 
         return await response.json();
       } catch (error) {
-        console.error("Auth query error:", error);
-        // Don't clear auth on network errors, only on auth errors
+        // Silently handle expected auth errors
         if (error instanceof Error && error.message.includes('401')) {
           clearAuth();
         }

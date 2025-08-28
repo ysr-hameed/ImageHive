@@ -19,6 +19,7 @@ import {
   Lock,
   Gauge
 } from 'lucide-react';
+import Navigation from '@/components/navigation';
 import HeroSection from '@/components/hero-section';
 import FeaturesSection from '@/components/features-section';
 import PricingSection from '@/components/pricing-section';
@@ -70,6 +71,7 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white via-gray-50/50 to-white dark:from-slate-900 dark:via-slate-900/95 dark:to-slate-900">
+      <Navigation />
       {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>

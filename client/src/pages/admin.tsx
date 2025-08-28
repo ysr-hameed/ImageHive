@@ -143,7 +143,7 @@ export default function Admin() {
     mutationFn: async ({ action, data }: { action: string; data?: any }) => {
       const response = await fetch(`/api/v1/admin/system/${action}`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
@@ -659,8 +659,8 @@ export default function Admin() {
                       />
                     </div>
                     <div className="text-xs text-gray-500 mt-1">
-                      {systemHealth?.freeMemory && systemHealth?.totalMemory ? 
-                        `${formatBytes(systemHealth.totalMemory - systemHealth.freeMemory)} / ${formatBytes(systemHealth.totalMemory)}` : 
+                      {systemHealth?.freeMemory && systemHealth?.totalMemory ?
+                        `${formatBytes(systemHealth.totalMemory - systemHealth.freeMemory)} / ${formatBytes(systemHealth.totalMemory)}` :
                         'Unknown'
                       }
                     </div>
@@ -689,8 +689,8 @@ export default function Admin() {
                         <span>Load Average</span>
                       </div>
                       <span>
-                        {systemHealth?.loadAverage ? 
-                          systemHealth.loadAverage.map(l => l.toFixed(2)).join(' / ') : 
+                        {systemHealth?.loadAverage ?
+                          systemHealth.loadAverage.map(l => l.toFixed(2)).join(' / ') :
                           '0.00 / 0.00 / 0.00'
                         }
                       </span>
@@ -1134,174 +1134,173 @@ export default function Admin() {
 
         {/* Settings */}
         <TabsContent value="settings" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Settings</CardTitle>
-                <CardDescription>
-                  Configure global system settings and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Trial Management Section */}
-                <div className="border rounded-lg p-4 space-y-4">
-                  <h4 className="font-semibold text-lg">Trial Management</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="starterTrial">Starter Plan Trial</Label>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="starterTrial"
-                          checked={systemSettings.starterTrialEnabled}
-                          onCheckedChange={(checked) => updateSettings({ starterTrialEnabled: checked })}
-                        />
-                        <span className="text-sm text-gray-600">
-                          {systemSettings.starterTrialEnabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="proTrial">Pro Plan Trial</Label>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="proTrial"
-                          checked={systemSettings.proTrialEnabled}
-                          onCheckedChange={(checked) => updateSettings({ proTrialEnabled: checked })}
-                        />
-                        <span className="text-sm text-gray-600">
-                          {systemSettings.proTrialEnabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="businessTrial">Business Plan Trial</Label>
-                      <div className="flex items-center space-x-2">
-                        <Switch
-                          id="businessTrial"
-                          checked={systemSettings.businessTrialEnabled}
-                          onCheckedChange={(checked) => updateSettings({ businessTrialEnabled: checked })}
-                        />
-                        <span className="text-sm text-gray-600">
-                          {systemSettings.businessTrialEnabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="trialDuration">Trial Duration (days)</Label>
-                      <Input
-                        id="trialDuration"
-                        type="number"
-                        value={systemSettings.trialDuration}
-                        onChange={(e) => updateSettings({ trialDuration: parseInt(e.target.value) })}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Basic Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>System Settings</CardTitle>
+              <CardDescription>
+                Configure global system settings and preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Trial Management Section */}
+              <div className="border rounded-lg p-4 space-y-4">
+                <h4 className="font-semibold text-lg">Trial Management</h4>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="maintenance">Maintenance Mode</Label>
+                    <Label htmlFor="starterTrial">Starter Plan Trial</Label>
                     <div className="flex items-center space-x-2">
                       <Switch
-                        id="maintenance"
-                        checked={systemSettings.maintenanceMode}
-                        onCheckedChange={(checked) => updateSettings({ maintenanceMode: checked })}
+                        id="starterTrial"
+                        checked={systemSettings.starterTrialEnabled}
+                        onCheckedChange={(checked) => updateSettings({ starterTrialEnabled: checked })}
                       />
                       <span className="text-sm text-gray-600">
-                        {systemSettings.maintenanceMode ? 'Enabled' : 'Disabled'}
+                        {systemSettings.starterTrialEnabled ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="registration">New Registration</Label>
+                    <Label htmlFor="proTrial">Pro Plan Trial</Label>
                     <div className="flex items-center space-x-2">
                       <Switch
-                        id="registration"
-                        checked={systemSettings.registrationEnabled}
-                        onCheckedChange={(checked) => updateSettings({ registrationEnabled: checked })}
+                        id="proTrial"
+                        checked={systemSettings.proTrialEnabled}
+                        onCheckedChange={(checked) => updateSettings({ proTrialEnabled: checked })}
                       />
                       <span className="text-sm text-gray-600">
-                        {systemSettings.registrationEnabled ? 'Enabled' : 'Disabled'}
+                        {systemSettings.proTrialEnabled ? 'Enabled' : 'Disabled'}
                       </span>
                     </div>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="maxFileSize">Max File Size (MB)</Label>
+                    <Label htmlFor="businessTrial">Business Plan Trial</Label>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="businessTrial"
+                        checked={systemSettings.businessTrialEnabled}
+                        onCheckedChange={(checked) => updateSettings({ businessTrialEnabled: checked })}
+                      />
+                      <span className="text-sm text-gray-600">
+                        {systemSettings.businessTrialEnabled ? 'Enabled' : 'Disabled'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="trialDuration">Trial Duration (days)</Label>
                     <Input
-                      id="maxFileSize"
+                      id="trialDuration"
                       type="number"
-                      value={systemSettings.maxFileSize}
-                      onChange={(e) => updateSettings({ maxFileSize: parseInt(e.target.value) })}
+                      value={systemSettings.trialDuration}
+                      onChange={(e) => updateSettings({ trialDuration: parseInt(e.target.value) })}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rateLimit">Rate Limiting</Label>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="rateLimit"
-                        checked={systemSettings.rateLimitEnabled}
-                        onCheckedChange={(checked) => updateSettings({ rateLimitEnabled: checked })}
-                      />
-                      <span className="text-sm text-gray-600">
-                        {systemSettings.rateLimitEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Mail className="w-5 h-5 mr-2" />
-                  Email Configuration
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpHost">SMTP Host</Label>
-                    <Input 
-                      id="smtpHost" 
-                      placeholder="smtp.gmail.com" 
-                      value={smtpSettings.host} 
-                      onChange={(e) => setSmtpSettings(prev => ({...prev, host: e.target.value}))}
+              {/* Basic Settings */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="maintenance">Maintenance Mode</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="maintenance"
+                      checked={systemSettings.maintenanceMode}
+                      onCheckedChange={(checked) => updateSettings({ maintenanceMode: checked })}
                     />
+                    <span className="text-sm text-gray-600">
+                      {systemSettings.maintenanceMode ? 'Enabled' : 'Disabled'}
+                    </span>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpPort">SMTP Port</Label>
-                    <Input 
-                      id="smtpPort" 
-                      placeholder="587" 
-                      type="number" 
-                      value={smtpSettings.port}
-                      onChange={(e) => setSmtpSettings(prev => ({...prev, port: parseInt(e.target.value)}))}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="smtpUser">SMTP Username</Label>
-                    <Input 
-                      id="smtpUser" 
-                      placeholder="your-email@gmail.com" 
-                      value={smtpSettings.username}
-                      onChange={(e) => setSmtpSettings(prev => ({...prev, username: e.target.value}))}
-                    />
-                  </div>
-
-                  <Button className="w-full" onClick={() => { /* TODO: Implement email test */ }}>
-                    <Mail className="w-4 h-4 mr-2" />
-                    Test Email Configuration
-                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+                <div className="space-y-2">
+                  <Label htmlFor="registration">New Registration</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="registration"
+                      checked={systemSettings.registrationEnabled}
+                      onCheckedChange={(checked) => updateSettings({ registrationEnabled: checked })}
+                    />
+                    <span className="text-sm text-gray-600">
+                      {systemSettings.registrationEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="maxFileSize">Max File Size (MB)</Label>
+                  <Input
+                    id="maxFileSize"
+                    type="number"
+                    value={systemSettings.maxFileSize}
+                    onChange={(e) => updateSettings({ maxFileSize: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="rateLimit">Rate Limiting</Label>
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="rateLimit"
+                      checked={systemSettings.rateLimitEnabled}
+                      onCheckedChange={(checked) => updateSettings({ rateLimitEnabled: checked })}
+                    />
+                    <span className="text-sm text-gray-600">
+                      {systemSettings.rateLimitEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Mail className="w-5 h-5 mr-2" />
+                Email Configuration
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="smtpHost">SMTP Host</Label>
+                  <Input
+                    id="smtpHost"
+                    placeholder="smtp.gmail.com"
+                    value={smtpSettings.host}
+                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, host: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="smtpPort">SMTP Port</Label>
+                  <Input
+                    id="smtpPort"
+                    placeholder="587"
+                    type="number"
+                    value={smtpSettings.port}
+                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, port: parseInt(e.target.value) }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="smtpUser">SMTP Username</Label>
+                  <Input
+                    id="smtpUser"
+                    placeholder="your-email@gmail.com"
+                    value={smtpSettings.username}
+                    onChange={(e) => setSmtpSettings(prev => ({ ...prev, username: e.target.value }))}
+                  />
+                </div>
+
+                <Button className="w-full" onClick={() => { /* TODO: Implement email test */ }}>
+                  <Mail className="w-4 h-4 mr-2" />
+                  Test Email Configuration
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Real System Logs */}
@@ -1315,8 +1314,8 @@ export default function Admin() {
                   <Badge className="ml-2 bg-green-100 text-green-800">Live</Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
+                  <Button
+                    size="sm"
                     variant="outline"
                     onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/v1/admin/logs"] })}
                   >

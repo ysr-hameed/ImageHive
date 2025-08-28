@@ -127,10 +127,13 @@ app.post('/api/v1/auth/login', async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
+        name: `${user.firstName} ${user.lastName}`,
         firstName: user.firstName,
         lastName: user.lastName,
         emailVerified: user.emailVerified,
-        isAdmin: user.isAdmin
+        isEmailVerified: user.emailVerified,
+        isAdmin: user.isAdmin,
+        createdAt: user.createdAt?.toISOString() || new Date().toISOString()
       }
     });
   } catch (error: any) {

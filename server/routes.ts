@@ -403,11 +403,13 @@ app.use(handleJsonError);
         user: {
           id: user.id,
           email: user.email,
+          name: `${user.firstName} ${user.lastName}`,
           firstName: user.firstName,
           lastName: user.lastName,
           emailVerified: user.emailVerified,
+          isEmailVerified: user.emailVerified,
           isAdmin: user.isAdmin,
-          createdAt: user.createdAt
+          createdAt: user.createdAt?.toISOString() || new Date().toISOString()
         }
       });
     } catch (error: any) {

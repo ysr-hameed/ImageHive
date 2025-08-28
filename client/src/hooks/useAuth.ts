@@ -82,7 +82,9 @@ export function useAuth(): AuthState & {
           throw new Error("Failed to fetch user");
         }
 
-        return await response.json();
+        const userData = await response.json();
+        console.log('✅ User data received:', userData);
+        return userData;
       } catch (error) {
         // Silently handle expected auth errors
         if (error instanceof Error && error.message.includes('401')) {

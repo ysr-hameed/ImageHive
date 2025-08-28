@@ -20,17 +20,17 @@ export default function Landing() {
 
   if (isLoading) {
     return (
-      <div className="fixed inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="min-h-screen w-full bg-white dark:bg-slate-900 flex items-center justify-center">
         <div className="text-center max-w-sm mx-auto px-6">
-          <div className="relative w-16 h-16 mx-auto mb-4">
+          <div className="relative w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4">
             <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
             <div className="absolute inset-0 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
             <div className="absolute inset-2 border-2 border-transparent border-t-blue-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Rocket className="w-6 h-6 text-blue-600" />
+              <Rocket className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
           </div>
-          <p className="text-lg font-semibold text-gray-700 dark:text-gray-300 animate-pulse">
+          <p className="text-base sm:text-lg font-semibold text-gray-700 dark:text-gray-300 animate-pulse">
             Loading ImageVault...
           </p>
         </div>
@@ -39,7 +39,7 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+    <div className="min-h-screen w-full bg-gray-50 dark:bg-slate-900 overflow-x-hidden">
       <SEOHead {...seoConfigs.home} />
       <Navigation />
 

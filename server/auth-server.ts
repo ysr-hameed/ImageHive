@@ -21,13 +21,13 @@ console.log(`🔧 Running Auth Server in ${process.env.NODE_ENV || 'development'
 
 // Middleware
 app.use(cors({
-  origin: true,
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://0.0.0.0:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-app.use(express.json({ limit: '10mb' })); // Original limit
-app.use(express.urlencoded({ extended: true })); // Original config
+app.use(express.json({ limit: '10mb', strict: true }));
+app.use(express.urlencoded({ extended: true }));
 
 // Health check
 app.get('/health', (req, res) => {

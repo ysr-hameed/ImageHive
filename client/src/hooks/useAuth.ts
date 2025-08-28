@@ -66,7 +66,10 @@ export function useAuth(): AuthState & {
           return null;
         }
 
-        const response = await fetch("/api/v1/auth/me", {
+        const response = await fetch("/api/v1/auth/user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
           credentials: "include",
         });
 
@@ -117,13 +120,12 @@ export function useAuth(): AuthState & {
         throw new Error(error.error || "Login failed");
       }
 
-      // Assuming the response contains the token
       const data = await response.json();
       if (data.token) {
         localStorage.setItem('authToken', data.token);
       }
 
-      return response.json();
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });

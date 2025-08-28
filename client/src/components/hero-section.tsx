@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -113,14 +112,14 @@ export default function HeroSection() {
                 <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 <span className="ml-4 text-gray-400 text-sm">api-demo.sh</span>
               </div>
-              
+
               <div className="text-green-400 space-y-2">
                 <div className="text-blue-300 mb-3"># Upload image via API</div>
                 <div>$ curl -X POST /api/upload \</div>
                 <div className="ml-4">-H "Authorization: Bearer your-api-key" \</div>
                 <div className="ml-4">-F "image=@photo.jpg" \</div>
                 <div className="ml-4 mb-4">-F "isPublic=true"</div>
-                
+
                 <div className="text-blue-300 mb-2"># Response</div>
                 <div className="text-cyan-300">
                   {"{"}
@@ -137,7 +136,7 @@ export default function HeroSection() {
                   <br />
                   {"}"}
                 </div>
-                
+
                 <div className="mt-4 text-emerald-400 text-sm">
                   <span className="animate-pulse">✅ Image uploaded successfully!</span>
                 </div>

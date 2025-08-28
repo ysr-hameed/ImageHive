@@ -44,8 +44,15 @@ console.log('🚀 Starting ImageVault Application');
 console.log('Environment:', import.meta.env.MODE);
 console.log('Base URL:', import.meta.env.BASE_URL);
 
+// Add global error handling for unhandled promise rejections
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('🚨 Unhandled Promise Rejection caught in App:', event.reason);
+  // Prevent the default browser behavior
+  event.preventDefault();
+});
+
 export default function App() {
-  console.log('✅ Root element found, creating React root...');
+  console.log('✅ App component initializing...');
   
   return (
     <ErrorBoundary>

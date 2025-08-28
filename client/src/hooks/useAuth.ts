@@ -11,21 +11,51 @@ export function useAuth() {
     data: user,
     isLoading,
     error,
-  } = useQuery<User>({
-    queryKey: ["/api/v1/auth/user"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    enabled: hasToken,
-    retry: (failureCount, error: any) => {
-      if (error?.message?.includes("401") || error?.message?.includes("403")) {
-        localStorage.removeItem("token");
+  } = useQuery({
+    queryKey: ["auth", "user"],
+    queryFn: async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          return null;
+        }
+
+        const response = await fetch("/api/v1/auth/me", {
+          credentials: "include",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            localStorage.removeItem("token");
+            return null;
+          }
+          const errorText = await response.text().catch(() => 'Unknown error');
+          throw new Error(`Auth failed: ${response.status} ${errorText}`);
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (error) {
+        console.error("Auth error:", error);
+        if (error instanceof Error && error.message.includes('401')) {
+          localStorage.removeItem("token");
+        }
+        return null;
+      }
+    },
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors
+      if (error?.message?.includes('401') || error?.message?.includes('Auth failed')) {
         return false;
       }
-      return failureCount < 1; // Reduced retry attempts
+      return failureCount < 2;
     },
     refetchOnWindowFocus: false,
-    refetchOnMount: false, // Prevent immediate mount refetch
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    // Error handling is done in retry function above
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const isAuthenticated = !!user && hasToken;

@@ -39,7 +39,7 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-gray-50 dark:bg-slate-900 overflow-x-hidden">
+    <div className="min-h-screen bg-white dark:bg-slate-900 overflow-x-hidden">
       <SEOHead {...seoConfigs.home} />
       <Navigation />
 

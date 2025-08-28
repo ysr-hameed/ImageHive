@@ -286,7 +286,19 @@ export function registerRoutes(app: Express) {
     }
   });
 
-  // Auth routes - standardized to /api/v1/ prefix
+  // Middleware to handle JSON parsing errors
+const handleJsonError = (err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    console.error('JSON parse error:', err.message, 'Body:', err.body);
+    return res.status(400).json({ error: 'Invalid JSON format in request body' });
+  }
+  next(err);
+};
+
+// Apply JSON error handler
+app.use(handleJsonError);
+
+// Auth routes - standardized to /api/v1/ prefix
   app.post('/api/v1/auth/register', async (req: Request, res: Response) => {
     try {
       const { firstName, lastName, email, password, acceptTerms, subscribeNewsletter } = req.body;

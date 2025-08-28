@@ -51,9 +51,9 @@ export default function Plans() {
       limitations: [],
       icon: Star,
       color: "blue",
-      buttonText: "Choose Plan",
+      buttonText: "Start 14-Day Trial",
       popular: false,
-      trial: false
+      trial: true
     },
     {
       id: "pro",
@@ -75,9 +75,9 @@ export default function Plans() {
       limitations: [],
       icon: Sparkles,
       color: "purple",
-      buttonText: "Choose Plan",
+      buttonText: "Start 14-Day Trial",
       popular: true,
-      trial: false
+      trial: true
     },
     {
       id: "business",
@@ -100,9 +100,9 @@ export default function Plans() {
       limitations: [],
       icon: Crown,
       color: "gold",
-      buttonText: "Choose Plan",
+      buttonText: "Start 14-Day Trial",
       popular: false,
-      trial: false
+      trial: true
     },
     {
       id: "enterprise",
@@ -166,13 +166,45 @@ export default function Plans() {
       return;
     }
 
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/auth/register';
+      return;
+    }
+
+    // If plan has trial, start trial instead of payment
+    if (plan.trial) {
+      try {
+        const response = await fetch(`/api/v1/plans/${plan.id}/trial`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to start trial');
+        }
+
+        const result = await response.json();
+        alert(`${plan.name} trial started successfully! Trial ends on ${new Date(result.trialEndsAt).toLocaleDateString()}`);
+        window.location.href = '/dashboard';
+        return;
+      } catch (error) {
+        console.error('Trial start error:', error);
+        // Fallback to payment flow
+      }
+    }
+
     try {
       // Create payment session
       const response = await fetch('/api/v1/payments/create-session', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           planId: plan.id,

@@ -105,18 +105,23 @@ export function useAuth(): AuthState & {
   // Login mutation
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginCredentials) => {
+      const requestBody = {
+        email: credentials.email.trim(),
+        password: credentials.password
+      };
+
       const response = await fetch("/api/v1/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         credentials: "include",
-        body: JSON.stringify(credentials),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Login failed");
+        const errorData = await response.json().catch(() => ({ error: 'Login failed' }));
+        throw new Error(errorData.error || "Login failed");
       }
 
       const data = await response.json();

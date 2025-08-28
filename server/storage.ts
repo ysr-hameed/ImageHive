@@ -630,20 +630,28 @@ class Storage {
   private getPlanLimits(plan: string) {
     const planLimits = {
       free: {
-        storageLimit: 1024 * 1024 * 1024, // 1GB
-        apiRequestsLimit: 1000
+        storageLimit: 2 * 1024 * 1024 * 1024, // 2GB - matches frontend
+        apiRequestsLimit: 5000,
+        imagesLimit: 100,
+        foldersLimit: 5
       },
       starter: {
-        storageLimit: 10 * 1024 * 1024 * 1024, // 10GB
-        apiRequestsLimit: 10000
+        storageLimit: 25 * 1024 * 1024 * 1024, // 25GB
+        apiRequestsLimit: 25000,
+        imagesLimit: 1000,
+        foldersLimit: 20
       },
       pro: {
         storageLimit: 100 * 1024 * 1024 * 1024, // 100GB
-        apiRequestsLimit: 100000
+        apiRequestsLimit: 100000,
+        imagesLimit: 10000,
+        foldersLimit: 100
       },
       enterprise: {
-        storageLimit: 1024 * 1024 * 1024 * 1024, // 1TB
-        apiRequestsLimit: 1000000
+        storageLimit: 500 * 1024 * 1024 * 1024, // 500GB
+        apiRequestsLimit: 1000000,
+        imagesLimit: 100000,
+        foldersLimit: 1000
       }
     };
     return planLimits[plan as keyof typeof planLimits] || planLimits.free;

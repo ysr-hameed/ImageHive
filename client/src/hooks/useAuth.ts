@@ -6,6 +6,9 @@ interface User {
   id: string;
   email: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
+  plan?: string;
   isEmailVerified: boolean;
   isAdmin: boolean;
   createdAt: string;
@@ -30,6 +33,7 @@ interface RegisterData {
 }
 
 export function useAuth(): AuthState & {
+  isAuthenticated: boolean;
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
@@ -139,6 +143,7 @@ export function useAuth(): AuthState & {
 
   return {
     user: user || null,
+    isAuthenticated: !!user,
     isLoading: isLoading || loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending,
     isError: isError,
     error: error,

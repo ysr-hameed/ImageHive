@@ -154,7 +154,7 @@ export class BackblazeB2Service {
             return acc;
           }, {} as Record<string, string>),
         },
-        body: buffer,
+        body: buffer as any,
       });
 
       if (!response.ok) {

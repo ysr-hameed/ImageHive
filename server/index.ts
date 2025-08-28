@@ -75,36 +75,50 @@ async function startServer() {
     // Determine if email and backblaze are configured for logging
     const emailConfigured = process.env.GMAIL_USER && process.env.GMAIL_PASS && process.env.GMAIL_HOST && process.env.GMAIL_PORT;
     const backblazeConfigured = process.env.BACKBLAZE_KEY_ID && process.env.BACKBLAZE_APPLICATION_KEY && process.env.BACKBLAZE_BUCKET_ID;
+    const isDatabaseConfigured = process.env.DATABASE_URL;
 
-    console.log(`📧 Email service: ${emailConfigured ? '✅ Configured' : '❌ Not configured'}`);
-    console.log(`🗄️  PostgreSQL Database: ${process.env.DATABASE_URL ? '✅ Connected' : '❌ Not configured'}`);
-    console.log(`☁️  Backblaze: ${backblazeConfigured ? '✅ Configured' : '❌ Not configured'}`);
+    console.log('📧 Email service:', emailConfigured ? '✅ Configured' : '❌ Not configured');
+    console.log('🗄️  PostgreSQL Database:', isDatabaseConfigured ? '✅ Connected' : '❌ Not configured');
+    console.log('☁️  Backblaze:', process.env.BACKBLAZE_APPLICATION_KEY_ID ? '✅ Configured' : '❌ Not configured');
 
-    if (!process.env.DATABASE_URL) {
-      console.log('⚠️  Warning: DATABASE_URL not set. Using fallback mode.');
-      console.log('📝 To enable full functionality, set DATABASE_URL in your environment variables.');
-    }
+    // Log system information
+    const systemInfo = {
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      pid: process.pid,
+      memory: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      uptime: Math.round(process.uptime()) + 's'
+    };
 
-    console.log(`🎉 Server startup completed successfully!`);
+    console.log('💻 System Info:', JSON.stringify(systemInfo, null, 2));
+    console.log('🎉 Server startup completed successfully!');
 
-  // Generate sitemap on startup
-  (async () => {
-    try {
-      const { generateSitemap } = await import('./sitemap');
-      generateSitemap().then((result) => {
-        if (result.success) {
-          console.log('✅ Sitemap generated successfully at:', result.path);
-        } else {
-          console.log('Failed to generate sitemap:', result.error);
-        }
-      }).catch(err => {
-        console.log('Failed to generate sitemap:', err.message);
+    // Set up process error handlers
+    process.on('uncaughtException', (error) => {
+      console.error('🚨 Uncaught Exception:', error);
+      console.error('Stack:', error.stack);
+      // Don't exit, just log the error
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      console.error('🚨 Unhandled Rejection at:', promise);
+      console.error('Reason:', reason);
+    });
+
+    // Log memory usage periodically
+    setInterval(() => {
+      const memUsage = process.memoryUsage();
+      const formatMB = (bytes: number) => Math.round(bytes / 1024 / 1024) + 'MB';
+
+      console.log('💾 Memory Usage:', {
+        rss: formatMB(memUsage.rss),
+        heapTotal: formatMB(memUsage.heapTotal),
+        heapUsed: formatMB(memUsage.heapUsed),
+        external: formatMB(memUsage.external)
       });
-    } catch (error) {
-      console.error('Failed to generate sitemap:', error);
-    }
-  })();
-});
+    }, 60000); // Log every minute
+  });
 
   server.on('error', (error: any) => {
     if (error.code === 'EADDRINUSE') {

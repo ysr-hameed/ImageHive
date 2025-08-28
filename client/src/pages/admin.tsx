@@ -1566,10 +1566,11 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </div>
+      </TabsContent>
 
-        {/* Real System Logs */}
-        <TabsContent value="logs">
+      {/* Real System Logs */}
+      <TabsContent value="logs">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">

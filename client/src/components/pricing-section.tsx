@@ -158,3 +158,4 @@ export function PricingSection() {
 }
 
 export default PricingSection;
+export { PricingSection };

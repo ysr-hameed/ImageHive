@@ -86,9 +86,19 @@ export function useAuth(): AuthState & {
         console.log('✅ User data received:', userData);
         return userData;
       } catch (error) {
-        // Silently handle expected auth errors
-        if (error instanceof Error && error.message.includes('401')) {
-          clearAuth();
+        console.error('Auth query failed:', error);
+        
+        // Log all auth errors for debugging
+        if (error instanceof Error) {
+          console.log('Auth error details:', {
+            message: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+          });
+          
+          if (error.message.includes('401') || error.message.includes('403')) {
+            clearAuth();
+          }
         }
         return null;
       }

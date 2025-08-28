@@ -198,7 +198,7 @@ export function PageLoader({ text = "Initializing ImageVault...", variant = "min
           <span className="flex items-center space-x-1">
             <div className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
             <span>CDN</span>
-          </div>
+          </span>
         </div>
       </div>
     </div>

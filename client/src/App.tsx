@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Router, Routes, Route } from "wouter";
+import { Router, Route, Switch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
@@ -47,7 +47,7 @@ export default function App() {
         <QueryClientProvider client={queryClient}>
           <SidebarProvider>
             <Router>
-              <Routes>
+              <Switch>
                 {/* Auth Routes */}
                 <Route path="/auth/login" component={Login} />
                 <Route path="/auth/register" component={Register} />
@@ -83,7 +83,7 @@ export default function App() {
 
                 {/* 404 */}
                 <Route component={NotFound} />
-              </Routes>
+              </Switch>
             </Router>
           </SidebarProvider>
           <Toaster />

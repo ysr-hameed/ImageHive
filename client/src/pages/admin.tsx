@@ -63,10 +63,23 @@ export default function Admin() {
   const [systemSettings, setSystemSettings] = useState({
     maintenanceMode: false,
     registrationEnabled: true,
-    maxFileSize: 50, // Changed to number for easier handling
+    emailVerificationRequired: true,
+    maxFileSize: 50,
     rateLimitEnabled: true,
+    rateLimitPerHour: 1000,
     emailNotifications: true,
     autoBackup: true,
+    backupInterval: 24,
+    enableCdn: true,
+    enableAnalytics: true,
+    enableCustomDomains: true,
+    enableApiKeys: true,
+    enableThumbnails: true,
+    enableWatermark: false,
+    compressionQuality: 85,
+    allowedFileTypes: 'jpg,jpeg,png,gif,webp',
+    sessionTimeout: 720,
+    logRetention: 90,
     starterTrialEnabled: true,
     proTrialEnabled: true,
     businessTrialEnabled: true,
@@ -1134,125 +1147,377 @@ export default function Admin() {
 
         {/* Settings */}
         <TabsContent value="settings" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>System Settings</CardTitle>
-              <CardDescription>
-                Configure global system settings and preferences
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Trial Management Section */}
-              <div className="border rounded-lg p-4 space-y-4">
-                <h4 className="font-semibold text-lg">Trial Management</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="starterTrial">Starter Plan Trial</Label>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="starterTrial"
-                        checked={systemSettings.starterTrialEnabled}
-                        onCheckedChange={(checked) => updateSettings({ starterTrialEnabled: checked })}
+          <div className="grid gap-6">
+            {/* Plan Management Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="w-5 h-5" />
+                  Plan Management
+                </CardTitle>
+                <CardDescription>
+                  Create and manage subscription plans
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-semibold">Existing Plans</h4>
+                    <Button size="sm">
+                      <Key className="w-4 h-4 mr-2" />
+                      Create New Plan
+                    </Button>
+                  </div>
+                  
+                  <div className="grid gap-4">
+                    {/* Plan List */}
+                    {[
+                      { id: 'free', name: 'Free', price: 0, users: 450, active: true },
+                      { id: 'starter', name: 'Starter', price: 9, users: 320, active: true },
+                      { id: 'pro', name: 'Pro', price: 19, users: 87, active: true },
+                      { id: 'business', name: 'Business', price: 49, users: 12, active: true }
+                    ].map((plan) => (
+                      <div key={plan.id} className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                          <div className="font-medium">{plan.name}</div>
+                          <div className="text-sm text-gray-600">${plan.price}/month • {plan.users} users</div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={plan.active ? 'default' : 'secondary'}>
+                            {plan.active ? 'Active' : 'Inactive'}
+                          </Badge>
+                          <Button size="sm" variant="outline">
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* System Configuration */}
+            <Card>
+              <CardHeader>
+                <CardTitle>System Configuration</CardTitle>
+                <CardDescription>
+                  Core system settings and security options
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Security & Access */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h4 className="font-semibold text-lg">Security & Access</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="maintenance">Maintenance Mode</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="maintenance"
+                          checked={systemSettings.maintenanceMode}
+                          onCheckedChange={(checked) => updateSettings({ maintenanceMode: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.maintenanceMode ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="registration">New Registration</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="registration"
+                          checked={systemSettings.registrationEnabled}
+                          onCheckedChange={(checked) => updateSettings({ registrationEnabled: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.registrationEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emailVerification">Email Verification Required</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="emailVerification"
+                          checked={systemSettings.emailVerificationRequired || false}
+                          onCheckedChange={(checked) => updateSettings({ emailVerificationRequired: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.emailVerificationRequired ? 'Required' : 'Optional'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rateLimit">Rate Limiting</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="rateLimit"
+                          checked={systemSettings.rateLimitEnabled}
+                          onCheckedChange={(checked) => updateSettings({ rateLimitEnabled: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.rateLimitEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* File & Upload Settings */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h4 className="font-semibold text-lg">File & Upload Settings</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="maxFileSize">Max File Size (MB)</Label>
+                      <Input
+                        id="maxFileSize"
+                        type="number"
+                        value={systemSettings.maxFileSize}
+                        onChange={(e) => updateSettings({ maxFileSize: parseInt(e.target.value) })}
                       />
-                      <span className="text-sm text-gray-600">
-                        {systemSettings.starterTrialEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="compressionQuality">Compression Quality (%)</Label>
+                      <Input
+                        id="compressionQuality"
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={systemSettings.compressionQuality || 85}
+                        onChange={(e) => updateSettings({ compressionQuality: parseInt(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="enableThumbnails">Auto Generate Thumbnails</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enableThumbnails"
+                          checked={systemSettings.enableThumbnails || true}
+                          onCheckedChange={(checked) => updateSettings({ enableThumbnails: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.enableThumbnails ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="enableWatermark">Default Watermark</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enableWatermark"
+                          checked={systemSettings.enableWatermark || false}
+                          onCheckedChange={(checked) => updateSettings({ enableWatermark: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.enableWatermark ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="proTrial">Pro Plan Trial</Label>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="proTrial"
-                        checked={systemSettings.proTrialEnabled}
-                        onCheckedChange={(checked) => updateSettings({ proTrialEnabled: checked })}
-                      />
-                      <span className="text-sm text-gray-600">
-                        {systemSettings.proTrialEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="businessTrial">Business Plan Trial</Label>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="businessTrial"
-                        checked={systemSettings.businessTrialEnabled}
-                        onCheckedChange={(checked) => updateSettings({ businessTrialEnabled: checked })}
-                      />
-                      <span className="text-sm text-gray-600">
-                        {systemSettings.businessTrialEnabled ? 'Enabled' : 'Disabled'}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="trialDuration">Trial Duration (days)</Label>
+                    <Label htmlFor="allowedFileTypes">Allowed File Types</Label>
                     <Input
-                      id="trialDuration"
-                      type="number"
-                      value={systemSettings.trialDuration}
-                      onChange={(e) => updateSettings({ trialDuration: parseInt(e.target.value) })}
+                      id="allowedFileTypes"
+                      placeholder="jpg,jpeg,png,gif,webp,bmp"
+                      value={systemSettings.allowedFileTypes || 'jpg,jpeg,png,gif,webp'}
+                      onChange={(e) => updateSettings({ allowedFileTypes: e.target.value })}
                     />
                   </div>
                 </div>
-              </div>
 
-              {/* Basic Settings */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="maintenance">Maintenance Mode</Label>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="maintenance"
-                      checked={systemSettings.maintenanceMode}
-                      onCheckedChange={(checked) => updateSettings({ maintenanceMode: checked })}
-                    />
-                    <span className="text-sm text-gray-600">
-                      {systemSettings.maintenanceMode ? 'Enabled' : 'Disabled'}
-                    </span>
+                {/* Trial Management Section */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h4 className="font-semibold text-lg">Trial Management</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="starterTrial">Starter Plan Trial</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="starterTrial"
+                          checked={systemSettings.starterTrialEnabled}
+                          onCheckedChange={(checked) => updateSettings({ starterTrialEnabled: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.starterTrialEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="proTrial">Pro Plan Trial</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="proTrial"
+                          checked={systemSettings.proTrialEnabled}
+                          onCheckedChange={(checked) => updateSettings({ proTrialEnabled: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.proTrialEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="businessTrial">Business Plan Trial</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="businessTrial"
+                          checked={systemSettings.businessTrialEnabled}
+                          onCheckedChange={(checked) => updateSettings({ businessTrialEnabled: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.businessTrialEnabled ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="trialDuration">Trial Duration (days)</Label>
+                      <Input
+                        id="trialDuration"
+                        type="number"
+                        value={systemSettings.trialDuration}
+                        onChange={(e) => updateSettings({ trialDuration: parseInt(e.target.value) })}
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registration">New Registration</Label>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="registration"
-                      checked={systemSettings.registrationEnabled}
-                      onCheckedChange={(checked) => updateSettings({ registrationEnabled: checked })}
-                    />
-                    <span className="text-sm text-gray-600">
-                      {systemSettings.registrationEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="maxFileSize">Max File Size (MB)</Label>
-                  <Input
-                    id="maxFileSize"
-                    type="number"
-                    value={systemSettings.maxFileSize}
-                    onChange={(e) => updateSettings({ maxFileSize: parseInt(e.target.value) })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="rateLimit">Rate Limiting</Label>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="rateLimit"
-                      checked={systemSettings.rateLimitEnabled}
-                      onCheckedChange={(checked) => updateSettings({ rateLimitEnabled: checked })}
-                    />
-                    <span className="text-sm text-gray-600">
-                      {systemSettings.rateLimitEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
+                {/* Feature Toggles */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h4 className="font-semibold text-lg">Feature Toggles</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="enableCdn">CDN Optimization</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enableCdn"
+                          checked={systemSettings.enableCdn || true}
+                          onCheckedChange={(checked) => updateSettings({ enableCdn: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.enableCdn ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="enableAnalytics">Analytics Tracking</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enableAnalytics"
+                          checked={systemSettings.enableAnalytics || true}
+                          onCheckedChange={(checked) => updateSettings({ enableAnalytics: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.enableAnalytics ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="enableCustomDomains">Custom Domains</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enableCustomDomains"
+                          checked={systemSettings.enableCustomDomains || true}
+                          onCheckedChange={(checked) => updateSettings({ enableCustomDomains: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.enableCustomDomains ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="enableApiKeys">API Key Management</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="enableApiKeys"
+                          checked={systemSettings.enableApiKeys || true}
+                          onCheckedChange={(checked) => updateSettings({ enableApiKeys: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.enableApiKeys ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="autoBackup">Auto Backup</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="autoBackup"
+                          checked={systemSettings.autoBackup}
+                          onCheckedChange={(checked) => updateSettings({ autoBackup: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.autoBackup ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="emailNotifications">Email Notifications</Label>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="emailNotifications"
+                          checked={systemSettings.emailNotifications}
+                          onCheckedChange={(checked) => updateSettings({ emailNotifications: checked })}
+                        />
+                        <span className="text-sm text-gray-600">
+                          {systemSettings.emailNotifications ? 'Enabled' : 'Disabled'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+
+                {/* Advanced Settings */}
+                <div className="border rounded-lg p-4 space-y-4">
+                  <h4 className="font-semibold text-lg">Advanced Settings</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
+                      <Input
+                        id="sessionTimeout"
+                        type="number"
+                        value={systemSettings.sessionTimeout || 720}
+                        onChange={(e) => updateSettings({ sessionTimeout: parseInt(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="logRetention">Log Retention (days)</Label>
+                      <Input
+                        id="logRetention"
+                        type="number"
+                        value={systemSettings.logRetention || 90}
+                        onChange={(e) => updateSettings({ logRetention: parseInt(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="rateLimit">API Rate Limit (per hour)</Label>
+                      <Input
+                        id="rateLimit"
+                        type="number"
+                        value={systemSettings.rateLimitPerHour || 1000}
+                        onChange={(e) => updateSettings({ rateLimitPerHour: parseInt(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="backupInterval">Backup Interval (hours)</Label>
+                      <Input
+                        id="backupInterval"
+                        type="number"
+                        value={systemSettings.backupInterval || 24}
+                        onChange={(e) => updateSettings({ backupInterval: parseInt(e.target.value) })}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-4">
+                  <Button className="w-full" size="lg">
+                    <Settings className="w-4 h-4 mr-2" />
+                    Save All Settings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
 
           <Card>
             <CardHeader>

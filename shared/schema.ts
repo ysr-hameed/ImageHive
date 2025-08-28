@@ -213,5 +213,80 @@ export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
 export type CustomDomain = typeof customDomains.$inferSelect;
 export type NewCustomDomain = typeof customDomains.$inferInsert;
+// Admin Settings Table
+export const adminSettings = pgTable('admin_settings', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  key: varchar('key', { length: 100 }).unique().notNull(),
+  value: jsonb('value').notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 50 }).default('general'),
+  isPublic: boolean('is_public').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+// Plan Management Table
+export const planSettings = pgTable('plan_settings', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  planId: varchar('plan_id', { length: 50 }).unique().notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  displayName: varchar('display_name', { length: 100 }).notNull(),
+  price: integer('price').notNull(), // in cents
+  currency: varchar('currency', { length: 3 }).default('USD'),
+  period: varchar('period', { length: 20 }).default('month'), // month, year
+  description: text('description'),
+  features: jsonb('features').default([]),
+  limits: jsonb('limits').default({}), // storage, images, api calls etc
+  isActive: boolean('is_active').default(true),
+  isPopular: boolean('is_popular').default(false),
+  trialDays: integer('trial_days').default(0),
+  sortOrder: integer('sort_order').default(0),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
+// System Configuration Table
+export const systemConfig = pgTable('system_config', {
+  id: uuid('id').primaryKey().default(sql`gen_random_uuid()`),
+  maintenanceMode: boolean('maintenance_mode').default(false),
+  registrationEnabled: boolean('registration_enabled').default(true),
+  emailVerificationRequired: boolean('email_verification_required').default(true),
+  maxFileSize: bigint('max_file_size', { mode: 'number' }).default(52428800), // 50MB in bytes
+  allowedFileTypes: jsonb('allowed_file_types').default(['jpg', 'jpeg', 'png', 'gif', 'webp']),
+  rateLimitEnabled: boolean('rate_limit_enabled').default(true),
+  rateLimitPerHour: integer('rate_limit_per_hour').default(1000),
+  enableCdn: boolean('enable_cdn').default(true),
+  enableAnalytics: boolean('enable_analytics').default(true),
+  enableNotifications: boolean('enable_notifications').default(true),
+  autoBackupEnabled: boolean('auto_backup_enabled').default(false),
+  autoBackupInterval: integer('auto_backup_interval').default(24), // hours
+  compressionQuality: integer('compression_quality').default(85),
+  enableWatermark: boolean('enable_watermark').default(false),
+  defaultWatermarkText: varchar('default_watermark_text', { length: 100 }).default('ImageVault'),
+  enableThumbnails: boolean('enable_thumbnails').default(true),
+  thumbnailSizes: jsonb('thumbnail_sizes').default(['150x150', '300x300', '500x500']),
+  enableImageOptimization: boolean('enable_image_optimization').default(true),
+  enableCustomDomains: boolean('enable_custom_domains').default(true),
+  enableApiKeys: boolean('enable_api_keys').default(true),
+  sessionTimeout: integer('session_timeout').default(720), // minutes
+  enableOauth: boolean('enable_oauth').default(true),
+  enablePasswordReset: boolean('enable_password_reset').default(true),
+  logRetentionDays: integer('log_retention_days').default(90),
+  enableEncryption: boolean('enable_encryption').default(false),
+  enableImageEditor: boolean('enable_image_editor').default(false),
+  enableBulkOperations: boolean('enable_bulk_operations').default(true),
+  enableRecycleBin: boolean('enable_recycle_bin').default(true),
+  recycleBinRetentionDays: integer('recycle_bin_retention_days').default(30),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
 export type ImageAnalytic = typeof imageAnalytics.$inferSelect;
 export type NewImageAnalytic = typeof imageAnalytics.$inferInsert;
+export type AdminSetting = typeof adminSettings.$inferSelect;
+export type NewAdminSetting = typeof adminSettings.$inferInsert;
+export type PlanSetting = typeof planSettings.$inferSelect;
+export type NewPlanSetting = typeof planSettings.$inferInsert;
+export type SystemConfig = typeof systemConfig.$inferSelect;
+export type NewSystemConfig = typeof systemConfig.$inferInsert;

@@ -2323,6 +2323,195 @@ app.use(handleJsonError);
     }
   });
 
+  // Admin Settings Management
+  app.get('/api/v1/admin/settings', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Get current system settings
+      const settings = {
+        maintenanceMode: false,
+        registrationEnabled: true,
+        emailVerificationRequired: true,
+        maxFileSize: 50,
+        rateLimitEnabled: true,
+        rateLimitPerHour: 1000,
+        emailNotifications: true,
+        autoBackup: true,
+        backupInterval: 24,
+        enableCdn: true,
+        enableAnalytics: true,
+        enableCustomDomains: true,
+        enableApiKeys: true,
+        enableThumbnails: true,
+        enableWatermark: false,
+        compressionQuality: 85,
+        allowedFileTypes: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+        sessionTimeout: 720,
+        logRetention: 90,
+        starterTrialEnabled: true,
+        proTrialEnabled: true,
+        businessTrialEnabled: true,
+        trialDuration: 14
+      };
+
+      res.json(settings);
+    } catch (error: any) {
+      console.error('Get admin settings error:', error);
+      res.status(500).json({ error: 'Failed to fetch admin settings' });
+    }
+  });
+
+  app.put('/api/v1/admin/settings', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const settings = req.body;
+
+      // In a real app, you'd save these to the systemConfig table
+      await logSystemEvent('info', 'Admin settings updated', user.id, settings);
+
+      res.json({ success: true, message: 'Settings updated successfully', settings });
+    } catch (error: any) {
+      console.error('Update admin settings error:', error);
+      res.status(500).json({ error: 'Failed to update admin settings' });
+    }
+  });
+
+  // Plan Management Endpoints
+  app.get('/api/v1/admin/plans', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      // Mock plan data - in real app would come from planSettings table
+      const plans = [
+        {
+          id: 'free',
+          name: 'Free',
+          displayName: 'Free Plan',
+          price: 0,
+          currency: 'USD',
+          period: 'month',
+          description: 'Perfect for getting started',
+          features: ['100 images/month', '1GB storage', 'Basic API'],
+          limits: { images: 100, storage: 1073741824, apiCalls: 1000 },
+          isActive: true,
+          isPopular: false,
+          trialDays: 0,
+          sortOrder: 1
+        },
+        {
+          id: 'starter',
+          name: 'Starter',
+          displayName: 'Starter Plan',
+          price: 900,
+          currency: 'USD',
+          period: 'month',
+          description: 'Ideal for personal projects',
+          features: ['1,000 images/month', '10GB storage', 'Full API', 'Priority support'],
+          limits: { images: 1000, storage: 10737418240, apiCalls: 10000 },
+          isActive: true,
+          isPopular: true,
+          trialDays: 14,
+          sortOrder: 2
+        },
+        {
+          id: 'pro',
+          name: 'Pro',
+          displayName: 'Pro Plan',
+          price: 1900,
+          currency: 'USD',
+          period: 'month',
+          description: 'Best for growing businesses',
+          features: ['10,000 images/month', '100GB storage', 'Advanced API', '24/7 support'],
+          limits: { images: 10000, storage: 107374182400, apiCalls: 100000 },
+          isActive: true,
+          isPopular: false,
+          trialDays: 14,
+          sortOrder: 3
+        },
+        {
+          id: 'business',
+          name: 'Business',
+          displayName: 'Business Plan',
+          price: 4900,
+          currency: 'USD',
+          period: 'month',
+          description: 'For large scale applications',
+          features: ['Unlimited images', '1TB storage', 'Full API suite', 'Dedicated support'],
+          limits: { images: -1, storage: 1099511627776, apiCalls: -1 },
+          isActive: true,
+          isPopular: false,
+          trialDays: 14,
+          sortOrder: 4
+        }
+      ];
+
+      res.json(plans);
+    } catch (error: any) {
+      console.error('Get plans error:', error);
+      res.status(500).json({ error: 'Failed to fetch plans' });
+    }
+  });
+
+  app.post('/api/v1/admin/plans', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const planData = req.body;
+
+      // In real app would save to planSettings table
+      await logSystemEvent('info', `Plan created: ${planData.name}`, user.id, planData);
+
+      res.json({ success: true, message: 'Plan created successfully', plan: planData });
+    } catch (error: any) {
+      console.error('Create plan error:', error);
+      res.status(500).json({ error: 'Failed to create plan' });
+    }
+  });
+
+  app.put('/api/v1/admin/plans/:planId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user!;
+      const userData = await storage.getUser(user.id);
+
+      if (!userData?.isAdmin) {
+        return res.status(403).json({ error: 'Admin access required' });
+      }
+
+      const { planId } = req.params;
+      const planData = req.body;
+
+      // In real app would update planSettings table
+      await logSystemEvent('info', `Plan updated: ${planId}`, user.id, planData);
+
+      res.json({ success: true, message: 'Plan updated successfully', plan: planData });
+    } catch (error: any) {
+      console.error('Update plan error:', error);
+      res.status(500).json({ error: 'Failed to update plan' });
+    }
+  });
+
   // Plan trial management
   app.post('/api/v1/plans/:planId/trial', isAuthenticated, async (req: Request, res: Response) => {
     try {

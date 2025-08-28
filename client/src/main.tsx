@@ -1,12 +1,12 @@
-import { createRoot } from "react-dom/client";
-import App from "./App";
-import "./index.css";
 
-console.log("🚀 Starting ImageVault Application");
+import React from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.tsx";
+import "./index.css";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
-  throw new Error("Root element not found");
+  throw new Error("Failed to find the root element");
 }
 
 const root = createRoot(rootElement);

@@ -41,10 +41,6 @@ import Privacy from "@/pages/privacy";
 import NotFound from "@/pages/not-found";
 
 export default function App() {
-  React.useEffect(() => {
-    console.log('✅ App component mounted successfully');
-  }, []);
-  
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light" storageKey="imagevault-ui-theme">

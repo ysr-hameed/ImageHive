@@ -1,137 +1,150 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { User } from "@shared/schema";
-import { getQueryFn } from "@/lib/queryClient";
 
-export function useAuth() {
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  isEmailVerified: boolean;
+  isAdmin: boolean;
+  createdAt: string;
+}
+
+interface AuthState {
+  user: User | null;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+}
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
+interface RegisterData {
+  email: string;
+  password: string;
+  name: string;
+}
+
+export function useAuth(): AuthState & {
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+  refetch: () => Promise<any>;
+} {
   const queryClient = useQueryClient();
-  const hasToken = !!localStorage.getItem("token");
+  const [, navigate] = useLocation();
 
-  // Fetch user only if token exists
+  // Get current user
   const {
     data: user,
     isLoading,
+    isError,
     error,
-  } = useQuery({
-    queryKey: ["auth", "user"],
+    refetch,
+  } = useQuery<User | null>({
+    queryKey: ["auth"],
     queryFn: async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          return null;
-        }
-
         const response = await fetch("/api/v1/auth/me", {
           credentials: "include",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
         });
 
         if (!response.ok) {
           if (response.status === 401) {
-            localStorage.removeItem("token");
-            return null;
+            return null; // Not logged in
           }
-          const errorText = await response.text().catch(() => 'Unknown error');
-          throw new Error(`Auth failed: ${response.status} ${errorText}`);
+          throw new Error("Failed to fetch user");
         }
 
-        const data = await response.json();
-        return data;
+        return await response.json();
       } catch (error) {
-        console.error("Auth error:", error);
-        if (error instanceof Error && error.message.includes('401')) {
-          localStorage.removeItem("token");
-        }
+        console.error("Auth query error:", error);
         return null;
       }
     },
-    retry: (failureCount, error) => {
-      // Don't retry on auth errors
-      if (error?.message?.includes('401') || error?.message?.includes('Auth failed')) {
-        return false;
-      }
-      return failureCount < 2;
-    },
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: false,
   });
 
-  const isAuthenticated = !!user && hasToken;
+  // Login mutation
+  const loginMutation = useMutation({
+    mutationFn: async (credentials: LoginCredentials) => {
+      const response = await fetch("/api/v1/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(credentials),
+      });
 
-  // ---------------------------
-  // Auth functions
-  // ---------------------------
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Login failed");
+      }
 
-  const register = async (userData: {
-    firstName: string;
-    lastName: string;
-    email: string;
-    password: string;
-    acceptTerms: boolean;
-    subscribeNewsletter?: boolean;
-  }) => {
-    const response = await fetch("/api/v1/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(userData),
-    });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      navigate("/dashboard");
+    },
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Registration failed");
-    }
+  // Register mutation
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterData) => {
+      const response = await fetch("/api/v1/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
 
-    return response.json();
-  };
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Registration failed");
+      }
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch("/api/v1/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      navigate("/dashboard");
+    },
+  });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Login failed");
-    }
+  // Logout mutation
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/v1/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
 
-    const result = await response.json();
-    if (result.token) {
-      localStorage.setItem("token", result.token);
-      queryClient.invalidateQueries({ queryKey: ["/api/v1/auth/user"] });
-    }
-    return result;
-  };
+      if (!response.ok) {
+        throw new Error("Logout failed");
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData(["auth"], null);
+      navigate("/");
+    },
+  });
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    queryClient.clear();
-    window.location.href = "/";
-  };
-
-  const loginWithGoogle = () => {
-    window.location.href = "/api/v1/auth/google";
-  };
-
-  const loginWithGitHub = () => {
-    window.location.href = "/api/v1/auth/github";
-  };
-
-  // ---------------------------
-  // Return state & methods
-  // ---------------------------
   return {
-    user,
-    isLoading,
-    isAuthenticated,
-    error,
-    register,
-    login,
-    logout,
-    loginWithGoogle,
-    loginWithGitHub,
+    user: user || null,
+    isLoading: isLoading || loginMutation.isPending || registerMutation.isPending || logoutMutation.isPending,
+    isError: isError,
+    error: error,
+    login: loginMutation.mutateAsync,
+    register: registerMutation.mutateAsync,
+    logout: logoutMutation.mutateAsync,
+    refetch,
   };
 }

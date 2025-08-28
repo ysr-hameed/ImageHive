@@ -10,11 +10,11 @@ export default function SimpleLanding() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
-        <div className="text-center">
+      <div className="fixed inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="text-center max-w-sm mx-auto px-6">
           <div className="relative w-16 h-16 mx-auto mb-4">
             <div className="absolute inset-0 border-4 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-            <div className="absolute inset-2 border-4 border-blue-600 border-t-transparent rounded-full animate-spin animation-delay-150"></div>
+            <div className="absolute inset-2 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
             <Rocket className="absolute inset-0 w-6 h-6 m-auto text-blue-600" />
           </div>
           <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">

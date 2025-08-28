@@ -20,18 +20,18 @@ export default function Landing() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          {/* Updated loader component */}
-          <div className="relative w-24 h-24">
-            <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-400 rounded-full animate-spin-slow"></div>
-            <div className="absolute top-0 left-0 w-full h-full border-4 border-transparent rounded-full animate-spin-fast [animation-delay:-0.5s]"></div>
+      <div className="fixed inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="text-center max-w-sm mx-auto px-6">
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-2 border-2 border-transparent border-t-blue-400 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Rocket className="w-8 h-8 text-blue-600" />
+              <Rocket className="w-6 h-6 text-blue-600" />
             </div>
           </div>
-          <p className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-300 animate-pulse">
-            Launching ImageVault...
+          <p className="text-lg font-semibold text-gray-700 dark:text-gray-300 animate-pulse">
+            Loading ImageVault...
           </p>
         </div>
       </div>

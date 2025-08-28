@@ -1,429 +1,204 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  BookOpen,
-  Search,
-  Code,
-  Upload,
-  Download,
-  Settings,
-  Key,
+
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Link } from 'wouter';
+import Navigation from '@/components/navigation';
+import Footer from '@/components/footer';
+import { 
+  ArrowLeft, 
+  Search, 
+  Book, 
+  Code, 
+  Terminal, 
+  Zap, 
+  Shield, 
   Globe,
-  Zap,
-  Shield,
+  Download,
   ExternalLink,
   Copy,
-  Check,
-  FileText,
-  Image,
-  Layers,
-  Sliders
-} from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-// Import Prism for syntax highlighting
-import Prism from 'prismjs';
-import 'prismjs/themes/prism-tomorrow.css';
-import 'prismjs/components/prism-bash';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-json';
-import 'prismjs/components/prism-typescript';
+  CheckCircle
+} from 'lucide-react';
 
 export default function Docs() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [activeSection, setActiveSection] = useState('getting-started');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [copiedCode, setCopiedCode] = useState('');
 
-  // Initialize Prism syntax highlighting
-  useEffect(() => {
-    Prism.highlightAll();
-  }, []);
-
-  const copyToClipboard = (code: string, id: string) => {
-    navigator.clipboard.writeText(code);
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
     setCopiedCode(id);
-    toast({
-      title: "Copied to clipboard",
-      description: "Code copied successfully!",
-    });
-    setTimeout(() => setCopiedCode(null), 2000);
+    setTimeout(() => setCopiedCode(''), 2000);
   };
 
-  const CodeBlock = ({ code, language, id }: { code: string, language: string, id: string }) => (
-    <div className="relative">
-      <div className="flex items-center justify-between bg-gray-100 dark:bg-slate-800 px-4 py-2 rounded-t-lg">
-        <Badge variant="secondary" className="text-xs">{language}</Badge>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => copyToClipboard(code, id)}
-          className="h-8 w-8 p-0"
-        >
-          {copiedCode === id ? (
-            <Check className="h-4 w-4 text-green-600" />
-          ) : (
-            <Copy className="h-4 w-4" />
-          )}
-        </Button>
-      </div>
-      <pre className="bg-gray-50 dark:bg-slate-900 p-4 rounded-b-lg overflow-x-auto text-sm">
-        <code className={`language-${language}`}>{code}</code>
-      </pre>
-    </div>
-  );
-
-  const sidebarItems = [
-    { id: "getting-started", title: "Getting Started", icon: BookOpen },
-    { id: "upload-forms", title: "Upload Forms", icon: Upload },
-    { id: "enhanced-upload", title: "Enhanced Upload", icon: Layers },
-    { id: "authentication", title: "Authentication", icon: Key },
-    { id: "upload-api", title: "Upload API", icon: Upload },
-    { id: "image-api", title: "Image Management", icon: Download },
-    { id: "transforms", title: "Image Transforms", icon: Sliders },
-    { id: "webhooks", title: "Webhooks", icon: Globe },
-    { id: "sdks", title: "SDKs & Libraries", icon: Code },
-    { id: "rate-limits", title: "Rate Limits", icon: Shield },
-    { id: "examples", title: "Code Examples", icon: Zap },
+  const sections = [
+    { id: 'getting-started', title: 'Getting Started', icon: Book },
+    { id: 'authentication', title: 'Authentication', icon: Shield },
+    { id: 'upload-api', title: 'Upload API', icon: Zap },
+    { id: 'image-management', title: 'Image Management', icon: Globe },
+    { id: 'sdks', title: 'SDKs & Libraries', icon: Code },
+    { id: 'examples', title: 'Code Examples', icon: Terminal }
   ];
 
-  const [activeSection, setActiveSection] = useState("getting-started");
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
-      <div className="flex">
-        {/* Sidebar */}
-        <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white dark:bg-slate-800 border-r border-gray-200 dark:border-slate-700">
-          <div className="flex-1 flex flex-col min-h-0 pt-5 pb-4">
-            <div className="flex items-center flex-shrink-0 px-4">
-              <BookOpen className="w-8 h-8 text-blue-600" />
-              <h1 className="ml-2 text-xl font-bold text-gray-900 dark:text-white">Documentation</h1>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Navigation />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href="/">
+            <Button variant="ghost" className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
+          </Link>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+                API Documentation
+              </h1>
+              <p className="text-lg text-gray-600 dark:text-gray-300">
+                Everything you need to integrate ImageVault into your applications
+              </p>
             </div>
-            <div className="mt-5 flex-1 px-4">
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search docs..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <nav className="space-y-1">
-                {sidebarItems.map((item) => (
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Search documentation..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-8">
+              <nav className="space-y-2">
+                {sections.map((section) => (
                   <button
-                    key={item.id}
-                    onClick={() => setActiveSection(item.id)}
-                    className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      activeSection === item.id
-                        ? "bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-slate-700 dark:hover:text-white"
+                    key={section.id}
+                    onClick={() => setActiveSection(section.id)}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 text-left rounded-lg transition-colors ${
+                      activeSection === section.id
+                        ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                        : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
                     }`}
                   >
-                    <item.icon className="mr-3 w-5 h-5" />
-                    {item.title}
+                    <section.icon className="w-4 h-4" />
+                    <span className="font-medium">{section.title}</span>
                   </button>
                 ))}
               </nav>
             </div>
           </div>
-        </div>
 
-        {/* Main Content */}
-        <div className="md:pl-64 flex flex-col w-0 flex-1">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Main Content */}
+          <div className="lg:col-span-3">
             {/* Getting Started */}
-            {activeSection === "getting-started" && (
+            {activeSection === 'getting-started' && (
               <div className="space-y-8">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Getting Started</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Welcome to ImageVault API documentation. Get started with our powerful image hosting and management platform.
+                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                    Quick start guide to using the ImageVault API
                   </p>
                 </div>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Quick Start</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="w-5 h-5 text-blue-600" />
+                      Quick Setup
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">1. Get Your API Key</h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        First, you'll need to get your API key from the dashboard.
+                    <div className="space-y-2">
+                      <h4 className="font-semibold">1. Get Your API Key</h4>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        Sign up for an account and generate your API key from the dashboard.
                       </p>
-                      <Button asChild>
-                        <a href="/api-keys">Get API Key</a>
-                      </Button>
                     </div>
-
-                    <Separator />
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">2. Base URL</h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-2">All API requests should be made to:</p>
-                      <CodeBlock 
-                        code="https://api.imagevault.io/v1"
-                        language="url"
-                        id="base-url"
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">3. Authentication</h3>
-                      <p className="text-gray-600 dark:text-gray-400 mb-2">Include your API key in the Authorization header:</p>
-                      <CodeBlock 
-                        code={`Authorization: Bearer YOUR_API_KEY`}
-                        language="http"
-                        id="auth-header"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Upload Forms Overview */}
-            {activeSection === "upload-forms" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Upload Forms</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    ImageVault provides multiple upload form components to suit different needs and complexity levels.
-                  </p>
-                </div>
-
-                <div className="grid gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Layers className="w-5 h-5" />
-                        Enhanced Upload Form
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        The complete upload component with advanced transformations, effects, and premium features.
-                      </p>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2">Features:</h4>
-                          <ul className="text-xs space-y-1 text-gray-600">
-                            <li>• Drag & drop upload</li>
-                            <li>• Image transformations</li>
-                            <li>• Effects & filters</li>
-                            <li>• Premium features</li>
-                            <li>• Metadata management</li>
-                            <li>• Real-time preview</li>
-                            <li>• Quality settings</li>
-                            <li>• Format conversion</li>
-                            <li>• Progress tracking</li>
-                          </ul>
+                    <div className="space-y-2">
+                      <h4 className="font-semibold">2. Make Your First Request</h4>
+                      <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-gray-400 text-sm">cURL</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToClipboard('curl -X POST https://api.imagevault.app/upload \\\n  -H "Authorization: Bearer YOUR_API_KEY" \\\n  -F "image=@photo.jpg"', 'quick-curl')}
+                          >
+                            {copiedCode === 'quick-curl' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </Button>
                         </div>
-                        <div>
-                          <h4 className="font-semibold text-sm mb-2">Use Cases:</h4>
-                          <ul className="text-xs space-y-1 text-gray-600">
-                            <li>• Professional workflows</li>
-                            <li>• Content creators</li>
-                            <li>• E-commerce</li>
-                            <li>• Advanced users</li>
-                            <li>• Bulk uploads</li>
-                            <li>• API integration</li>
-                          </ul>
-                        </div>
+                        <code className="text-green-400 text-sm">
+{`curl -X POST https://api.imagevault.app/upload \\
+  -H "Authorization: Bearer YOUR_API_KEY" \\
+  -F "image=@photo.jpg"`}
+                        </code>
                       </div>
-                      <Button asChild size="sm">
-                        <a href="#enhanced-upload">View Details</a>
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            )}
-
-            {/* Enhanced Upload Form */}
-            {activeSection === "enhanced-upload" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Enhanced Upload Form</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    The most comprehensive upload component with advanced features for professional workflows.
-                  </p>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Component Import</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CodeBlock 
-                      code={`import { EnhancedUploadForm } from '@/components/enhanced-upload-form';
-
-function MyPage() {
-  return (
-    <div>
-      <EnhancedUploadForm />
-    </div>
-  );
-}`}
-                      language="typescript"
-                      id="enhanced-import"
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Features & Tabs</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Metadata Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Image title and custom filename</li>
-                        <li>• Folder organization</li>
-                        <li>• Alt text for accessibility</li>
-                        <li>• Tags and descriptions</li>
-                        <li>• Privacy settings</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Transforms Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Width and height resizing</li>
-                        <li>• Format conversion (JPEG, PNG, WebP, AVIF)</li>
-                        <li>• Quality adjustment (1-100%)</li>
-                        <li>• Rotation controls</li>
-                        <li>• Blur, brightness, contrast, saturation</li>
-                        <li>• Grayscale and sharpen effects</li>
-                        <li>• Watermark application (Pro/Enterprise)</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Optimization Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Compression strategies (lossless, balanced, aggressive)</li>
-                        <li>• Color space selection (sRGB, Adobe RGB, P3, Rec.2020)</li>
-                        <li>• DPI settings (72-300)</li>
-                        <li>• Auto enhancement</li>
-                        <li>• Thumbnail generation</li>
-                        <li>• Progressive loading</li>
-                        <li>• EXIF data stripping</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Effects Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Blur effects (0-100%)</li>
-                        <li>• Brightness adjustment (0-200%)</li>
-                        <li>• Contrast control (0-200%)</li>
-                        <li>• Saturation tuning (0-200%)</li>
-                        <li>• Sharpen filter</li>
-                        <li>• Grayscale conversion</li>
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Premium Tab</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• Custom watermark text</li>
-                        <li>• Watermark opacity (0-100%)</li>
-                        <li>• Watermark positioning</li>
-                        <li>• Auto backup to cloud</li>
-                        <li>• File encryption</li>
-                        <li>• Priority processing</li>
-                      </ul>
                     </div>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>API Integration</CardTitle>
+                    <CardTitle>Base URL</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      The Enhanced Upload Form automatically handles all API requests to:
-                    </p>
-                    <CodeBlock 
-                      code={`POST /api/v1/images/upload
-
-FormData includes:
-- image: File blob
-- title: Image title
-- description: Image description
-- folder: Folder path
-- altText: Alternative text
-- tags: Comma-separated tags
-- isPublic: Privacy setting
-- transform_*: Transform parameters
-- meta_*: Metadata fields
-- watermark_*: Watermark settings (Pro/Enterprise)`}
-                      language="http"
-                      id="enhanced-api"
-                    />
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <code className="text-blue-700 dark:text-blue-300 font-mono">
+                        https://api.imagevault.app
+                      </code>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
             )}
 
             {/* Authentication */}
-            {activeSection === "authentication" && (
+            {activeSection === 'authentication' && (
               <div className="space-y-8">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Authentication</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Learn how to authenticate your API requests securely.
+                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                    All API requests require authentication using API keys
                   </p>
                 </div>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>API Key Authentication</CardTitle>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="w-5 h-5 text-green-600" />
+                      API Key Authentication
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-gray-600 dark:text-gray-400">
-                      ImageVault uses API key authentication. Include your API key in the Authorization header of every request.
+                      Include your API key in the Authorization header of every request:
                     </p>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Example Request</h3>
-                      <CodeBlock 
-                        code={`curl -X POST "https://api.imagevault.io/v1/images/upload" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -H "Content-Type: multipart/form-data" \\
-  -F "image=@/path/to/image.jpg"`}
-                        language="bash"
-                        id="auth-example"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">JavaScript Example</h3>
-                      <CodeBlock 
-                        code={`const response = await fetch('/api/v1/images/upload', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY'
-  },
-  body: formData,
-  credentials: 'include'
-});
-
-const data = await response.json();`}
-                        language="javascript"
-                        id="auth-js"
-                      />
+                    <div className="bg-gray-900 rounded-lg p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400 text-sm">HTTP Header</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard('Authorization: Bearer YOUR_API_KEY', 'auth-header')}
+                        >
+                          {copiedCode === 'auth-header' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      <code className="text-green-400">
+                        Authorization: Bearer YOUR_API_KEY
+                      </code>
                     </div>
                   </CardContent>
                 </Card>
@@ -431,94 +206,70 @@ const data = await response.json();`}
             )}
 
             {/* Upload API */}
-            {activeSection === "upload-api" && (
+            {activeSection === 'upload-api' && (
               <div className="space-y-8">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Upload API</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Upload images to ImageVault using our RESTful API.
+                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                    Upload and manage your images via our RESTful API
                   </p>
                 </div>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Upload Single Image</CardTitle>
+                    <CardTitle>POST /api/upload</CardTitle>
+                    <Badge variant="secondary">multipart/form-data</Badge>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-6">
                     <div>
-                      <Badge variant="secondary" className="mb-2">POST</Badge>
-                      <code className="ml-2 text-sm bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">
-                        /api/v1/images/upload
-                      </code>
+                      <h4 className="font-semibold mb-2">Parameters</h4>
+                      <div className="space-y-2">
+                        <div className="flex gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                          <code className="text-blue-600 font-mono">image</code>
+                          <span className="text-gray-600 dark:text-gray-400">File - The image to upload</span>
+                        </div>
+                        <div className="flex gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                          <code className="text-blue-600 font-mono">isPublic</code>
+                          <span className="text-gray-600 dark:text-gray-400">Boolean - Make image publicly accessible</span>
+                        </div>
+                        <div className="flex gap-4 p-2 bg-gray-50 dark:bg-gray-800 rounded">
+                          <code className="text-blue-600 font-mono">folder</code>
+                          <span className="text-gray-600 dark:text-gray-400">String - Optional folder path</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-semibold mb-2">Request</h3>
-                      <CodeBlock 
-                        code={`curl -X POST "/api/v1/images/upload" \\
+                      <h4 className="font-semibold mb-2">Example Request</h4>
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-green-400 text-sm">
+{`curl -X POST https://api.imagevault.app/api/upload \\
   -H "Authorization: Bearer YOUR_API_KEY" \\
-  -F "image=@/path/to/image.jpg" \\
-  -F "title=My Image" \\
-  -F "description=A beautiful image" \\
-  -F "tags=nature,landscape" \\
+  -F "image=@photo.jpg" \\
   -F "isPublic=true" \\
-  -F "quality=85" \\
-  -F "format=webp"`}
-                        language="bash"
-                        id="upload-curl"
-                      />
+  -F "folder=uploads/2024"`}
+                        </code>
+                      </div>
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-semibold mb-2">JavaScript Example</h3>
-                      <CodeBlock 
-                        code={`const formData = new FormData();
-formData.append('image', fileInput.files[0]);
-formData.append('title', 'My Image');
-formData.append('description', 'A beautiful image');
-formData.append('tags', 'nature,landscape');
-formData.append('isPublic', 'true');
-formData.append('quality', '85');
-formData.append('format', 'webp');
-
-const response = await fetch('/api/v1/images/upload', {
-  method: 'POST',
-  headers: {
-    'Authorization': 'Bearer YOUR_API_KEY'
-  },
-  body: formData,
-  credentials: 'include'
-});
-
-const result = await response.json();`}
-                        language="javascript"
-                        id="upload-js"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Response</h3>
-                      <CodeBlock 
-                        code={`{
+                      <h4 className="font-semibold mb-2">Example Response</h4>
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-cyan-300 text-sm">
+{`{
   "success": true,
-  "data": {
-    "id": "img_12345",
-    "url": "https://cdn.imagevault.io/images/12345.jpg",
-    "thumbnail": "https://cdn.imagevault.io/thumbnails/12345.jpg",
-    "title": "My Image",
-    "description": "A beautiful image",
-    "tags": ["nature", "landscape"],
-    "size": 1024768,
-    "dimensions": {
-      "width": 1920,
-      "height": 1080
-    },
-    "created_at": "2024-01-15T10:30:00Z"
-  }
+  "url": "https://cdn.imagevault.app/uploads/abc123.jpg",
+  "id": "abc123",
+  "filename": "photo.jpg",
+  "size": 245760,
+  "contentType": "image/jpeg",
+  "isPublic": true,
+  "folder": "uploads/2024",
+  "views": 0,
+  "uploadedAt": "2024-01-15T10:30:00Z"
 }`}
-                        language="json"
-                        id="upload-response"
-                      />
+                        </code>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -526,355 +277,172 @@ const result = await response.json();`}
             )}
 
             {/* Image Management */}
-            {activeSection === "image-api" && (
+            {activeSection === 'image-management' && (
               <div className="space-y-8">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Image Management</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Manage your uploaded images with our comprehensive API.
+                  <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
+                    Manage your uploaded images with these endpoints
                   </p>
                 </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>List Images</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Badge variant="secondary" className="mb-2">GET</Badge>
-                      <code className="ml-2 text-sm bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">
-                        /api/v1/images
-                      </code>
-                    </div>
+                <div className="grid gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>GET /api/images</span>
+                        <Badge variant="outline">List Images</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        Retrieve a list of all your uploaded images
+                      </p>
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-green-400 text-sm">
+                          GET https://api.imagevault.app/api/images?page=1&limit=20
+                        </code>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                    <CodeBlock 
-                      code={`curl -X GET "/api/v1/images?page=1&limit=20" \\
-  -H "Authorization: Bearer YOUR_API_KEY"`}
-                      language="bash"
-                      id="list-images"
-                    />
-                  </CardContent>
-                </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>GET /api/images/:id</span>
+                        <Badge variant="outline">Get Image Details</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        Get detailed information about a specific image
+                      </p>
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-green-400 text-sm">
+                          GET https://api.imagevault.app/api/images/abc123
+                        </code>
+                      </div>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Get Single Image</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Badge variant="secondary" className="mb-2">GET</Badge>
-                      <code className="ml-2 text-sm bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">
-                        /api/v1/images/:id
-                      </code>
-                    </div>
-
-                    <CodeBlock 
-                      code={`curl -X GET "/api/v1/images/img_12345" \\
-  -H "Authorization: Bearer YOUR_API_KEY"`}
-                      language="bash"
-                      id="get-image"
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Delete Image</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Badge variant="destructive" className="mb-2">DELETE</Badge>
-                      <code className="ml-2 text-sm bg-gray-100 dark:bg-slate-800 px-2 py-1 rounded">
-                        /api/v1/images/:id
-                      </code>
-                    </div>
-
-                    <CodeBlock 
-                      code={`curl -X DELETE "/api/v1/images/img_12345" \\
-  -H "Authorization: Bearer YOUR_API_KEY"`}
-                      language="bash"
-                      id="delete-image"
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Image Transforms */}
-            {activeSection === "transforms" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Image Transforms</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    All upload forms support various image transformations and optimizations.
-                  </p>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        <span>DELETE /api/images/:id</span>
+                        <Badge variant="destructive">Delete Image</Badge>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600 dark:text-gray-400 mb-4">
+                        Permanently delete an image from your account
+                      </p>
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-red-400 text-sm">
+                          DELETE https://api.imagevault.app/api/images/abc123
+                        </code>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Available Transformations</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Resize & Format</h3>
-                      <CodeBlock 
-                        code={`// Resize parameters
-width: number (1-4000px)
-height: number (1-4000px)
-fit: 'cover' | 'contain' | 'fill' | 'inside' | 'outside'
-
-// Format conversion
-format: 'auto' | 'jpeg' | 'png' | 'webp' | 'avif'
-quality: number (1-100)
-
-// Example API call
-formData.append('width', '800');
-formData.append('height', '600');
-formData.append('format', 'webp');
-formData.append('quality', '85');`}
-                        language="javascript"
-                        id="resize-transforms"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Color & Effects</h3>
-                      <CodeBlock 
-                        code={`// Color adjustments
-brightness: number (0.1-3.0, default: 1.0)
-contrast: number (0.1-3.0, default: 1.0)
-saturation: number (0.0-3.0, default: 1.0)
-blur: number (0.3-1000, default: 0)
-
-// Effects
-grayscale: boolean
-sharpen: boolean
-rotate: number (0-360 degrees)
-
-// Example usage
-formData.append('brightness', '1.2');
-formData.append('contrast', '1.1');
-formData.append('saturation', '1.3');
-formData.append('blur', '2');
-formData.append('grayscale', 'true');`}
-                        language="javascript"
-                        id="effects-transforms"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Premium Features</h3>
-                      <CodeBlock 
-                        code={`// Watermark (Pro/Enterprise only)
-watermark: boolean
-watermark_text: string
-watermark_opacity: number (0-100)
-watermark_position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'center'
-
-// Advanced options
-auto_backup: boolean
-encryption: boolean
-
-// Example usage
-formData.append('watermark', 'true');
-formData.append('watermark_text', 'My Company');
-formData.append('watermark_opacity', '50');
-formData.append('watermark_position', 'bottom-right');`}
-                        language="javascript"
-                        id="premium-transforms"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Transform URL API</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      You can also apply transformations via URL parameters after upload:
-                    </p>
-                    <CodeBlock 
-                      code={`// Base image URL
-https://cdn.imagevault.io/images/12345.jpg
-
-// Resize to 400x300
-https://cdn.imagevault.io/images/12345.jpg?w=400&h=300
-
-// Convert to WebP with 85% quality
-https://cdn.imagevault.io/images/12345.jpg?format=webp&quality=85
-
-// Apply blur and brightness
-https://cdn.imagevault.io/images/12345.jpg?blur=5&brightness=1.2
-
-// Combine multiple transforms
-https://cdn.imagevault.io/images/12345.jpg?w=600&h=400&format=webp&quality=90&fit=crop`}
-                      language="url"
-                      id="url-transforms"
-                    />
-                  </CardContent>
-                </Card>
               </div>
             )}
 
             {/* SDKs */}
-            {activeSection === "sdks" && (
+            {activeSection === 'sdks' && (
               <div className="space-y-8">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">SDKs & Libraries</h1>
                   <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Official SDKs and community libraries for popular programming languages.
+                    Official SDKs and community libraries
                   </p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Code className="w-5 h-5 mr-2" />
-                        JavaScript SDK
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="w-5 h-5 text-yellow-600" />
+                        JavaScript/Node.js
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        Official JavaScript SDK for browser and Node.js environments.
-                      </p>
-                      <CodeBlock 
-                        code="npm install @imagevault/js-sdk"
-                        language="bash"
-                        id="js-install"
-                      />
-                      <div className="mt-4">
-                        <Button variant="outline" size="sm" asChild>
-                          <a href="https://github.com/imagevault/js-sdk" target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            View on GitHub
-                          </a>
-                        </Button>
+                    <CardContent className="space-y-4">
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-green-400 text-sm">
+                          npm install imagevault-js
+                        </code>
                       </div>
+                      <Button variant="outline" className="w-full" asChild>
+                        <a href="https://github.com/imagevault/imagevault-js" target="_blank">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View on GitHub
+                        </a>
+                      </Button>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="flex items-center">
-                        <Code className="w-5 h-5 mr-2" />
-                        Python SDK
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="w-5 h-5 text-blue-600" />
+                        Python
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-gray-600 dark:text-gray-400 mb-4">
-                        Official Python SDK for seamless integration.
-                      </p>
-                      <CodeBlock 
-                        code="pip install imagevault-python"
-                        language="bash"
-                        id="python-install"
-                      />
-                      <div className="mt-4">
-                        <Button variant="outline" size="sm" asChild>
-                          <a href="https://github.com/imagevault/python-sdk" target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="w-4 h-4 mr-2" />
-                            View on GitHub
-                          </a>
-                        </Button>
+                    <CardContent className="space-y-4">
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-green-400 text-sm">
+                          pip install imagevault-python
+                        </code>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>JavaScript Usage Example</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CodeBlock 
-                      code={`import { ImageVault } from '@imagevault/js-sdk';
-
-const client = new ImageVault({
-  apiKey: 'YOUR_API_KEY'
-});
-
-// Upload an image
-const upload = await client.upload({
-  file: fileInput.files[0],
-  title: 'My Image',
-  tags: ['nature', 'landscape']
-});
-
-// Get image details
-const image = await client.getImage(upload.id);
-
-// List all images
-const images = await client.listImages({
-  page: 1,
-  limit: 20
-});`}
-                      language="javascript"
-                      id="js-usage"
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Rate Limits */}
-            {activeSection === "rate-limits" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Rate Limits</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Understand API rate limits and how to handle them.
-                  </p>
-                </div>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Rate Limit Headers</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <p className="text-gray-600 dark:text-gray-400">
-                      Every API response includes rate limit information in the headers:
-                    </p>
-                    <CodeBlock 
-                      code={`X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1640995200`}
-                      language="http"
-                      id="rate-headers"
-                    />
-                  </CardContent>
-                </Card>
-
-                <div className="grid md:grid-cols-3 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Free Plan</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold text-blue-600">1,000</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">requests per hour</p>
+                      <Button variant="outline" className="w-full" asChild>
+                        <a href="https://github.com/imagevault/imagevault-python" target="_blank">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View on GitHub
+                        </a>
+                      </Button>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Pro Plan</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="w-5 h-5 text-red-600" />
+                        PHP
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold text-purple-600">10,000</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">requests per hour</p>
+                    <CardContent className="space-y-4">
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-green-400 text-sm">
+                          composer require imagevault/imagevault-php
+                        </code>
+                      </div>
+                      <Button variant="outline" className="w-full" asChild>
+                        <a href="https://github.com/imagevault/imagevault-php" target="_blank">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View on GitHub
+                        </a>
+                      </Button>
                     </CardContent>
                   </Card>
 
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-lg">Enterprise</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <Code className="w-5 h-5 text-green-600" />
+                        Go
+                      </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-2xl font-bold text-emerald-600">100,000+</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">custom limits</p>
+                    <CardContent className="space-y-4">
+                      <div className="bg-gray-900 rounded-lg p-4">
+                        <code className="text-green-400 text-sm">
+                          go get github.com/imagevault/imagevault-go
+                        </code>
+                      </div>
+                      <Button variant="outline" className="w-full" asChild>
+                        <a href="https://github.com/imagevault/imagevault-go" target="_blank">
+                          <ExternalLink className="w-4 h-4 mr-2" />
+                          View on GitHub
+                        </a>
+                      </Button>
                     </CardContent>
                   </Card>
                 </div>
@@ -882,298 +450,82 @@ X-RateLimit-Reset: 1640995200`}
             )}
 
             {/* Examples */}
-            {activeSection === "examples" && (
+            {activeSection === 'examples' && (
               <div className="space-y-8">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Code Examples</h1>
                   <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Practical examples for common use cases with all upload forms.
-                  </p>
-                </div>
-
-                <Tabs defaultValue="upload" className="space-y-6">
-                  <TabsList>
-                    <TabsTrigger value="upload">Image Upload</TabsTrigger>
-                    <TabsTrigger value="gallery">Gallery Widget</TabsTrigger>
-                    <TabsTrigger value="resize">Image Resizing</TabsTrigger>
-                    <TabsTrigger value="integration">Form Integration</TabsTrigger>
-                  </TabsList>
-
-                  <TabsContent value="upload">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Complete Upload Example</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CodeBlock 
-                          code={`<!DOCTYPE html>
-<html>
-<head>
-    <title>ImageVault Upload</title>
-</head>
-<body>
-    <input type="file" id="fileInput" accept="image/*" multiple>
-    <button onclick="uploadImage()">Upload</button>
-
-    <div id="result"></div>
-
-    <script>
-    async function uploadImage() {
-        const fileInput = document.getElementById('fileInput');
-        const resultDiv = document.getElementById('result');
-
-        if (!fileInput.files[0]) {
-            alert('Please select a file');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('image', fileInput.files[0]);
-        formData.append('title', 'My Image');
-        formData.append('description', 'Uploaded via API');
-        formData.append('isPublic', 'true');
-
-        try {
-            const response = await fetch('/api/v1/images/upload', {
-                method: 'POST',
-                headers: {
-                    'Authorization': 'Bearer YOUR_API_KEY'
-                },
-                body: formData,
-                credentials: 'include'
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                resultDiv.innerHTML = \`
-                    <h3>Upload Successful!</h3>
-                    <img src="\${result.data.thumbnail}" alt="Uploaded image">
-                    <p>Image ID: \${result.data.id}</p>
-                    <p>URL: <a href="\${result.data.url}" target="_blank">\${result.data.url}</a></p>
-                \`;
-            } else {
-                resultDiv.innerHTML = \`<p>Upload failed: \${result.message}</p>\`;
-            }
-        } catch (error) {
-            resultDiv.innerHTML = \`<p>Error: \${error.message}</p>\`;
-        }
-    }
-    </script>
-</body>
-</html>`}
-                          language="html"
-                          id="upload-example"
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="integration">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>React Integration with Upload Forms</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CodeBlock 
-                          code={`import React from 'react';
-import { EnhancedUploadForm } from '@/components/enhanced-upload-form';
-import SimpleUploadForm from '@/components/simple-upload-form';
-import UploadForm from '@/components/upload-form';
-
-function MyUploadPage() {
-  const [uploadMode, setUploadMode] = React.useState('enhanced');
-
-  return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-4">Image Upload</h1>
-        <div className="flex gap-2 mb-4">
-          <button 
-            onClick={() => setUploadMode('enhanced')}
-            className={\`px-4 py-2 rounded \${uploadMode === 'enhanced' ? 'bg-blue-500 text-white' : 'bg-gray-200'}\`}
-          >
-            Enhanced
-          </button>
-          <button 
-            onClick={() => setUploadMode('simple')}
-            className={\`px-4 py-2 rounded \${uploadMode === 'simple' ? 'bg-blue-500 text-white' : 'bg-gray-200'}\`}
-          >
-            Simple
-          </button>
-          <button 
-            onClick={() => setUploadMode('basic')}
-            className={\`px-4 py-2 rounded \${uploadMode === 'basic' ? 'bg-blue-500 text-white' : 'bg-gray-200'}\`}
-          >
-            Basic
-          </button>
-        </div>
-      </div>
-
-      {uploadMode === 'enhanced' && <EnhancedUploadForm />}
-      {uploadMode === 'simple' && <SimpleUploadForm />}
-      {uploadMode === 'basic' && <UploadForm />}
-    </div>
-  );
-}
-
-export default MyUploadPage;`}
-                          language="typescript"
-                          id="integration-example"
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="gallery">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Image Gallery Widget</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CodeBlock 
-                          code={`class ImageVaultGallery {
-    constructor(apiKey, containerId) {
-        this.apiKey = apiKey;
-        this.container = document.getElementById(containerId);
-        this.baseUrl = '/api/v1';
-    }
-
-    async loadImages(page = 1, limit = 12) {
-        try {
-            const response = await fetch(\`\${this.baseUrl}/images?page=\${page}&limit=\${limit}\`, {
-                headers: {
-                    'Authorization': \`Bearer \${this.apiKey}\`
-                },
-                credentials: 'include'
-            });
-
-            const data = await response.json();
-            this.renderImages(data.images);
-        } catch (error) {
-            console.error('Failed to load images:', error);
-        }
-    }
-
-    renderImages(images) {
-        this.container.innerHTML = '';
-
-        images.forEach(image => {
-            const imageElement = document.createElement('div');
-            imageElement.className = 'gallery-item';
-            imageElement.innerHTML = \`
-                <img src="\${image.thumbnail}" alt="\${image.title}" 
-                     onclick="this.openImage('\${image.url}')">
-                <h4>\${image.title}</h4>
-                <p>\${image.description}</p>
-            \`;
-
-            this.container.appendChild(imageElement);
-        });
-    }
-
-    openImage(url) {
-        window.open(url, '_blank');
-    }
-}
-
-// Usage
-const gallery = new ImageVaultGallery('YOUR_API_KEY', 'gallery-container');
-gallery.loadImages();`}
-                          language="javascript"
-                          id="gallery-example"
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-
-                  <TabsContent value="resize">
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Dynamic Image Resizing</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <CodeBlock 
-                          code={`// ImageVault supports URL-based image transformations
-const baseUrl = 'https://cdn.imagevault.io/images/12345.jpg';
-
-// Resize to specific dimensions
-const resized = \`\${baseUrl}?w=300&h=200\`;
-
-// Resize maintaining aspect ratio
-const resizedRatio = \`\${baseUrl}?w=300\`;
-
-// Create thumbnail
-const thumbnail = \`\${baseUrl}?w=150&h=150&fit=crop\`;
-
-// Apply filters
-const filtered = \`\${baseUrl}?w=400&blur=5&brightness=1.2\`;
-
-// Convert format
-const webp = \`\${baseUrl}?w=400&format=webp\`;
-
-// Combine multiple transformations
-const complex = \`\${baseUrl}?w=500&h=300&fit=crop&quality=85&format=webp\`;
-
-// Usage in HTML
-document.getElementById('hero-image').src = resized;
-document.getElementById('thumbnail').src = thumbnail;`}
-                          language="javascript"
-                          id="resize-example"
-                        />
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-
-            {/* Webhooks */}
-            {activeSection === "webhooks" && (
-              <div className="space-y-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Webhooks</h1>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">
-                    Receive real-time notifications about upload events and image processing.
+                    Ready-to-use code examples for common use cases
                   </p>
                 </div>
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Available Events</CardTitle>
+                    <CardTitle>JavaScript/Node.js Upload Example</CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Upload Events</h3>
-                      <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
-                        <li>• <code>image.uploaded</code> - Image successfully uploaded</li>
-                        <li>• <code>image.upload_failed</code> - Image upload failed</li>
-                        <li>• <code>image.processing_complete</code> - Image processing finished</li>
-                        <li>• <code>image.deleted</code> - Image deleted</li>
-                      </ul>
-                    </div>
+                  <CardContent>
+                    <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400 text-sm">JavaScript</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => copyToClipboard(`const formData = new FormData();
+formData.append('image', file);
+formData.append('isPublic', 'true');
 
-                    <div>
-                      <h3 className="text-lg font-semibold mb-2">Webhook Payload Example</h3>
-                      <CodeBlock 
-                        code={`{
-  "event": "image.uploaded",
-  "timestamp": "2024-01-15T10:30:00Z",
-  "data": {
-    "id": "img_12345",
-    "url": "https://cdn.imagevault.io/images/12345.jpg",
-    "title": "My Image",
-    "user_id": "user_67890",
-    "size": 1024768,
-    "dimensions": {
-      "width": 1920,
-      "height": 1080
-    }
-  }
-}`}
-                        language="json"
-                        id="webhook-payload"
-                      />
+const response = await fetch('https://api.imagevault.app/api/upload', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY'
+  },
+  body: formData
+});
+
+const result = await response.json();
+console.log('Image uploaded:', result.url);`, 'js-example')}
+                        >
+                          {copiedCode === 'js-example' ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                      <code className="text-cyan-300 text-sm">
+{`const formData = new FormData();
+formData.append('image', file);
+formData.append('isPublic', 'true');
+
+const response = await fetch('https://api.imagevault.app/api/upload', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer YOUR_API_KEY'
+  },
+  body: formData
+});
+
+const result = await response.json();
+console.log('Image uploaded:', result.url);`}
+                      </code>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Python Upload Example</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-gray-900 rounded-lg p-4 overflow-x-auto">
+                      <code className="text-cyan-300 text-sm">
+{`import requests
+
+url = 'https://api.imagevault.app/api/upload'
+headers = {'Authorization': 'Bearer YOUR_API_KEY'}
+files = {'image': open('photo.jpg', 'rb')}
+data = {'isPublic': 'true'}
+
+response = requests.post(url, headers=headers, files=files, data=data)
+result = response.json()
+print(f"Image uploaded: {result['url']}")`}
+                      </code>
                     </div>
                   </CardContent>
                 </Card>
@@ -1182,6 +534,8 @@ document.getElementById('thumbnail').src = thumbnail;`}
           </div>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

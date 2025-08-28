@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 
@@ -42,6 +41,13 @@ export function useAuth(): AuthState & {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
 
+  // Mock helper functions that would be defined elsewhere
+  const getToken = () => localStorage.getItem('authToken');
+  const clearAuth = () => {
+    localStorage.removeItem('authToken');
+    queryClient.invalidateQueries({ queryKey: ["auth"] });
+  };
+
   // Get current user
   const {
     data: user,
@@ -53,12 +59,21 @@ export function useAuth(): AuthState & {
     queryKey: ["auth"],
     queryFn: async () => {
       try {
+        console.log('🔍 Fetching user data...');
+        const token = getToken();
+        if (!token) {
+          console.log('❌ No token found');
+          return null;
+        }
+
         const response = await fetch("/api/v1/auth/me", {
           credentials: "include",
         });
 
         if (!response.ok) {
           if (response.status === 401) {
+            console.log('🔒 Token expired, clearing auth');
+            clearAuth();
             return null; // Not logged in
           }
           throw new Error("Failed to fetch user");
@@ -67,10 +82,22 @@ export function useAuth(): AuthState & {
         return await response.json();
       } catch (error) {
         console.error("Auth query error:", error);
+        // Don't clear auth on network errors, only on auth errors
+        if (error instanceof Error && error.message.includes('401')) {
+          clearAuth();
+        }
         return null;
       }
     },
-    retry: false,
+    retry: (failureCount, error) => {
+      // Don't retry on auth errors
+      if (error instanceof Error && error.message.includes('401')) {
+        return false;
+      }
+      return failureCount < 3;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   // Login mutation
@@ -88,6 +115,12 @@ export function useAuth(): AuthState & {
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.error || "Login failed");
+      }
+
+      // Assuming the response contains the token
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem('authToken', data.token);
       }
 
       return response.json();
@@ -115,7 +148,13 @@ export function useAuth(): AuthState & {
         throw new Error(error.error || "Registration failed");
       }
 
-      return response.json();
+      // Assuming the response contains the token
+      const responseData = await response.json();
+      if (responseData.token) {
+        localStorage.setItem('authToken', responseData.token);
+      }
+
+      return responseData;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["auth"] });
@@ -134,9 +173,10 @@ export function useAuth(): AuthState & {
       if (!response.ok) {
         throw new Error("Logout failed");
       }
+      clearAuth(); // Ensure token is cleared on logout
     },
     onSuccess: () => {
-      queryClient.setQueryData(["auth"], null);
+      // queryClient.setQueryData(["auth"], null); // Already handled by clearAuth
       navigate("/");
     },
   });

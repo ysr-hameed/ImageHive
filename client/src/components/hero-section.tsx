@@ -16,10 +16,10 @@ export default function HeroSection() {
     <section className="relative py-12 sm:py-20 lg:py-28 xl:py-36 overflow-hidden bg-gradient-to-br from-gray-50 via-white to-blue-50/30 dark:from-slate-900 dark:via-slate-900 dark:to-blue-950/30">
       <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2260%22 height=%2260%22 viewBox=%220 0 60 60%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg fill=%22none%22 fill-rule=%22evenodd%22%3E%3Cg fill=%229C92AC%22 fill-opacity=%220.05%22%3E%3Ccircle cx=%2230%22 cy=%2230%22 r=%221%22/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
           {/* Left Content */}
-          <div className="text-center lg:text-left space-y-8 animate-fade-in">
+          <div className="text-center lg:text-left space-y-6 sm:space-y-8 animate-fade-in">
             <Badge 
               className="inline-flex items-center px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-medium border border-blue-200 dark:border-blue-800"
               data-testid="hero-badge"
@@ -29,14 +29,14 @@ export default function HeroSection() {
             </Badge>
 
             <div className="space-y-6">
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 dark:text-white leading-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 dark:text-white leading-tight break-words">
                 Professional Image Hosting for{" "}
                 <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent">
                   Developers
                 </span>
               </h1>
 
-              <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
                 Scale your image hosting with our lightning-fast API. Built on enterprise-grade storage with global CDN, custom domains, and advanced security.
               </p>
             </div>
@@ -95,8 +95,8 @@ export default function HeroSection() {
           </div>
 
           {/* Right Content - Interactive API Demo */}
-          <div className="relative animate-fade-in-up">
-            <div className="bg-gray-900 dark:bg-slate-800 rounded-2xl shadow-2xl p-6 font-mono text-sm overflow-x-auto border border-gray-700 backdrop-blur-sm bg-opacity-95">
+          <div className="relative animate-fade-in-up w-full">
+            <div className="bg-gray-900 dark:bg-slate-800 rounded-2xl shadow-2xl p-4 sm:p-6 font-mono text-xs sm:text-sm overflow-x-auto border border-gray-700 backdrop-blur-sm bg-opacity-95 max-w-full">
               <div className="flex items-center space-x-2 mb-6">
                 <div className="w-3 h-3 bg-red-500 rounded-full"></div>
                 <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>

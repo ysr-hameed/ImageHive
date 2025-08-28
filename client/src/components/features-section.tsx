@@ -1,11 +1,11 @@
 import { Badge } from "@/components/ui/badge";
-import { 
-  Zap, 
-  Shield, 
-  Heart, 
-  BarChart3, 
-  Settings, 
-  Code 
+import {
+  Zap,
+  Shield,
+  Heart,
+  BarChart3,
+  Settings,
+  Code
 } from "lucide-react";
 
 const features = [
@@ -60,12 +60,12 @@ export default function FeaturesSection() {
             Built for developers who need reliable, fast, and scalable image hosting with enterprise-grade features.
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
-              <div 
+              <div
                 key={index}
                 className="group p-6 bg-gray-50 dark:bg-slate-700 rounded-xl hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
                 data-testid={`feature-${index}`}
@@ -92,7 +92,7 @@ export default function FeaturesSection() {
                 50+ API Endpoints
               </h3>
               <p className="text-gray-600 dark:text-gray-300 mb-6">
-                Comprehensive REST API with everything you need for image management, 
+                Comprehensive REST API with everything you need for image management,
                 user authentication, analytics, and more.
               </p>
               <div className="space-y-3">
@@ -106,7 +106,7 @@ export default function FeaturesSection() {
                 ))}
               </div>
             </div>
-            
+
             <div className="bg-gray-900 dark:bg-slate-800 rounded-xl p-6 font-mono text-sm overflow-x-auto">
               <div className="text-gray-400 mb-2">// Upload with metadata</div>
               <div className="text-blue-300">

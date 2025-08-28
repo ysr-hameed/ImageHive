@@ -19,9 +19,9 @@ import {
   Lock,
   Gauge
 } from 'lucide-react';
-import { HeroSection } from '@/components/hero-section';
-import { FeaturesSection } from '@/components/features-section';
-import { PricingSection } from '@/components/pricing-section';
+import HeroSection from '@/components/hero-section';
+import FeaturesSection from '@/components/features-section';
+import PricingSection from '@/components/pricing-section';
 
 export default function LandingPage() {
   const { user, isLoading } = useAuth();

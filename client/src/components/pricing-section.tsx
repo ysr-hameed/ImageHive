@@ -12,10 +12,10 @@ const plans = [
       features: [
         "2GB storage",
         "5,000 API requests/month",
-        "Basic image optimization",
-        "Standard support",
-        "5 custom domains",
-        "Basic analytics"
+        "100 images max",
+        "5 folders",
+        "Basic support",
+        "Standard CDN"
       ],
       highlighted: false,
       buttonText: "Get Started Free",
@@ -23,18 +23,18 @@ const plans = [
       popular: false
     },
     {
-      name: "Starter",
-      price: "$5",
+      name: "Starter", 
+      price: "$9",
       period: "/month",
       description: "Great for small projects",
       features: [
         "25GB storage",
-        "50,000 API requests/month",
-        "Advanced image optimization",
+        "25,000 API requests/month",
+        "1,000 images max",
+        "20 folders",
         "Priority support",
-        "20 custom domains",
-        "Analytics dashboard",
-        "API access"
+        "Global CDN",
+        "Custom domains"
       ],
       highlighted: false,
       buttonText: "Start Free Trial",
@@ -43,18 +43,18 @@ const plans = [
     },
     {
       name: "Pro",
-      price: "$15",
-      period: "/month",
+      price: "$29",
+      period: "/month", 
       description: "Best for growing businesses",
       features: [
-        "200GB storage",
-        "1,000,000 API requests/month",
-        "Advanced image optimization",
+        "100GB storage",
+        "100,000 API requests/month",
+        "10,000 images max",
+        "100 folders",
         "Priority support",
-        "Unlimited custom domains",
         "Advanced analytics",
-        "Full API access",
-        "Global CDN",
+        "Custom domains",
+        "Image optimization",
         "Team collaboration"
       ],
       highlighted: true,
@@ -64,15 +64,16 @@ const plans = [
     },
     {
       name: "Enterprise",
-      price: "$99",
-      period: "/month",
+      price: "Custom",
+      period: "",
       description: "For large-scale operations",
       features: [
-        "Unlimited storage",
-        "Unlimited API requests",
-        "Advanced image optimization",
+        "500GB+ storage",
+        "1M+ API requests/month",
+        "100K+ images",
+        "1000+ folders",
         "24/7 dedicated support",
-        "Unlimited custom domains",
+        "Custom domains",
         "Advanced analytics",
         "Full API access",
         "Global CDN",
@@ -132,11 +133,16 @@ export default function PricingSection() {
         <div className="grid lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, index) => {
             const isEnterprise = plan.name === "Enterprise";
-            const price = isEnterprise
-              ? "Custom"
-              : isYearly
-                ? (plan.price as { monthly: number; yearly: number }).yearly
-                : (plan.price as { monthly: number; yearly: number }).monthly;
+            let displayPrice = plan.price;
+            
+            // Calculate yearly discount if not Enterprise
+            if (!isEnterprise && plan.price !== "Custom") {
+              const monthlyPrice = parseFloat(plan.price.replace('$', ''));
+              if (monthlyPrice > 0) {
+                const yearlyPrice = Math.round(monthlyPrice * 12 * 0.8); // 20% discount
+                displayPrice = isYearly ? `$${yearlyPrice}` : plan.price;
+              }
+            }
 
             return (
               <div
@@ -169,7 +175,7 @@ export default function PricingSection() {
                   </h3>
                   <div className="mb-4">
                     <span className="text-4xl font-bold text-gray-900 dark:text-white">
-                      {plan.price}
+                      {displayPrice}
                     </span>
                     {plan.price !== "Custom" && (
                       <span className="text-gray-500 dark:text-gray-400">{plan.period}</span>

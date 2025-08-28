@@ -37,8 +37,7 @@ export default function HeroSection() {
               </h1>
 
               <p className="text-lg sm:text-xl lg:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                Scale your image hosting to <span className="font-semibold text-gray-900 dark:text-white">millions of users</span> with our lightning-fast API. 
-                Built on Backblaze B2 with global CDN, custom domains, and enterprise-grade security.
+                Scale your image hosting with our lightning-fast API. Built on enterprise-grade storage with global CDN, custom domains, and advanced security.
               </p>
             </div>
 
